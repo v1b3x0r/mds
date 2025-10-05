@@ -4,7 +4,7 @@ A production-ready library for material-driven styling - think in materials, not
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/material-js-concept)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Size](https://img.shields.io/badge/size-4KB%20minified-orange.svg)](material-system.min.js)
+[![Size](https://img.shields.io/badge/size-9KB%20minified-orange.svg)](material-system.min.js)
 
 ## Quick Start
 
@@ -71,13 +71,49 @@ Change the glass material definition once, and every glass element updates autom
 
 ## Features
 
+- **Standalone Package**: Zero external dependencies - just include `material-system.js` and it works
 - **2 Core Materials**: Glass, Paper (proven, production-ready)
-- **State Management**: Automatic hover, active, focus, disabled states
+- **State Management**: Automatic hover, active, focus, disabled states (only for interactive elements)
 - **Theme Support**: Dark/light theme with auto-adaptation
 - **Material Inheritance**: Extend existing materials to create custom ones
-- **Zero Dependencies**: Pure vanilla JavaScript
-- **Tiny**: ~4KB minified, ~1.5KB gzipped
+- **Zero Dependencies**: Pure vanilla JavaScript, no CSS files required
+- **Tiny**: ~9KB minified, ~2.4KB gzipped
 - **Framework Agnostic**: Works with React, Vue, vanilla HTML
+
+---
+
+## Standalone Package - No CSS Required
+
+Material System is a **true standalone package**. Unlike most UI libraries, you don't need to import any CSS files:
+
+```html
+<!-- ✅ This is all you need -->
+<script src="material-system.js"></script>
+
+<!-- ❌ NO CSS imports required -->
+<!-- No styles.css, no theme.css, nothing -->
+```
+
+**Why?** All material properties (colors, blur, shadows, borders) are hardcoded in the JavaScript package. This means:
+
+- **Zero configuration**: Drop in one `<script>` tag and you're done
+- **No build step**: Works directly in the browser
+- **No style conflicts**: Material properties are applied via inline styles, isolated from your CSS
+- **Framework-friendly**: Works with any CSS framework (Tailwind, Bootstrap, etc.) without conflicts
+
+The demo page includes `styles.css`, but that's **only for the demo** (typography, layout, body background). Users of Material System package don't need it.
+
+### Separation of Concerns
+
+When using Material System with Tailwind (or any CSS framework):
+
+```html
+<!-- Tailwind handles: layout, spacing, sizing -->
+<!-- Material System handles: visual appearance -->
+<button class="px-4 py-2 rounded-full flex items-center gap-2" data-material="glass">
+  Click me
+</button>
+```
 
 ---
 
@@ -288,7 +324,7 @@ Each approach has its place. Material System excels when you need:
 
 ## Technical Details
 
-- **Size**: ~15KB source, ~4KB minified, ~1.5KB gzipped
+- **Size**: ~17KB source, ~9KB minified, ~2.4KB gzipped
 - **Dependencies**: Zero
 - **Browser**: Modern browsers (ES6+, backdrop-filter)
 - **Framework**: Agnostic (works with React, Vue, vanilla)
@@ -331,7 +367,7 @@ MIT License - use it however you want.
 
 ## Demo
 
-[View Live Demo](index.html) - Open `index.html` in your browser to see:
+**[View Live Demo](https://material-js-concept.vercel.app/)** - See Material System in action:
 - Global material switcher (switch entire page between Paper/Glass)
 - Theme switching (dark/light)
 - State transitions (hover, active)
