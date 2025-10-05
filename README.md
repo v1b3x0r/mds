@@ -1,6 +1,38 @@
-# Material-Driven Frontend
+# Material System
 
-A proof of concept demonstrating a paradigm shift from **class-based styling** to **material-based styling**.
+A production-ready library for material-driven styling - think in materials, not CSS properties.
+
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/material-js-concept)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Size](https://img.shields.io/badge/size-4KB%20minified-orange.svg)](material-system.min.js)
+
+## Quick Start
+
+### CDN (Recommended)
+
+```html
+<!-- Include Material System -->
+<script src="https://cdn.jsdelivr.net/gh/yourusername/material-js-concept/material-system.min.js"></script>
+
+<!-- Use materials -->
+<div data-material="glass">Glass Card</div>
+<button data-material="metal">Metal Button</button>
+```
+
+### Local Installation
+
+```bash
+# Download material-system.js
+curl -O https://raw.githubusercontent.com/yourusername/material-js-concept/main/material-system.js
+```
+
+```html
+<script src="./material-system.js"></script>
+```
+
+That's it! The system auto-initializes and applies materials on page load.
+
+---
 
 ## The Concept
 
@@ -37,95 +69,271 @@ Change the glass material definition once, and every glass element updates autom
 ### 5. Semantic Clarity
 `data-material="glass"` is more meaningful than a string of utility classes. It describes what the element IS, not just how it looks.
 
-## How It Works
+## Features
 
-### 1. Material Registry
-Define materials with their visual properties:
+- **5 Built-in Materials**: Glass, Metal, Paper, Wood, Fabric
+- **State Management**: Automatic hover, active, focus, disabled states
+- **Theme Support**: Dark/light theme with auto-adaptation
+- **Material Inheritance**: Extend existing materials
+- **Design Tokens**: Use semantic tokens (`@surface.primary`)
+- **Zero Dependencies**: Pure vanilla JavaScript
+- **Tiny**: ~4KB minified, ~1.5KB gzipped
+- **Framework Agnostic**: Works with React, Vue, vanilla HTML
+
+---
+
+## API Reference
+
+### MaterialSystem.register()
+
+Register a new material with optional states:
 
 ```javascript
-const MaterialRegistry = {
-  glass: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+MaterialSystem.register('material-name', {
+  base: {
+    background: '#color',
+    // ... base styles
+  },
+  hover: {
+    // ... hover state styles
+  },
+  active: {
+    // ... active state styles
+  },
+  disabled: {
+    // ... disabled state styles
+  },
+  dark: {
+    // ... dark theme overrides
+  },
+  light: {
+    // ... light theme overrides
   }
-};
+});
 ```
 
-### 2. Use in HTML
-Apply materials via data attributes:
+### MaterialSystem.extend()
 
-```html
-<div data-material="glass">Content</div>
-<button data-material="metal">Click me</button>
+Extend an existing material:
+
+```javascript
+MaterialSystem.extend('frosted-glass', 'glass', {
+  base: {
+    backdropFilter: 'blur(20px)' // override property
+  }
+});
 ```
 
-### 3. Auto-Apply System
-The system automatically scans and applies materials:
+### MaterialSystem.setTheme()
+
+Switch theme:
+
+```javascript
+MaterialSystem.setTheme('dark'); // or 'light'
+```
+
+### MaterialSystem.apply()
+
+Manually re-apply all materials (usually not needed):
 
 ```javascript
 MaterialSystem.apply();
 ```
 
-## Quick Start
+### Design Tokens
 
-1. Open `index.html` in a browser
-2. See the comparison between traditional and material-driven approaches
-3. Explore the 5 material examples: glass, metal, paper, wood, fabric
-4. View source to see the implementation
-
-## When to Use
-
-**Good fit:**
-- Design systems that need strong visual consistency
-- Teams where designers and developers need shared vocabulary
-- Projects with repeating visual patterns (e.g., cards, modals, panels)
-- Rapid prototyping where visual details should be abstracted
-
-**Not ideal for:**
-- One-off unique designs that don't repeat
-- Projects requiring pixel-perfect custom styling for every element
-- When CSS utility frameworks already solve your needs
-- Ultra-performance-critical applications (runtime style injection has overhead)
-
-## Extending
-
-Add your own materials:
+Use semantic tokens instead of direct material names:
 
 ```javascript
-MaterialSystem.register('custom-material', {
-  background: '#yourcolor',
-  boxShadow: 'your shadow',
-  // ... any CSS properties
+// Configure tokens
+MaterialSystem.tokens.surface.primary = 'glass';
+
+// Use in HTML
+<div data-material="@surface.primary">Card</div>
+```
+
+---
+
+## Examples
+
+### Basic Usage
+
+```html
+<div data-material="glass">Glass Card</div>
+<button data-material="metal">Metal Button</button>
+```
+
+[See full example](examples/basic.html)
+
+### Custom Materials
+
+```javascript
+// Register completely new material
+MaterialSystem.register('neon', {
+  base: {
+    background: 'rgba(0, 255, 255, 0.1)',
+    border: '2px solid #00ffff',
+    boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)'
+  },
+  hover: {
+    boxShadow: '0 0 30px rgba(0, 255, 255, 0.8)'
+  }
 });
 ```
 
+[See full example](examples/custom-material.html)
+
+### Theme Switching
+
+```javascript
+// Switch themes
+MaterialSystem.setTheme('light');
+
+// Materials automatically adapt
+```
+
+[See full example](examples/theme-switcher.html)
+
+### Design Tokens
+
+```javascript
+// Use tokens for easier theming
+MaterialSystem.tokens = {
+  surface: {
+    primary: 'glass',
+    secondary: 'paper'
+  }
+};
+```
+
+```html
+<div data-material="@surface.primary">Primary Surface</div>
+```
+
+[See full example](examples/design-tokens.html)
+
+---
+
+## How is this Different?
+
+| Approach | Mental Model | Best For | Example |
+|----------|--------------|----------|---------|
+| **Tailwind** (Utility-First) | "Apply these visual properties" | Rapid prototyping, pixel-perfect control | `bg-white/90 backdrop-blur-md shadow-lg...` |
+| **Material System** | "This is made of glass" | Consistency, design system enforcement | `data-material="glass"` |
+| **MUI/Bootstrap** | "Use this component" | Speed, comprehensive UI kit | `<Button variant="contained">` |
+| **CSS-in-JS** | "Style this component" | Dynamic styling, encapsulation | `styled.div\`...\`` |
+
+### When to Use Material System?
+
+**Good fit:**
+- Building design systems with strong visual consistency
+- Designer-developer collaboration (shared vocabulary)
+- Repeating UI patterns (cards, modals, panels)
+- Need to switch themes/styles globally
+- Want semantic, maintainable styling
+
+**Not ideal for:**
+- One-off unique designs
+- Need pixel-perfect custom control per element
+- Already using comprehensive component libraries
+- Ultra-performance-critical applications
+
+---
+
+## Built-in Materials
+
+| Material | Description | Use Cases |
+|----------|-------------|-----------|
+| **glass** | Frosted glass with blur and transparency | Overlays, modern cards, modals |
+| **metal** | Brushed metal with gradient | Buttons, premium UI elements |
+| **paper** | Soft matte surface | Content containers, forms |
+| **wood** | Warm wooden texture | Organic, natural designs |
+| **fabric** | Textile-like soft material | Gentle backgrounds, comfortable UI |
+
+All materials support:
+- Hover states (automatic)
+- Active states (automatic)
+- Disabled states (automatic)
+- Dark/light theme adaptation (where applicable)
+
+---
+
+## Browser Support
+
+Works in all modern browsers that support:
+- `backdrop-filter` (Chrome 76+, Safari 9+, Firefox 103+)
+- CSS custom properties
+- ES6 JavaScript
+
+For older browsers, materials gracefully degrade (blur effects won't work but basic styling remains).
+
+---
+
 ## Philosophy
 
-This isn't about replacing existing tools. It's about exploring a different way to think about styling:
+Material System isn't about replacing existing tools - it's a different way to think about styling:
 
-- **Utility-first (Tailwind)**: Compose styles from atomic utilities
-- **Component-based (styled-components)**: Encapsulate styles with components
-- **Material-driven (this PoC)**: Think in materials, not properties
+- **Tailwind**: Compose atomic utilities → complete design
+- **Styled Components**: Encapsulate styles with components
+- **Material System**: Declare materials → inherit all properties
 
-Each has its place. Material-driven excels when you want semantic, consistent, designer-friendly visual language.
+Each approach has its place. Material System excels when you need:
+- Shared designer-developer vocabulary
+- Strong visual consistency
+- Easy global theme changes
+- Semantic, maintainable code
 
-## Technical Notes
+---
 
-- Zero dependencies (vanilla JavaScript)
-- Works in modern browsers (uses backdrop-filter, CSS custom properties)
-- Single-file demo (no build step required)
-- ~300 lines of code total
-- Uses MutationObserver for dynamic content support
+## Technical Details
+
+- **Size**: ~15KB source, ~4KB minified, ~1.5KB gzipped
+- **Dependencies**: Zero
+- **Browser**: Modern browsers (ES6+, backdrop-filter)
+- **Framework**: Agnostic (works with React, Vue, vanilla)
+- **License**: MIT
+
+### How it Works Internally
+
+1. **Auto-initialization**: Loads and applies materials on DOM ready
+2. **MutationObserver**: Watches for dynamic content and applies materials automatically
+3. **Event handlers**: Attaches state handlers (hover, active, focus) to interactive elements
+4. **Theme system**: Merges theme-specific styles with base/state styles
+5. **Token resolution**: Resolves `@token.path` syntax to actual material names
+
+---
+
+## Contributing
+
+This is a proof of concept / production-ready library. Feel free to:
+- Fork and extend
+- Report issues
+- Suggest new materials
+- Share your use cases
+
+---
 
 ## Inspiration
 
-- Material Design (Google) - elevation and surface concepts
-- Fluent Design (Microsoft) - acrylic materials
-- Glassmorphism trend - transparent, blurred surfaces
-- Real-world materials - how physical objects look and feel
+- **Material Design** (Google) - elevation and surface concepts
+- **Fluent Design** (Microsoft) - acrylic materials
+- **Glassmorphism** - transparent, blurred surfaces
+- **Real-world materials** - how physical objects look and feel
+
+---
 
 ## License
 
-This is a proof of concept. Use it however you want.
+MIT License - use it however you want.
+
+---
+
+## Demo
+
+[View Live Demo](index.html) - Open `index.html` in your browser to see:
+- Interactive material switcher
+- Theme switching (dark/light)
+- State transitions (hover, active)
+- Material inheritance examples
+- Design token usage
+- Comparison with other approaches
