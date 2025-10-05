@@ -23,20 +23,6 @@
     // Material registry
     registry: {},
 
-    // Design tokens
-    tokens: {
-      surface: {
-        primary: 'glass',
-        secondary: 'paper',
-        elevated: 'metal'
-      },
-      interactive: {
-        default: 'metal',
-        primary: 'glass',
-        secondary: 'paper'
-      }
-    },
-
     // Current theme
     _theme: 'dark',
 
@@ -191,6 +177,37 @@
     },
 
     /**
+     * Check if element is interactive (should have hover/active states)
+     * @private
+     */
+    _isInteractiveElement(element) {
+      const interactiveTags = ['button', 'a', 'input', 'select', 'textarea', 'label'];
+      const tagName = element.tagName.toLowerCase();
+
+      // Check if it's a native interactive element
+      if (interactiveTags.includes(tagName)) {
+        return true;
+      }
+
+      // Check if it has role="button" or tabindex (custom interactive elements)
+      if (element.hasAttribute('role') && ['button', 'link', 'tab'].includes(element.getAttribute('role'))) {
+        return true;
+      }
+
+      // Check if it has tabindex (focusable = interactive)
+      if (element.hasAttribute('tabindex') && element.getAttribute('tabindex') !== '-1') {
+        return true;
+      }
+
+      // Check if it has onclick handler (likely interactive)
+      if (element.onclick || element.hasAttribute('onclick')) {
+        return true;
+      }
+
+      return false;
+    },
+
+    /**
      * Setup state handlers (hover, active, focus, disabled)
      * @private
      */
@@ -202,8 +219,11 @@
 
       const handlers = [];
 
-      // Hover state
-      if (material.hover) {
+      // Check if element is interactive (only apply hover/active to interactive elements)
+      const isInteractive = this._isInteractiveElement(element);
+
+      // Hover state (only for interactive elements)
+      if (material.hover && isInteractive) {
         const mouseEnter = () => {
           if (!element.disabled) {
             const hoverStyles = this._getStylesForState(material, 'hover');
@@ -222,8 +242,8 @@
         handlers.push({ event: 'mouseleave', handler: mouseLeave });
       }
 
-      // Active state
-      if (material.active) {
+      // Active state (only for interactive elements)
+      if (material.active && isInteractive) {
         const mouseDown = () => {
           if (!element.disabled) {
             const activeStyles = this._getStylesForState(material, 'active');
@@ -351,91 +371,96 @@
      * @private
      */
     _registerBuiltInMaterials() {
-      // Glass material - Apple Liquid Glass (with original borders + reactive transparency)
+      // Glass material - Apple Liquid Glass (Dark mode default)
       this.register('glass', {
         base: {
-          backgroundColor: 'color-mix(in srgb, var(--c-glass) 12%, transparent)',
-          backdropFilter: 'blur(var(--glass-blur)) saturate(var(--saturation))',
-          WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--saturation))',
-          border: '1px solid var(--glass-border)',
-          borderTop: '1px solid var(--glass-border-top)',
-          color: 'var(--c-content)',
-          // Original shadows - inner border + reflex layers + depth shadows
+          backgroundColor: 'rgba(255, 255, 255, 0.12)',
+          backdropFilter: 'blur(8px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.4)',
+          color: '#ffffff',
+          // 10-layer shadow system: inner border + reflex layers + depth shadows
           boxShadow: `
-            inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 20%), transparent),
-            inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
-            inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
-            inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
-            inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
-            inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
-            inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
-            inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent),
-            0px 1px 5px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
-            0px 6px 16px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 16%), transparent)
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+            inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9),
+            inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8),
+            inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6),
+            inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12),
+            inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2),
+            inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2),
+            inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1),
+            0px 1px 5px 0px rgba(0, 0, 0, 0.2),
+            0px 6px 16px 0px rgba(0, 0, 0, 0.16)
           `,
           transition: 'background-color 400ms cubic-bezier(1, 0, 0.4, 1), box-shadow 400ms cubic-bezier(1, 0, 0.4, 1)'
         },
         hover: {
-          backgroundColor: 'color-mix(in srgb, var(--c-glass) 18%, transparent)',
-          borderTop: '1px solid var(--glass-border-hover)',
+          backgroundColor: 'rgba(255, 255, 255, 0.18)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
           boxShadow: `
-            inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 25%), transparent),
-            inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 95%), transparent),
-            inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 85%), transparent),
-            inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 65%), transparent),
-            inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 14%), transparent),
-            inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 22%), transparent),
-            inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 22%), transparent),
-            inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent),
-            0px 2px 8px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 22%), transparent),
-            0px 8px 20px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 18%), transparent)
+            inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+            inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
+            inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
+            inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
+            inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.14),
+            inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.22),
+            inset 0px 3px 4px -2px rgba(0, 0, 0, 0.22),
+            inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.12),
+            0px 2px 8px 0px rgba(0, 0, 0, 0.22),
+            0px 8px 20px 0px rgba(0, 0, 0, 0.18)
           `,
           transform: 'translateY(-2px)'
         },
         active: {
-          backgroundColor: 'color-mix(in srgb, var(--c-glass) 8%, transparent)',
-          transform: 'translateY(0) scale(0.98)'
-        },
-        disabled: {
-          opacity: '0.5',
-          cursor: 'not-allowed'
-        }
-      });
-
-      // Metal material
-      this.register('metal', {
-        base: {
-          background: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='diamond' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,20 L20,0 L40,20 L20,40 Z' fill='none' stroke='%23000' stroke-width='0.5' opacity='0.15'/%3E%3Cpath d='M20,20 L30,10 M20,20 L10,10 M20,20 L10,30 M20,20 L30,30' stroke='%23fff' stroke-width='0.3' opacity='0.1'/%3E%3Cellipse cx='20' cy='20' rx='2' ry='3' fill='%23fff' opacity='0.15'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23diamond)'/%3E%3C/svg%3E"), linear-gradient(135deg, #434343 0%, #282828 100%)`,
-          backgroundSize: '40px 40px, 100% 100%',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-          color: '#e0e0e0'
-        },
-        hover: {
-          background: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='diamond' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,20 L20,0 L40,20 L20,40 Z' fill='none' stroke='%23000' stroke-width='0.5' opacity='0.15'/%3E%3Cpath d='M20,20 L30,10 M20,20 L10,10 M20,20 L10,30 M20,20 L30,30' stroke='%23fff' stroke-width='0.3' opacity='0.15'/%3E%3Cellipse cx='20' cy='20' rx='2' ry='3' fill='%23fff' opacity='0.2'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23diamond)'/%3E%3C/svg%3E"), linear-gradient(135deg, #4a4a4a 0%, #2f2f2f 100%)`,
-          backgroundSize: '40px 40px, 100% 100%',
-          boxShadow: '0 6px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-          transform: 'translateY(-2px)'
-        },
-        active: {
-          background: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='diamond' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,20 L20,0 L40,20 L20,40 Z' fill='none' stroke='%23000' stroke-width='0.5' opacity='0.2'/%3E%3Cpath d='M20,20 L30,10 M20,20 L10,10 M20,20 L10,30 M20,20 L30,30' stroke='%23fff' stroke-width='0.3' opacity='0.05'/%3E%3Cellipse cx='20' cy='20' rx='2' ry='3' fill='%23fff' opacity='0.1'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23diamond)'/%3E%3C/svg%3E"), linear-gradient(135deg, #383838 0%, #232323 100%)`,
-          backgroundSize: '40px 40px, 100% 100%',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
           transform: 'translateY(0) scale(0.98)'
         },
         disabled: {
           opacity: '0.5',
           cursor: 'not-allowed'
         },
+        // Light mode override
         light: {
-          background: `url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='diamond-light' width='40' height='40' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,20 L20,0 L40,20 L20,40 Z' fill='none' stroke='%23000' stroke-width='0.5' opacity='0.08'/%3E%3Cpath d='M20,20 L30,10 M20,20 L10,10 M20,20 L10,30 M20,20 L30,30' stroke='%23fff' stroke-width='0.3' opacity='0.4'/%3E%3Cellipse cx='20' cy='20' rx='2' ry='3' fill='%23fff' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23diamond-light)'/%3E%3C/svg%3E"), linear-gradient(135deg, #e0e0e0 0%, #c0c0c0 100%)`,
-          backgroundSize: '40px 40px, 100% 100%',
-          border: '1px solid rgba(0, 0, 0, 0.15)',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
-          color: '#2d1b3d'
+          backgroundColor: 'rgba(0, 0, 0, 0.08)',
+          backdropFilter: 'blur(8px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(8px) saturate(200%)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+          color: '#224',
+          boxShadow: `
+            inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+            inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9),
+            inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8),
+            inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6),
+            inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.036),
+            inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.06),
+            inset 0px 3px 4px -2px rgba(0, 0, 0, 0.06),
+            inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.03),
+            0px 1px 5px 0px rgba(0, 0, 0, 0.06),
+            0px 6px 16px 0px rgba(0, 0, 0, 0.048)
+          `,
+          hover: {
+            backgroundColor: 'rgba(0, 0, 0, 0.18)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.6)',
+            boxShadow: `
+              inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+              inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
+              inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
+              inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
+              inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.042),
+              inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.066),
+              inset 0px 3px 4px -2px rgba(0, 0, 0, 0.066),
+              inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.036),
+              0px 2px 8px 0px rgba(0, 0, 0, 0.066),
+              0px 8px 20px 0px rgba(0, 0, 0, 0.054)
+            `
+          },
+          active: {
+            backgroundColor: 'rgba(0, 0, 0, 0.08)'
+          }
         }
       });
-
       // Paper material
       this.register('paper', {
         base: {
@@ -463,146 +488,6 @@
           color: '#e0e0e0',
           border: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
-        }
-      });
-
-      // Wood material
-      this.register('wood', {
-        base: {
-          background: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='wood' width='20' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,0 Q5,25 0,50 T0,100' stroke='%23654321' stroke-width='0.5' fill='none' opacity='0.3'/%3E%3Cpath d='M10,0 Q15,25 10,50 T10,100' stroke='%23654321' stroke-width='0.8' fill='none' opacity='0.2'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23wood)'/%3E%3C/svg%3E"), radial-gradient(ellipse 80px 120px at 30% 40%, rgba(101, 67, 33, 0.4) 0%, transparent 50%), radial-gradient(ellipse 60px 90px at 70% 60%, rgba(80, 50, 25, 0.5) 0%, transparent 40%), linear-gradient(90deg, #8B7355 0%, #6F5643 25%, #8B7355 50%, #6F5643 75%, #8B7355 100%)`,
-          backgroundSize: '200px 200px, 100% 100%, 100% 100%, 100% 100%',
-          boxShadow: 'inset 0 0 60px rgba(101, 67, 33, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4)',
-          border: '1px solid rgba(70, 50, 30, 0.6)',
-          color: '#f5e6d3'
-        },
-        hover: {
-          boxShadow: 'inset 0 0 60px rgba(101, 67, 33, 0.35), 0 6px 18px rgba(0, 0, 0, 0.5)',
-          transform: 'translateY(-2px)',
-          filter: 'brightness(1.1)'
-        },
-        active: {
-          boxShadow: 'inset 0 0 40px rgba(101, 67, 33, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3)',
-          transform: 'translateY(0) scale(0.98)',
-          filter: 'brightness(0.95)'
-        },
-        disabled: {
-          opacity: '0.5',
-          cursor: 'not-allowed'
-        },
-        light: {
-          background: `url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='wood' width='20' height='100' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0,0 Q5,25 0,50 T0,100' stroke='%23A07850' stroke-width='0.5' fill='none' opacity='0.2'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23wood)'/%3E%3C/svg%3E"), radial-gradient(ellipse 70px 100px at 35% 45%, rgba(160, 120, 80, 0.3) 0%, transparent 50%), linear-gradient(90deg, #D4A574 0%, #C19463 50%, #D4A574 100%)`,
-          backgroundSize: '200px 200px, 100% 100%, 100% 100%',
-          border: '1px solid rgba(140, 100, 60, 0.4)',
-          boxShadow: 'inset 0 0 40px rgba(160, 120, 80, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15)',
-          color: '#4a3a2a'
-        }
-      });
-
-      // Fabric material
-      this.register('fabric', {
-        base: {
-          background: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='20' height='20' fill='%23f5e6d9'/%3E%3Cpath d='M0,0 L20,0 M0,10 L20,10 M0,20 L20,20' stroke='%23000' stroke-width='0.5' opacity='0.05'/%3E%3Cpath d='M0,0 L0,20 M10,0 L10,20 M20,0 L20,20' stroke='%23000' stroke-width='0.5' opacity='0.05'/%3E%3C/svg%3E"), linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.02) 48%, rgba(0,0,0,0.02) 52%, transparent 52%)`,
-          backgroundSize: '20px 20px, 10px 10px',
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
-          color: '#3d3d3d'
-        },
-        hover: {
-          boxShadow: '0 4px 18px rgba(0, 0, 0, 0.2)',
-          transform: 'translateY(-2px)'
-        },
-        active: {
-          boxShadow: '0 1px 6px rgba(0, 0, 0, 0.15)',
-          transform: 'translateY(0) scale(0.98)'
-        },
-        disabled: {
-          opacity: '0.6',
-          cursor: 'not-allowed'
-        },
-        dark: {
-          background: `url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='20' height='20' fill='%233a2f26'/%3E%3Cpath d='M0,0 L20,0 M0,10 L20,10 M0,20 L20,20' stroke='%23fff' stroke-width='0.5' opacity='0.03'/%3E%3Cpath d='M0,0 L0,20 M10,0 L10,20 M20,0 L20,20' stroke='%23fff' stroke-width='0.5' opacity='0.03'/%3E%3C/svg%3E"), linear-gradient(45deg, transparent 48%, rgba(255,255,255,0.02) 48%, rgba(255,255,255,0.02) 52%, transparent 52%)`,
-          backgroundSize: '20px 20px, 10px 10px',
-          color: '#e8d5c4',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.3)'
-        }
-      });
-
-      // Holographic material - Experimental iridescent effect
-      this.register('holo', {
-        base: {
-          background: `
-            linear-gradient(125deg,
-              rgba(255, 0, 200, 0.3) 0%,
-              rgba(0, 200, 255, 0.3) 25%,
-              rgba(0, 255, 150, 0.3) 50%,
-              rgba(255, 200, 0, 0.3) 75%,
-              rgba(255, 0, 200, 0.3) 100%
-            ),
-            linear-gradient(45deg,
-              rgba(255, 255, 255, 0.1) 0%,
-              transparent 100%
-            ),
-            rgba(0, 0, 0, 0.3)
-          `,
-          backgroundSize: '400% 100%, 100% 100%, 100% 100%',
-          backdropFilter: 'blur(10px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(10px) saturate(200%)',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          color: '#ffffff',
-          boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.5),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-            0 4px 16px rgba(200, 0, 255, 0.3),
-            0 8px 32px rgba(0, 200, 255, 0.2)
-          `,
-          transition: 'all 0.3s ease, background-position 0.8s ease'
-        },
-        hover: {
-          backgroundPosition: '100% 0%, 0% 0%, 0% 0%',
-          backdropFilter: 'blur(15px) saturate(250%)',
-          WebkitBackdropFilter: 'blur(15px) saturate(250%)',
-          boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.6),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-            0 6px 20px rgba(200, 0, 255, 0.4),
-            0 12px 40px rgba(0, 200, 255, 0.3)
-          `,
-          transform: 'translateY(-2px) scale(1.02)'
-        },
-        active: {
-          transform: 'translateY(0) scale(0.98)',
-          backdropFilter: 'blur(8px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(180%)'
-        },
-        disabled: {
-          opacity: '0.5',
-          cursor: 'not-allowed'
-        },
-        light: {
-          background: `
-            linear-gradient(125deg,
-              rgba(255, 0, 200, 0.15) 0%,
-              rgba(0, 200, 255, 0.15) 25%,
-              rgba(0, 255, 150, 0.15) 50%,
-              rgba(255, 200, 0, 0.15) 75%,
-              rgba(255, 0, 200, 0.15) 100%
-            ),
-            linear-gradient(45deg,
-              rgba(255, 255, 255, 0.4) 0%,
-              rgba(255, 255, 255, 0.2) 100%
-            ),
-            rgba(255, 255, 255, 0.5)
-          `,
-          backgroundSize: '400% 100%, 100% 100%, 100% 100%',
-          color: '#1a1a1a',
-          border: '1px solid rgba(200, 0, 255, 0.3)',
-          boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.8),
-            inset 0 -1px 0 rgba(0, 0, 0, 0.1),
-            0 4px 16px rgba(200, 0, 255, 0.2),
-            0 8px 32px rgba(0, 200, 255, 0.1)
-          `
         }
       });
     }

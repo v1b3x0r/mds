@@ -1,558 +1,133 @@
 /**
- * Material System Styles
- * iOS 26 / macOS 26 Tahoe Design Tokens
+ * Demo Page Styles (NOT part of Material System package)
+ * This file is only for the demo/example page (index.html)
+ * Users of Material System package do NOT need this file
  */
 
 /* ========================================
-   Design Tokens (iOS 26 / macOS 26 Tahoe)
+   Base Styles (Tailwind @layer syntax)
    ======================================== */
 
-:root {
-  /* Border Radius */
-  --radius-sm: 0.75rem;   /* 12px - small elements, code blocks */
-  --radius-md: 1rem;      /* 16px - buttons, inputs */
-  --radius-lg: 1.5rem;    /* 24px - cards, panels */
-  --radius-xl: 2rem;      /* 32px - large containers */
-
-  /* Spacing */
-  --space-xs: 0.5rem;     /* 8px */
-  --space-sm: 0.75rem;    /* 12px */
-  --space-md: 1rem;       /* 16px */
-  --space-lg: 1.25rem;    /* 20px */
-  --space-xl: 1.5rem;     /* 24px */
-  --space-2xl: 2rem;      /* 32px */
-
-  /* Border */
-  --border-width: 0.5px;
-  --border-color-light: rgba(255, 255, 255, 0.15);
-  --border-color-medium: rgba(255, 255, 255, 0.18);
-  --border-color-strong: rgba(255, 255, 255, 0.25);
-
-  /* Shadows */
-  --shadow-sm: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
-  --shadow-md: 0 0.5rem 2rem rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 0.75rem 3rem rgba(0, 0, 0, 0.25);
-
-  /* Glass Effects */
-  --blur-light: blur(1.25rem) saturate(180%);  /* 20px */
-  --blur-medium: blur(1.875rem) saturate(180%); /* 30px */
-  --blur-heavy: blur(2.5rem) saturate(200%);    /* 40px */
-
-  /* Transitions */
-  --transition-smooth: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-  --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  /* Glass Color Variables (Dark Mode Default) */
-  --c-glass: #fff;
-  --c-light: #fff;
-  --c-dark: #000;
-  --c-content: #fff;
-  --c-action: #007aff;
-  --glass-reflex-light: 100%;
-  --glass-reflex-dark: 100%;
-  --saturation: 180%;
-  --glass-blur: 20px;
-
-  /* Glass Border Colors (pre-calculated for browser compatibility) */
-  --glass-border: rgba(255, 255, 255, 0.25);
-  --glass-border-top: rgba(255, 255, 255, 0.4);
-  --glass-border-hover: rgba(255, 255, 255, 0.5);
-}
-
-/* Light Mode */
-body[data-theme="light"] {
-  --c-glass: #000;
-  --c-light: #fff;
-  --c-dark: #000;
-  --c-content: #224;
-  --glass-reflex-light: 100%;
-  --glass-reflex-dark: 30%;
-  --saturation: 200%;
-  --glass-blur: 24px;
-
-  /* Glass Border Colors - Light mode (slightly different for contrast) */
-  --glass-border: rgba(255, 255, 255, 0.3);
-  --glass-border-top: rgba(255, 255, 255, 0.5);
-  --glass-border-hover: rgba(255, 255, 255, 0.6);
-}
-
-/* ========================================
-   Base Styles
-   ======================================== */
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: #0a0a0f;
-  color: #e0e0e0;
-  line-height: 1.6;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-}
-
-/* ========================================
-   Theme Toggle
-   ======================================== */
-
-.theme-toggle {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  z-index: 1000;
-  display: flex;
-  gap: var(--space-xs);
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xs);
-  border: var(--border-width) solid var(--border-color-medium);
-  box-shadow: var(--shadow-sm);
-}
-
-.theme-toggle button {
-  padding: 0.625rem 1.25rem;
-  font-size: 0.9rem;
-  border-radius: var(--radius-md);
-  opacity: 0.6;
-  transition: var(--transition-smooth);
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.08);
-  color: inherit;
-}
-
-.theme-toggle button:hover {
-  opacity: 0.9;
-  transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.theme-toggle button[data-active="true"] {
-  opacity: 1;
-  box-shadow: 0 0.25rem 0.75rem rgba(102, 126, 234, 0.4);
-  background: #667eea !important;
-  color: white !important;
-  transform: scale(1);
-}
-
-/* ========================================
-   Hero Section
-   ======================================== */
-
-.hero {
-  min-height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: 2rem;
-  gap: 2rem;
-  max-width: 87.5rem; /* 1400px */
-  margin: 0 auto;
-}
-
-.hero-header {
-  text-align: center;
-  padding-top: 4rem;
-}
-
-.hero-header h1 {
-  font-size: 4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-  margin-bottom: 0.5rem;
-  background: none;
-  -webkit-text-fill-color: #ffffff;
-}
-
-.hero-header .tagline {
-  font-size: 1.25rem;
-  opacity: 0.7;
-  font-family: 'Monaco', 'Courier New', monospace;
-  color: #a0a0a0;
-  margin: 0;
-}
-
-/* ========================================
-   Demo Zone
-   ======================================== */
-
-.demo-zone {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: var(--space-lg);
-  padding: var(--space-xl);
-  border-radius: var(--radius-xl);
-  border: var(--border-width) solid var(--border-color-medium);
-  backdrop-filter: var(--blur-medium);
-  -webkit-backdrop-filter: var(--blur-medium);
-  transition: var(--transition-smooth);
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-}
-
-html[data-theme="dark"] .demo-zone {
-  background: transparent;
-  box-shadow: var(--shadow-md);
-}
-
-html[data-theme="light"] .demo-zone {
-  background: transparent;
-  color: #2d1b3d;
-  box-shadow: var(--shadow-sm);
-  border: var(--border-width) solid rgba(0, 0, 0, 0.1);
-}
-
-.demo-zone .materials-grid,
-.demo-zone .code-preview {
-  position: relative;
-  z-index: 1;
-}
-
-/* ========================================
-   Materials Grid
-   ======================================== */
-
-.materials-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
-}
-
-.material-card {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 1.1rem;
-  position: relative;
-  transition: var(--transition-smooth);
-  border-radius: var(--radius-lg);
-}
-
-.material-card:hover {
-  transform: translateY(-0.25rem);
-}
-
-.material-card:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.material-card .material-name {
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.3);
-}
-
-/* ========================================
-   Code Preview
-   ======================================== */
-
-.code-preview {
-  /* Background controlled by data-material attribute */
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.95rem;
-  line-height: 1.8;
-  overflow: auto;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.code-preview pre {
-  margin: 0;
-}
-
-.code-preview code {
-  color: #e0e0e0;
-}
-
-.code-preview .highlight {
-  color: #a6e22e;
-  font-weight: 600;
-}
-
-.code-preview .tag {
-  color: #f92672;
-}
-
-.code-preview .attr {
-  color: #66d9ef;
-}
-
-/* ========================================
-   Hero Footer
-   ======================================== */
-
-.hero-footer {
-  text-align: center;
-  opacity: 0.5;
-  font-size: 0.9rem;
-}
-
-.scroll-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
+@layer base {
+  body {
+    @apply font-sans min-h-screen m-0 p-0;
+    line-height: 1.75;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    transition: background 0.3s ease, color 0.3s ease;
+    
   }
-  50% {
-    transform: translateY(-1.25rem);
+
+  /* Dark Theme (Default) */
+  body[data-theme="dark"] {
+    background: linear-gradient(to bottom, #0a0a0f, #1a1a2e);
+    color: #e0e0e0;
+  }
+
+  /* Light Theme */
+  body[data-theme="light"] {
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    color: #1a1a1a;
+  }
+
+  /* Typography */
+  h1, h2, h3 {
+    @apply font-bold m-0;
+    letter-spacing: -0.02em;
+  }
+
+  h1 {
+    @apply text-5xl leading-tight;
+  }
+
+  h2 {
+    @apply text-3xl;
+    line-height: 1.3;
+  }
+
+  h3 {
+    @apply text-2xl;
+    line-height: 1.4;
+  }
+
+  p {
+    @apply m-0;
+  }
+
+  code {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+    font-size: 0.9em;
   }
 }
 
-.arrow-down {
-  font-size: 1.5rem;
+/* ========================================
+   Components (Tailwind @layer syntax)
+   ======================================== */
+
+@layer components {
+  .material-select {
+    @apply bg-transparent border-none outline-none appearance-none;
+    color: inherit;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+  }
+
+  .material-select:hover {
+    @apply opacity-100;
+  }
+
+  .material-select option {
+    @apply text-white;
+    background: rgba(0, 0, 0, 0.9);
+  }
+
+  body[data-theme="light"] .material-select option {
+    @apply text-black;
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  .theme-tab {
+    @apply bg-transparent border-none cursor-pointer flex items-center justify-center;
+    color: inherit;
+  }
+
+  /* Tab bar divider */
+  .fixed .w-px {
+    @apply opacity-20;
+  }
 }
 
 /* ========================================
-   Sections
+   Responsive & Utilities
    ======================================== */
 
-.section-how,
-.section-why,
-.section-cta {
-  min-height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6rem 2rem;
-}
-
-.section-container {
-  max-width: 75rem; /* 1200px */
-  width: 100%;
-}
-
-.section-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  text-align: center;
-  color: #ffffff;
-  margin-bottom: 4rem;
+@layer utilities {
+  /* Safe area for iOS devices */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    .fixed.bottom-0 {
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    }
+  }
 }
 
 /* ========================================
-   Steps Grid
+   Media Queries
    ======================================== */
 
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-lg);
-  margin-bottom: 3rem;
-}
-
-.step-card {
-  text-align: center;
-  padding: var(--space-xl);
-  border: var(--border-width) solid var(--border-color-light);
-  border-radius: var(--radius-lg);
-  transition: var(--transition-smooth);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.step-card:hover {
-  border-color: var(--border-color-strong);
-  transform: translateY(-0.25rem);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: var(--shadow-sm);
-}
-
-.step-number {
-  font-size: 3rem;
-  font-weight: 700;
-  opacity: 0.3;
-  margin-bottom: 1rem;
-}
-
-.step-card h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
-.step-card code {
-  display: block;
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 0.9rem;
-  color: #a6e22e;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid rgba(255, 255, 255, 0.1);
-}
-
-.step-card p {
-  opacity: 0.8;
-}
-
-/* ========================================
-   Benefits Grid
-   ======================================== */
-
-.benefits-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg);
-}
-
-.benefit-card {
-  padding: var(--space-xl);
-  border: var(--border-width) solid var(--border-color-light);
-  border-radius: var(--radius-lg);
-  transition: var(--transition-smooth);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.benefit-card:hover {
-  border-color: var(--border-color-strong);
-  transform: translateY(-0.25rem);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: var(--shadow-sm);
-}
-
-.benefit-card h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #ffffff;
-}
-
-.benefit-card p {
-  opacity: 0.8;
-  line-height: 1.6;
-}
-
-/* ========================================
-   CTA Section
-   ======================================== */
-
-.section-cta {
-  min-height: 40vh;
-}
-
-.cta-buttons {
-  display: flex;
-  gap: var(--space-md);
-  justify-content: center;
-  margin-bottom: 4rem;
-}
-
-/* Button/Link elements with data-material */
-a[data-material],
-button[data-material] {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-decoration: none;
-  border-radius: var(--radius-md);
-  transition: var(--transition-smooth);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-}
-
-/* ========================================
-   Footer
-   ======================================== */
-
-.footer {
-  text-align: center;
-  opacity: 0.5;
-  font-size: 0.9rem;
-  margin-top: 2rem;
-}
-
-/* ========================================
-   Responsive
-   ======================================== */
-
-@media (max-width: 768px) {
-  .hero {
-    padding: 1rem;
-    gap: 1rem;
+@media (min-width: 768px) {
+  h1 {
+    @apply text-6xl;
   }
 
-  .hero-header {
-    padding-top: 3rem;
+  h2 {
+    @apply text-4xl;
   }
+}
 
-  .hero-header h1 {
-    font-size: 2.5rem;
-  }
-
-  .hero-header .tagline {
-    font-size: 1rem;
-  }
-
-  .demo-zone {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-    padding: var(--space-lg);
-  }
-
-  .materials-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-md);
-  }
-
-  .material-card {
-    font-size: 0.9rem;
-  }
-
-  .steps-grid,
-  .benefits-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .cta-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .cta-button {
-    width: 100%;
-    max-width: 18.75rem; /* 300px */
-    text-align: center;
-  }
-
-  .theme-toggle {
-    top: 0.625rem;
-    right: 0.625rem;
-    padding: 0.5rem;
-  }
-
-  .theme-toggle button {
-    padding: 0.5rem 0.75rem;
+@media (max-width: 640px) {
+  .material-tab {
     font-size: 0.85rem;
-  }
-}
-
-@media (max-width: 1024px) {
-  .demo-zone {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .materials-grid {
-    grid-template-columns: repeat(2, 1fr);
+    padding: 0.375rem 0.75rem !important;
   }
 }

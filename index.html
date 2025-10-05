@@ -4,477 +4,360 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Material System - Think in materials, not CSS properties</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    /* Minimal Reset & Utilities Only - Main styles in styles.css */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    /* Legacy utility classes */
-    .container {
-      max-width: 75rem;
-      margin: 0 auto;
-    }
-  </style>
 </head>
-<body>
-  <!-- Theme Toggle - Fixed Top Right -->
-  <div class="theme-toggle">
-    <button id="dark-theme-btn">🌙 Dark</button>
-    <button id="light-theme-btn">☀️ Light</button>
-  </div>
+<body data-theme="dark">
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <header class="hero-header">
-      <h1>Material System</h1>
-      <p class="tagline">Think in materials, not CSS properties</p>
+  <!-- Article Content (Medium-style) -->
+  <article class="max-w-3xl mx-auto px-6 py-12 pb-32">
+
+    <!-- Header -->
+    <header class="mb-16">
+      <h1 class="text-5xl md:text-6xl font-bold mb-4 leading-tight">Material System</h1>
+      <p class="text-xl md:text-2xl opacity-75">Think in materials, not CSS properties</p>
     </header>
 
-    <div class="demo-zone" data-themed-container>
-      <!-- YouTube Background -->
-      <iframe
-        id="video-bg"
-        src="https://www.youtube.com/embed/KQ47kWOAobE?autoplay=1&mute=1&loop=1&playlist=KQ47kWOAobE&controls=0&showinfo=0&rel=0&enablejsapi=1&playsinline=1"
-        frameborder="0"
-        allow="autoplay; encrypted-media"
-        allowfullscreen
-        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;">
-      </iframe>
+    <!-- Section 1: The Problem -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">ปัญหาที่เจอ 🤔</h2>
 
-      <div class="materials-grid">
-        <div class="material-card" data-material="paper">
-          <span class="material-name">Paper</span>
-        </div>
-        <div class="material-card" data-material="glass">
-          <span class="material-name">Glass</span>
-        </div>
-        <div class="material-card" data-material="holo">
-          <span class="material-name">Holo</span>
-        </div>
-        <div class="material-card" data-material="wood">
-          <span class="material-name">Wood</span>
-        </div>
-        <div class="material-card" data-material="fabric">
-          <span class="material-name">Fabric</span>
-        </div>
-        <div class="material-card" data-material="metal">
-          <span class="material-name">Metal</span>
-        </div>
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        เคยเจอไหมครับ... ว่าทุกครั้งที่จะทำ glass effect
+        ต้องเขียน CSS ยาวๆ แบบนี้
+      </p>
+
+      <div data-material="paper" class="rounded-2xl p-6 mb-8">
+        <pre class="bg-black/10 rounded-lg p-4 overflow-x-auto text-sm md:text-base"><code>.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  /* ... และอีกหลายบรรทัด */
+}</code></pre>
       </div>
 
-      <div class="code-preview">
-        <pre><code><span class="tag">&lt;div</span> <span class="attr">data-material</span>=<span class="highlight">"glass"</span><span class="tag">&gt;</span>
+      <p class="text-lg md:text-xl leading-relaxed">
+        แล้วพอมี 10 components ที่ใช้ glass effect<br>
+        ก็ต้องเขียนซ้ำ... หรือสร้าง class มากมาย 😫
+      </p>
+    </section>
+
+    <!-- Section 2: The Solution -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">วิธีแก้ ✨</h2>
+
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        Material System ให้เราคิดแบบใหม่<br>
+        แทนที่จะเขียน CSS properties ยาวๆ<br>
+        เราแค่บอกว่า <strong>"นี่คือกระจก"</strong>
+      </p>
+
+      <div data-material="glass" class="rounded-2xl p-8 mb-8">
+        <pre class="text-base md:text-lg"><code>&lt;div data-material="glass"&gt;
   Your content here
-<span class="tag">&lt;/div&gt;</span></code></pre>
+&lt;/div&gt;</code></pre>
       </div>
-    </div>
 
-    <footer class="hero-footer">
-      <div class="scroll-indicator">
-        <span>Scroll to explore</span>
-        <div class="arrow-down">↓</div>
-      </div>
-    </footer>
-  </section>
+      <p class="text-lg md:text-xl leading-relaxed">
+        แค่นี้! ระบบจะจัดการให้หมด<br>
+        Hover states, Theme adaptation, ทุกอย่างอัตโนมัติ 🚀
+      </p>
+    </section>
 
-  <!-- Section 1: How It Works -->
-  <section class="section-how">
-    <div class="section-container">
-      <h2 class="section-title">How It Works</h2>
+    <!-- Section 3: How it Works -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">มันทำงานยังไง? 🔧</h2>
 
-      <div class="steps-grid">
-        <div class="step-card">
-          <div class="step-number">1</div>
-          <h3>Include Script</h3>
-          <code>&lt;script src="material-system.js"&gt;&lt;/script&gt;</code>
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        ระบบใช้ <code class="bg-black/20 px-2 py-1 rounded">data-material</code> attribute
+        เป็นตัวบอกว่าแต่ละ element "ทำมาจากอะไร"
+      </p>
+
+      <div class="space-y-6 mb-8">
+        <div data-material="paper" class="rounded-xl p-6">
+          <div class="flex items-start gap-4">
+            <div class="text-3xl">1️⃣</div>
+            <div>
+              <h3 class="font-bold text-lg mb-2">Include Script</h3>
+              <code class="text-sm">&lt;script src="material-system.js"&gt;&lt;/script&gt;</code>
+            </div>
+          </div>
         </div>
 
-        <div class="step-card">
-          <div class="step-number">2</div>
-          <h3>Use Materials</h3>
-          <code>&lt;div data-material="glass"&gt;Content&lt;/div&gt;</code>
+        <div data-material="glass" class="rounded-xl p-6">
+          <div class="flex items-start gap-4">
+            <div class="text-3xl">2️⃣</div>
+            <div>
+              <h3 class="font-bold text-lg mb-2">Use Materials</h3>
+              <code class="text-sm">&lt;div data-material="glass"&gt;Content&lt;/div&gt;</code>
+            </div>
+          </div>
         </div>
 
-        <div class="step-card">
-          <div class="step-number">3</div>
-          <h3>Done</h3>
-          <p>System auto-applies styles, handles states, and adapts to themes</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Section 2: Why Material System? -->
-  <section class="section-why">
-    <div class="section-container">
-      <h2 class="section-title">Why Material System?</h2>
-
-      <div class="benefits-grid">
-        <div class="benefit-card">
-          <h3>Better Mental Model</h3>
-          <p>Think "glass" instead of "backdrop-blur-md shadow-lg border". Real-world materials are intuitive.</p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>Automatic Consistency</h3>
-          <p>One definition, everywhere identical. No more inconsistent implementations across your app.</p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>Design-Dev Bridge</h3>
-          <p>Designers specify materials in mockups. Developers use the exact same names. Zero translation.</p>
-        </div>
-
-        <div class="benefit-card">
-          <h3>Single Source of Truth</h3>
-          <p>Change material definition once, update everywhere instantly. True global theming.</p>
+        <div data-material="paper" class="rounded-xl p-6">
+          <div class="flex items-start gap-4">
+            <div class="text-3xl">3️⃣</div>
+            <div>
+              <h3 class="font-bold text-lg mb-2">Done!</h3>
+              <p class="text-sm opacity-75">System auto-applies styles, handles states, and adapts to themes</p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Section 3: Get Started -->
-  <section class="section-cta">
-    <div class="section-container">
-      <h2 class="section-title">Get Started</h2>
+    <!-- Section 4: Live Demo -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">ลองเล่นดูสิ 🎨</h2>
 
-      <div class="cta-buttons">
-        <a href="https://github.com/yourusername/material-js-concept" data-material="metal">
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        กดปุ่มด้านล่างเพื่อเปลี่ยน material ทั้งหน้า<br>
+        สังเกตว่าทุก element เปลี่ยนไปพร้อมกัน
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div data-material="glass" class="aspect-square rounded-2xl flex items-center justify-center text-2xl font-bold">
+          Glass
+        </div>
+        <div data-material="paper" class="aspect-square rounded-2xl flex items-center justify-center text-2xl font-bold">
+          Paper
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Features -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">ฟีเจอร์เด่น ⚡</h2>
+
+      <div class="space-y-4">
+        <div data-material="glass" class="rounded-xl p-6">
+          <h3 class="font-bold text-lg mb-2">🎯 State Management</h3>
+          <p class="opacity-75">Hover, active, focus, disabled states ทำให้อัตโนมัติ</p>
+        </div>
+
+        <div data-material="paper" class="rounded-xl p-6">
+          <h3 class="font-bold text-lg mb-2">🌓 Theme Support</h3>
+          <p class="opacity-75">Dark/Light mode เปลี่ยนได้ทันที material ปรับตัวตาม</p>
+        </div>
+
+        <div data-material="glass" class="rounded-xl p-6">
+          <h3 class="font-bold text-lg mb-2">🔧 Extend Materials</h3>
+          <p class="opacity-75">สร้าง material ใหม่จาก material เดิม ได้ง่ายๆ</p>
+        </div>
+
+        <div data-material="paper" class="rounded-xl p-6">
+          <h3 class="font-bold text-lg mb-2">📦 Tiny & Fast</h3>
+          <p class="opacity-75">~4KB minified, zero dependencies, pure vanilla JS</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Code Examples -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">ตัวอย่างโค้ด 👨‍💻</h2>
+
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        สร้าง custom material ได้ง่ายๆ แบบนี้
+      </p>
+
+      <div data-material="glass" class="rounded-2xl p-6 mb-8">
+        <pre class="bg-black/20 rounded-lg p-4 overflow-x-auto text-sm"><code>// Create new material
+MaterialSystem.register('metal', {
+  base: {
+    background: 'linear-gradient(135deg, #434343, #282828)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+  },
+  hover: {
+    transform: 'translateY(-2px)'
+  }
+});
+
+// Extend existing material
+MaterialSystem.extend('frosted', 'glass', {
+  base: {
+    backdropFilter: 'blur(20px)'
+  }
+});</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 7: Comparison -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">เทียบกับวิธีอื่น 🆚</h2>
+
+      <div class="space-y-6">
+        <div>
+          <h3 class="font-bold text-xl mb-3">Tailwind (Utility-First)</h3>
+          <div data-material="paper" class="rounded-xl p-6">
+            <pre class="text-xs md:text-sm overflow-x-auto"><code>&lt;div class="bg-white/90 backdrop-blur-md shadow-lg
+     border border-gray-200/50 rounded-xl p-6"&gt;
+  Card
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-bold text-xl mb-3">Material System</h3>
+          <div data-material="glass" class="rounded-xl p-6">
+            <pre class="text-xs md:text-sm overflow-x-auto"><code>&lt;div data-material="glass"&gt;
+  Card
+&lt;/div&gt;</code></pre>
+          </div>
+        </div>
+
+        <p class="text-lg opacity-75 pt-4">
+          ✅ อ่านง่าย เข้าใจง่าย maintain ง่าย<br>
+          ✅ Consistent ทุก element<br>
+          ✅ เปลี่ยน theme/material แค่จุดเดียว
+        </p>
+      </div>
+    </section>
+
+    <!-- Section 8: Get Started -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">เริ่มใช้งาน 🚀</h2>
+
+      <div data-material="glass" class="rounded-2xl p-8 mb-8">
+        <h3 class="font-bold text-xl mb-4">CDN (Recommended)</h3>
+        <pre class="bg-black/20 rounded-lg p-4 overflow-x-auto text-sm"><code>&lt;script src="https://cdn.jsdelivr.net/gh/yourusername/material-js-concept/material-system.min.js"&gt;&lt;/script&gt;
+
+&lt;div data-material="glass"&gt;Your content&lt;/div&gt;</code></pre>
+      </div>
+
+      <div data-material="paper" class="rounded-2xl p-8">
+        <h3 class="font-bold text-xl mb-4">NPM (Coming Soon)</h3>
+        <pre class="bg-black/10 rounded-lg p-4 overflow-x-auto text-sm"><code>npm install material-system</code></pre>
+      </div>
+    </section>
+
+    <!-- Section 9: Conclusion -->
+    <section class="mb-20">
+      <h2 class="text-3xl md:text-4xl font-bold mb-6">สรุป 💡</h2>
+
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        Material System เปลี่ยนวิธีคิดจาก "เขียน CSS properties"
+        เป็น "คิดถึงวัสดุที่ใช้"
+      </p>
+
+      <p class="text-lg md:text-xl leading-relaxed mb-8">
+        ผลลัพธ์? โค้ดที่อ่านง่าย maintain ง่าย
+        และ designers + developers พูดภาษาเดียวกันได้
+      </p>
+
+      <div data-material="glass" class="rounded-2xl p-8 text-center">
+        <p class="text-2xl font-bold mb-4">ลองใช้ดูสิ!</p>
+        <a href="https://github.com/yourusername/material-js-concept"
+           class="inline-block px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full font-semibold transition-all">
           View on GitHub →
         </a>
-        <a href="#documentation" data-material="glass">
-          Read Documentation
-        </a>
       </div>
+    </section>
 
-      <footer class="footer">
-        <p>Material System • MIT License • v1.0.0</p>
-        <p style="margin-top: 0.5rem;">Built with ❤️ for better frontend development</p>
-      </footer>
+  </article>
+
+  <!-- Bottom Tab Bar (Fixed) -->
+  <div class="fixed bottom-0 inset-x-0 z-50 flex justify-center pb-6">
+    <!-- Outer Glass Layer (ชั้นที่ 1) -->
+    <div data-material="glass" class="relative px-3 py-2 rounded-full">
+      <!-- Inner Content -->
+      <div class="flex items-center gap-3">
+        <!-- Material Dropdown -->
+        <select id="material-select" class="material-select cursor-pointer px-3 py-1 rounded-full text-sm font-medium">
+          <option value="glass">Glass</option>
+          <option value="paper">Paper</option>
+        </select>
+
+        <div class="border-r border h-6"></div>
+
+        <!-- Theme Toggle Container (ชั้นที่ 2 - Glass ซ้อน) -->
+        <div class="flex gap-1">
+          <button id="light-btn" class="theme-tab px-3 py-1.5 rounded-full transition-all">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </button>
+          <button id="dark-btn" class="theme-tab px-3 py-1.5 rounded-full transition-all">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
 
-  <!-- Old Content Removed - Now Clean & Minimal -->
-  <section style="display: none;">
-    <div class="container">
-    <section>
-      <h2>The Paradigm Shift</h2>
-      <div class="comparison">
-        <div class="comparison-side">
-          <h3>Traditional Approach</h3>
-          <div class="traditional-card">
-            <h4>Think in CSS Properties</h4>
-            <p>Developers manually compose visual properties for each element.</p>
-          </div>
-          <div class="code-block"><code>&lt;div class="bg-white/90 backdrop-blur-md shadow-lg border border-gray-200/50 rounded-xl p-6"&gt;
-  Glass Card
-&lt;/div&gt;</code></div>
-        </div>
-
-        <div class="comparison-side">
-          <h3>Material-Driven Approach</h3>
-          <div data-material="glass">
-            <h4>Think in Materials</h4>
-            <p>Developers think in real-world materials, system handles the rest.</p>
-          </div>
-          <div class="code-block"><code>&lt;div data-material="glass"&gt;
-  Glass Card
-&lt;/div&gt;</code></div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>Material Showcase</h2>
-      <div class="showcase">
-        <div class="material-item" data-material="glass">
-          <div>
-            <h3>Frosted Glass</h3>
-            <p>Transparent, blurred, elegant</p>
-          </div>
-          <span class="material-label">data-material="glass"</span>
-        </div>
-
-        <div class="material-item" data-material="metal">
-          <div>
-            <h3>Brushed Metal</h3>
-            <p>Reflective, modern, premium</p>
-          </div>
-          <span class="material-label">data-material="metal"</span>
-        </div>
-
-        <div class="material-item" data-material="paper">
-          <div>
-            <h3>Soft Paper</h3>
-            <p>Matte, comfortable, readable</p>
-          </div>
-          <span class="material-label">data-material="paper"</span>
-        </div>
-
-        <div class="material-item" data-material="wood">
-          <div>
-            <h3>Warm Wood</h3>
-            <p>Natural, organic, grounded</p>
-          </div>
-          <span class="material-label">data-material="wood"</span>
-        </div>
-
-        <div class="material-item" data-material="fabric">
-          <div>
-            <h3>Soft Fabric</h3>
-            <p>Textile, gentle, inviting</p>
-          </div>
-          <span class="material-label">data-material="fabric"</span>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>Interactive Demo</h2>
-
-      <div class="switcher-section">
-        <h3>Live Material Switcher</h3>
-        <p>Change the primary material and see all cards update instantly:</p>
-
-        <div class="control-group">
-          <label for="material-picker">Primary Material:</label>
-          <select id="material-picker">
-            <option value="glass">Glass</option>
-            <option value="metal">Metal</option>
-            <option value="paper">Paper</option>
-            <option value="wood">Wood</option>
-            <option value="fabric">Fabric</option>
-          </select>
-        </div>
-
-        <div class="card-grid">
-          <div class="demo-card" data-material="@surface.primary">Card 1</div>
-          <div class="demo-card" data-material="@surface.primary">Card 2</div>
-          <div class="demo-card" data-material="@surface.primary">Card 3</div>
-        </div>
-      </div>
-
-      <div class="switcher-section">
-        <h3>Interactive Buttons</h3>
-        <p>Hover and click to see state transitions:</p>
-
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
-          <button data-material="metal">Metal Button</button>
-          <button data-material="glass">Glass Button</button>
-          <button data-material="paper">Paper Button</button>
-          <button data-material="metal" disabled>Disabled Button</button>
-        </div>
-      </div>
-
-      <div class="switcher-section">
-        <h3>Material Inheritance</h3>
-        <p>Extend existing materials to create variations:</p>
-
-        <div class="code-block"><code>// Extend glass material
-MaterialSystem.extend('frosted-glass', 'glass', {
-  base: { backdropFilter: 'blur(20px)' }
-});
-
-// Use in HTML
-&lt;div data-material="frosted-glass"&gt;Extra Blur!&lt;/div&gt;</code></div>
-
-        <div class="card-grid" style="margin-top: 1.5rem;">
-          <div class="demo-card" data-material="glass">Normal Glass</div>
-          <div class="demo-card" data-material="frosted-glass">Frosted Glass</div>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>How It Works</h2>
-      <div class="code-block"><code>// 1. Include the library
-&lt;script src="material-system.js"&gt;&lt;/script&gt;
-
-// 2. Use materials in HTML
-&lt;div data-material="glass"&gt;Content&lt;/div&gt;
-
-// 3. That's it! The system handles the rest
-
-// Optional: Register custom materials
-MaterialSystem.register('custom', {
-  base: { background: '#your-color' },
-  hover: { background: '#hover-color' }
-});
-
-// Optional: Use design tokens
-&lt;div data-material="@surface.primary"&gt;&lt;/div&gt;</code></div>
-    </section>
-
-    <section>
-      <h2>How is this Different?</h2>
-
-      <table class="comparison-table">
-        <thead>
-          <tr>
-            <th>Approach</th>
-            <th>Mental Model</th>
-            <th>Best For</th>
-            <th>Example</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Tailwind (Utility-First)</strong></td>
-            <td>"Apply these visual properties"</td>
-            <td>Rapid prototyping, pixel-perfect control</td>
-            <td><code>bg-white/90 backdrop-blur-md shadow-lg...</code></td>
-          </tr>
-          <tr>
-            <td><strong>Material System</strong></td>
-            <td>"This is made of glass"</td>
-            <td>Consistency, design system enforcement</td>
-            <td><code>data-material="glass"</code></td>
-          </tr>
-          <tr>
-            <td><strong>MUI/Bootstrap</strong></td>
-            <td>"Use this component"</td>
-            <td>Speed, comprehensive UI kit</td>
-            <td><code>&lt;Button variant="contained"&gt;</code></td>
-          </tr>
-          <tr>
-            <td><strong>CSS-in-JS</strong></td>
-            <td>"Style this component"</td>
-            <td>Dynamic styling, encapsulation</td>
-            <td><code>styled.div`...`</code></td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="benefits">
-        <div class="benefit-card">
-          <h4>Mental Model</h4>
-          <p>Think in real-world materials instead of CSS properties</p>
-        </div>
-        <div class="benefit-card">
-          <h4>Consistency</h4>
-          <p>All elements using same material look identical across the app</p>
-        </div>
-        <div class="benefit-card">
-          <h4>Design Bridge</h4>
-          <p>Designers speak material language, not CSS syntax</p>
-        </div>
-        <div class="benefit-card">
-          <h4>Maintainability</h4>
-          <p>Update material definition once, changes apply everywhere</p>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <h2>When to Use Material System?</h2>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0;">
-        <div class="benefit-card">
-          <h4 style="color: #4ade80;">Good Fit</h4>
-          <ul style="margin-left: 1.2rem; color: #b0b0b0;">
-            <li>Building design systems</li>
-            <li>Need visual consistency</li>
-            <li>Designer-developer collaboration</li>
-            <li>Repeating UI patterns</li>
-          </ul>
-        </div>
-        <div class="benefit-card">
-          <h4 style="color: #f87171;">Not Ideal For</h4>
-          <ul style="margin-left: 1.2rem; color: #b0b0b0;">
-            <li>One-off unique designs</li>
-            <li>Pixel-perfect custom control</li>
-            <li>Already using comprehensive libraries</li>
-            <li>Ultra-performance-critical apps</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-    </div>
-  </section>
-
-  <!-- Load MaterialSystem before using it -->
+  <!-- Scripts -->
   <script src="./material-system.js"></script>
 
   <script>
-    // Wait for MaterialSystem to be ready
     window.addEventListener('DOMContentLoaded', () => {
-      const darkBtn = document.getElementById('dark-theme-btn');
-      const lightBtn = document.getElementById('light-theme-btn');
+      const materialSelect = document.getElementById('material-select');
+      const lightBtn = document.getElementById('light-btn');
+      const darkBtn = document.getElementById('dark-btn');
 
-      // Function to update active button state
-      function updateActiveButton(theme) {
-        darkBtn.setAttribute('data-active', theme === 'dark');
-        lightBtn.setAttribute('data-active', theme === 'light');
+      // Force clear materials from buttons on load (ป้องกัน Material System ใส่ให้อัตโนมัติ)
+      lightBtn.removeAttribute('data-material');
+      darkBtn.removeAttribute('data-material');
+
+      // Get current global material
+      function getCurrentMaterial() {
+        return materialSelect.value;
       }
 
-      // Set initial active state
-      updateActiveButton(MaterialSystem.getTheme());
+      // Material Switcher (Dropdown)
+      materialSelect.addEventListener('change', (e) => {
+        const material = e.target.value;
 
-      // Material switcher demo (if exists)
-      const materialPicker = document.getElementById('material-picker');
-      if (materialPicker) {
-        materialPicker.addEventListener('change', (e) => {
-          MaterialSystem.tokens.surface.primary = e.target.value;
-          MaterialSystem.apply();
+        // เปลี่ยนทุก element รวมถึง active theme button
+        document.querySelectorAll('[data-material]').forEach(el => {
+          el.setAttribute('data-material', material);
         });
-      }
 
-      // Interactive card - updates code preview and background
-      const materialCards = document.querySelectorAll('.material-card');
-      const codePreview = document.querySelector('.code-preview code');
-      const codePreviewContainer = document.querySelector('.code-preview');
-
-      let activeMaterial = 'glass'; // Default
-
-      materialCards.forEach(card => {
-        // Hover updates code AND background
-        card.addEventListener('mouseenter', () => {
-          const material = card.dataset.material;
-
-          // Update code text
-          updateCodePreview(material);
-
-          // Update background material
-          if (codePreviewContainer) {
-            codePreviewContainer.setAttribute('data-material', material);
-          }
-        });
+        // Re-apply theme state (เพื่อให้ inactive button ไม่มี material)
+        setTheme(MaterialSystem.getTheme());
       });
 
-      function updateCodePreview(material) {
-        if (codePreview) {
-          codePreview.innerHTML = `<span class="tag">&lt;div</span> <span class="attr">data-material</span>=<span class="highlight">"${material}"</span><span class="tag">&gt;</span>
-  Your content here
-<span class="tag">&lt;/div&gt;</span>`;
+      // Theme Toggle
+      function setTheme(theme) {
+        MaterialSystem.setTheme(theme);
+        document.body.setAttribute('data-theme', theme);
+
+        const currentMaterial = getCurrentMaterial();
+
+        // Update active state (ใช้ material ตาม global switcher)
+        // เคลียร์ material + inline styles ออกจากทุก button ก่อน
+        lightBtn.removeAttribute('data-material');
+        lightBtn.removeAttribute('style'); // ← เคลียร์ inline styles!
+        darkBtn.removeAttribute('data-material');
+        darkBtn.removeAttribute('style');  // ← เคลียร์ inline styles!
+
+        // แล้วค่อยใส่ material ให้ active button อย่างเดียว
+        if (theme === 'light') {
+          lightBtn.setAttribute('data-material', currentMaterial);
+        } else {
+          darkBtn.setAttribute('data-material', currentMaterial);
         }
       }
 
-      // Set initial material for code preview
-      if (codePreviewContainer) {
-        codePreviewContainer.setAttribute('data-material', 'glass');
-      }
+      // Event Listeners
+      lightBtn.addEventListener('click', () => setTheme('light'));
+      darkBtn.addEventListener('click', () => setTheme('dark'));
 
-      // Theme switcher buttons
-      darkBtn.addEventListener('click', () => {
-        MaterialSystem.setTheme('dark');
-        updateActiveButton('dark');
-      });
-
-      lightBtn.addEventListener('click', () => {
-        MaterialSystem.setTheme('light');
-        updateActiveButton('light');
-      });
-
-      // Register extended material (frosted glass)
-      MaterialSystem.extend('frosted-glass', 'glass', {
-        base: {
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)'
-        }
-      });
+      // Set initial state (delay เล็กน้อยเพื่อให้ Material System init เสร็จก่อน)
+      const initialTheme = MaterialSystem.getTheme();
+      setTimeout(() => {
+        setTheme(initialTheme);
+      }, 0);
     });
   </script>
 </body>

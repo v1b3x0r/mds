@@ -16,7 +16,7 @@ A production-ready library for material-driven styling - think in materials, not
 
 <!-- Use materials -->
 <div data-material="glass">Glass Card</div>
-<button data-material="metal">Metal Button</button>
+<button data-material="paper">Paper Button</button>
 ```
 
 ### Local Installation
@@ -71,11 +71,10 @@ Change the glass material definition once, and every glass element updates autom
 
 ## Features
 
-- **5 Built-in Materials**: Glass, Metal, Paper, Wood, Fabric
+- **2 Core Materials**: Glass, Paper (proven, production-ready)
 - **State Management**: Automatic hover, active, focus, disabled states
 - **Theme Support**: Dark/light theme with auto-adaptation
-- **Material Inheritance**: Extend existing materials
-- **Design Tokens**: Use semantic tokens (`@surface.primary`)
+- **Material Inheritance**: Extend existing materials to create custom ones
 - **Zero Dependencies**: Pure vanilla JavaScript
 - **Tiny**: ~4KB minified, ~1.5KB gzipped
 - **Framework Agnostic**: Works with React, Vue, vanilla HTML
@@ -140,17 +139,6 @@ Manually re-apply all materials (usually not needed):
 MaterialSystem.apply();
 ```
 
-### Design Tokens
-
-Use semantic tokens instead of direct material names:
-
-```javascript
-// Configure tokens
-MaterialSystem.tokens.surface.primary = 'glass';
-
-// Use in HTML
-<div data-material="@surface.primary">Card</div>
-```
 
 ---
 
@@ -160,57 +148,71 @@ MaterialSystem.tokens.surface.primary = 'glass';
 
 ```html
 <div data-material="glass">Glass Card</div>
-<button data-material="metal">Metal Button</button>
+<button data-material="paper">Paper Button</button>
 ```
-
-[See full example](examples/basic.html)
 
 ### Custom Materials
 
+Create your own materials from scratch or extend existing ones:
+
 ```javascript
-// Register completely new material
-MaterialSystem.register('neon', {
+// Create entirely new material
+MaterialSystem.register('metal', {
   base: {
-    background: 'rgba(0, 255, 255, 0.1)',
-    border: '2px solid #00ffff',
-    boxShadow: '0 0 20px rgba(0, 255, 255, 0.5)'
+    background: 'linear-gradient(135deg, #434343 0%, #282828 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+    color: '#e0e0e0'
   },
   hover: {
-    boxShadow: '0 0 30px rgba(0, 255, 255, 0.8)'
+    boxShadow: '0 6px 24px rgba(0, 0, 0, 0.4)',
+    transform: 'translateY(-2px)'
+  }
+});
+
+// Extend existing material
+MaterialSystem.extend('frosted-glass', 'glass', {
+  base: {
+    backdropFilter: 'blur(20px)' // More blur than regular glass
+  }
+});
+
+// Wood material example
+MaterialSystem.register('wood', {
+  base: {
+    background: 'linear-gradient(90deg, #8B7355 0%, #6F5643 25%, #8B7355 50%)',
+    boxShadow: 'inset 0 0 60px rgba(101, 67, 33, 0.3)',
+    border: '1px solid rgba(70, 50, 30, 0.6)',
+    color: '#f5e6d3'
+  }
+});
+
+// Fabric material example
+MaterialSystem.register('fabric', {
+  base: {
+    background: 'linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.02) 48%)',
+    backgroundSize: '10px 10px',
+    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    color: '#3d3d3d'
+  }
+});
+
+// Holographic material example
+MaterialSystem.register('holo', {
+  base: {
+    background: 'linear-gradient(125deg, rgba(255, 0, 200, 0.3), rgba(0, 200, 255, 0.3))',
+    backgroundSize: '400% 100%',
+    backdropFilter: 'blur(10px) saturate(200%)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    color: '#ffffff',
+    transition: 'background-position 0.8s ease'
+  },
+  hover: {
+    backgroundPosition: '100% 0%'
   }
 });
 ```
-
-[See full example](examples/custom-material.html)
-
-### Theme Switching
-
-```javascript
-// Switch themes
-MaterialSystem.setTheme('light');
-
-// Materials automatically adapt
-```
-
-[See full example](examples/theme-switcher.html)
-
-### Design Tokens
-
-```javascript
-// Use tokens for easier theming
-MaterialSystem.tokens = {
-  surface: {
-    primary: 'glass',
-    secondary: 'paper'
-  }
-};
-```
-
-```html
-<div data-material="@surface.primary">Primary Surface</div>
-```
-
-[See full example](examples/design-tokens.html)
 
 ---
 
@@ -240,21 +242,20 @@ MaterialSystem.tokens = {
 
 ---
 
-## Built-in Materials
+## Core Materials
 
 | Material | Description | Use Cases |
 |----------|-------------|-----------|
-| **glass** | Frosted glass with blur and transparency | Overlays, modern cards, modals |
-| **metal** | Brushed metal with gradient | Buttons, premium UI elements |
-| **paper** | Soft matte surface | Content containers, forms |
-| **wood** | Warm wooden texture | Organic, natural designs |
-| **fabric** | Textile-like soft material | Gentle backgrounds, comfortable UI |
+| **glass** | Frosted glass with blur and transparency | Overlays, modern cards, modals, navigation |
+| **paper** | Soft matte surface with subtle texture | Content containers, forms, documents |
 
 All materials support:
 - Hover states (automatic)
 - Active states (automatic)
 - Disabled states (automatic)
-- Dark/light theme adaptation (where applicable)
+- Dark/light theme adaptation
+
+**Note**: The library ships with 2 proven, production-ready materials. You can easily create additional materials (Metal, Wood, Fabric, Holo, etc.) using the examples in the [Custom Materials](#custom-materials) section.
 
 ---
 
@@ -331,9 +332,8 @@ MIT License - use it however you want.
 ## Demo
 
 [View Live Demo](index.html) - Open `index.html` in your browser to see:
-- Interactive material switcher
+- Global material switcher (switch entire page between Paper/Glass)
 - Theme switching (dark/light)
 - State transitions (hover, active)
 - Material inheritance examples
-- Design token usage
-- Comparison with other approaches
+- Clean implementation with Tailwind + Material System
