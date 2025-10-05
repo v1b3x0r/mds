@@ -469,10 +469,10 @@
           border: '0.5px solid rgba(0, 0, 0, 0.08)',
           color: '#2d1b3d'
         },
-        hover: {
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-          transform: 'translateY(-2px)'
-        },
+        // hover: {
+        //   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+        //   transform: 'translateY(-2px)'
+        // },
         active: {
           boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
           transform: 'translateY(0) scale(0.98)'
