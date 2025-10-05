@@ -375,9 +375,9 @@
       this.register('glass', {
         base: {
           backgroundColor: 'rgba(255, 255, 255, 0.08)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: '0.5px solid rgba(255, 255, 255, 0.25)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
           borderTop: '1px solid rgba(255, 255, 255, 0.4)',
           color: '#ffffff',
           // 10-layer shadow system: inner border + reflex layers + depth shadows
@@ -395,23 +395,23 @@
           `,
           transition: 'background-color 400ms cubic-bezier(1, 0, 0.4, 1), box-shadow 400ms cubic-bezier(1, 0, 0.4, 1)'
         },
-        hover: {
-          backgroundColor: 'rgba(255, 255, 255, 0.18)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.5)',
-          boxShadow: `
-            inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-            inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
-            inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
-            inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
-            inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.14),
-            inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.22),
-            inset 0px 3px 4px -2px rgba(0, 0, 0, 0.22),
-            inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.12),
-            0px 2px 8px 0px rgba(0, 0, 0, 0.22),
-            0px 8px 20px 0px rgba(0, 0, 0, 0.18)
-          `,
-          transform: 'translateY(-2px)'
-        },
+        // hover: {
+        //   backgroundColor: 'rgba(255, 255, 255, 0.18)',
+        //   borderTop: '1px solid rgba(255, 255, 255, 0.5)',
+        //   boxShadow: `
+        //     inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+        //     inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
+        //     inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
+        //     inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
+        //     inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.14),
+        //     inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.22),
+        //     inset 0px 3px 4px -2px rgba(0, 0, 0, 0.22),
+        //     inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.12),
+        //     0px 2px 8px 0px rgba(0, 0, 0, 0.22),
+        //     0px 8px 20px 0px rgba(0, 0, 0, 0.18)
+        //   `,
+        //   transform: 'translateY(-2px)'
+        // },
         active: {
           backgroundColor: 'rgba(255, 255, 255, 0.08)',
           transform: 'translateY(0) scale(0.98)'
@@ -422,12 +422,12 @@
         },
         // Light mode override
         light: {
-          backgroundColor: 'rgba(0, 0, 0, 0.08)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px) ',
+          backgroundColor: 'rgba(0, 0, 0, 0.03)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px) ',
           border: '1px solid rgba(255, 255, 255, 0.3)',
           borderTop: '1px solid rgba(255, 255, 255, 0.5)',
-          color: '#224',
+          color: '#333',
           boxShadow: `
             inset 0 0 0 1px rgba(255, 255, 255, 0.2),
             inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9),
@@ -440,22 +440,22 @@
             0px 1px 5px 0px rgba(0, 0, 0, 0.06),
             0px 6px 16px 0px rgba(0, 0, 0, 0.048)
           `,
-          hover: {
-            backgroundColor: 'rgba(0, 0, 0, 0.18)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.6)',
-            boxShadow: `
-              inset 0 0 0 1px rgba(255, 255, 255, 0.25),
-              inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
-              inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
-              inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
-              inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.042),
-              inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.066),
-              inset 0px 3px 4px -2px rgba(0, 0, 0, 0.066),
-              inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.036),
-              0px 2px 8px 0px rgba(0, 0, 0, 0.066),
-              0px 8px 20px 0px rgba(0, 0, 0, 0.054)
-            `
-          },
+          // hover: {
+          //   backgroundColor: 'rgba(0, 0, 0, 0.18)',
+          //   borderTop: '1px solid rgba(255, 255, 255, 0.6)',
+          //   boxShadow: `
+          //     inset 0 0 0 1px rgba(255, 255, 255, 0.25),
+          //     inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.95),
+          //     inset -2px -2px 0px -2px rgba(255, 255, 255, 0.85),
+          //     inset -3px -8px 1px -6px rgba(255, 255, 255, 0.65),
+          //     inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.042),
+          //     inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.066),
+          //     inset 0px 3px 4px -2px rgba(0, 0, 0, 0.066),
+          //     inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.036),
+          //     0px 2px 8px 0px rgba(0, 0, 0, 0.066),
+          //     0px 8px 20px 0px rgba(0, 0, 0, 0.054)
+          //   `
+          // },
           active: {
             backgroundColor: 'rgba(0, 0, 0, 0.08)'
           }
@@ -486,7 +486,7 @@
           backgroundSize: '200px 200px, 100% 100%',
           color: '#e0e0e0',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)'
+          boxShadow: '0 2px 24px rgba(0, 0, 0, 0.05)'
         }
       });
     }

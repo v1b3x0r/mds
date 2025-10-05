@@ -19,13 +19,13 @@
 
   /* Dark Theme (Default) */
   body[data-theme="dark"] {
-    background: linear-gradient(to bottom, #000, #111);
+    background: #000;
     color: #e0e0e0;
   }
 
   /* Light Theme */
   body[data-theme="light"] {
-    background: linear-gradient(to bottom, #fff, #eee);
+    background: #f9f9f9;
     color: #1a1a1a;
   }
 
