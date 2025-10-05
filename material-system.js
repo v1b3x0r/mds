@@ -374,10 +374,10 @@
       // Glass material - Apple Liquid Glass (Dark mode default)
       this.register('glass', {
         base: {
-          backgroundColor: 'rgba(255, 255, 255, 0.12)',
-          backdropFilter: 'blur(8px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(180%)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          border: '0.5px solid rgba(255, 255, 255, 0.25)',
           borderTop: '1px solid rgba(255, 255, 255, 0.4)',
           color: '#ffffff',
           // 10-layer shadow system: inner border + reflex layers + depth shadows
@@ -423,8 +423,8 @@
         // Light mode override
         light: {
           backgroundColor: 'rgba(0, 0, 0, 0.08)',
-          backdropFilter: 'blur(8px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(8px) saturate(200%)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px) ',
           border: '1px solid rgba(255, 255, 255, 0.3)',
           borderTop: '1px solid rgba(255, 255, 255, 0.5)',
           color: '#224',

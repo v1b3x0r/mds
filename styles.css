@@ -19,13 +19,13 @@
 
   /* Dark Theme (Default) */
   body[data-theme="dark"] {
-    background: linear-gradient(to bottom, #0a0a0f, #1a1a2e);
+    background: linear-gradient(to bottom, #000, #111);
     color: #e0e0e0;
   }
 
   /* Light Theme */
   body[data-theme="light"] {
-    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    background: linear-gradient(to bottom, #fff, #eee);
     color: #1a1a1a;
   }
 
@@ -59,44 +59,6 @@
   }
 }
 
-/* ========================================
-   Components (Tailwind @layer syntax)
-   ======================================== */
-
-@layer components {
-  .material-select {
-    @apply bg-transparent border-none outline-none appearance-none;
-    color: inherit;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-  }
-
-  .material-select:hover {
-    @apply opacity-100;
-  }
-
-  .material-select option {
-    @apply text-white;
-    background: rgba(0, 0, 0, 0.9);
-  }
-
-  body[data-theme="light"] .material-select option {
-    @apply text-black;
-    background: rgba(255, 255, 255, 0.95);
-  }
-
-  .theme-tab {
-    @apply bg-transparent border-none cursor-pointer flex items-center justify-center;
-    color: inherit;
-  }
-
-  /* Tab bar divider */
-  .fixed .w-px {
-    @apply opacity-20;
-  }
-}
 
 /* ========================================
    Responsive & Utilities
