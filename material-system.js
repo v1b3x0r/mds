@@ -24,7 +24,7 @@
     registry: {},
 
     // Current theme
-    _theme: 'dark',
+    _theme: 'light',
 
     // Transition duration for state changes
     transitionDuration: '0.3s',
@@ -466,8 +466,7 @@
         base: {
           background: `url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' /%3E%3C/svg%3E"), #ffffff`,
           backgroundSize: '200px 200px, 100% 100%',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
+          border: '0.5px solid rgba(0, 0, 0, 0.08)',
           color: '#2d1b3d'
         },
         hover: {
