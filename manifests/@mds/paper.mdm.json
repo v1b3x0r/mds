@@ -1,0 +1,68 @@
+{
+  "name": "@mds/paper",
+  "version": "1.0.0",
+  "description": "Matte paper with realistic noise texture",
+  "author": "MDS Team",
+  "license": "MIT",
+  "tags": ["paper", "matte", "texture"],
+
+  "inherits": null,
+
+  "optics": {
+    "opacity": 1,
+    "tint": "#ffffff",
+    "brightness": "100%",
+    "contrast": "100%"
+  },
+
+  "surface": {
+    "radius": "12px",
+    "border": "0.5px solid rgba(0, 0, 0, 0.08)",
+    "shadow": "0 2px 8px rgba(0, 0, 0, 0.08)",
+    "texture": {
+      "src": "data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' /%3E%3C/svg%3E",
+      "repeat": "repeat",
+      "size": "200px 200px"
+    }
+  },
+
+  "states": {
+    "base": {
+      "optics": {
+        "opacity": 1,
+        "tint": "#ffffff"
+      },
+      "surface": {
+        "border": "0.5px solid rgba(0, 0, 0, 0.08)",
+        "shadow": "0 2px 8px rgba(0, 0, 0, 0.08)"
+      }
+    },
+    "active": {
+      "surface": {
+        "shadow": "0 1px 4px rgba(0, 0, 0, 0.1)"
+      }
+    },
+    "disabled": {
+      "optics": {
+        "opacity": 0.6
+      }
+    }
+  },
+
+  "theme": {
+    "dark": {
+      "optics": {
+        "tint": "#1a1a1a"
+      },
+      "surface": {
+        "border": "1px solid rgba(255, 255, 255, 0.1)",
+        "shadow": "0 2px 24px rgba(0, 0, 0, 0.05)",
+        "texture": {
+          "src": "data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 1, 0 0 0 0 1, 0 0 0 0 1, 0 0 0 0.015 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' /%3E%3C/svg%3E",
+          "repeat": "repeat",
+          "size": "200px 200px"
+        }
+      }
+    }
+  }
+}

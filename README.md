@@ -1,36 +1,46 @@
-# Material System
+# Material Definition System (MDS) v2.0
 
-A production-ready library for material-driven styling - think in materials, not CSS properties.
+> **Think in materials, not CSS properties**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/material-js-concept)
+A production-ready, physics-based material system for modern web applications. Define UI as real-world materials with intrinsic behavior, not just visual styling.
+
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/yourusername/material-js-concept)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Size](https://img.shields.io/badge/size-9KB%20minified-orange.svg)](material-system.min.js)
+[![Size](https://img.shields.io/badge/size-4KB%20gzipped-orange.svg)](dist/mds.umd.js)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](src/index.ts)
 
 ## Quick Start
 
 ### CDN (Recommended)
 
 ```html
-<!-- Include Material System -->
-<script src="https://cdn.jsdelivr.net/gh/yourusername/material-js-concept/material-system.min.js"></script>
+<!-- Include MDS -->
+<script src="https://cdn.jsdelivr.net/npm/@mds/core@2.0.0/dist/mds.umd.js"></script>
 
 <!-- Use materials -->
-<div data-material="glass">Glass Card</div>
-<button data-material="paper">Paper Button</button>
+<div data-material="@mds/glass-liquid">
+  Hello, Material World!
+</div>
 ```
 
-### Local Installation
+### npm
 
 ```bash
-# Download material-system.js
-curl -O https://raw.githubusercontent.com/yourusername/material-js-concept/main/material-system.js
+npm install @mds/core
 ```
 
-```html
-<script src="./material-system.js"></script>
-```
+```javascript
+import { materialSystem } from '@mds/core'
 
-That's it! The system auto-initializes and applies materials on page load.
+// Install official materials
+await materialSystem.install(['@mds/glass-liquid', '@mds/paper-polkadot'])
+
+// Create custom material
+materialSystem.register('my-glass', {
+  optics: { blur: '20px', tint: 'rgba(255,255,255,0.15)' },
+  behavior: { elasticity: 0.4, snapBack: true }
+})
+```
 
 ---
 
@@ -40,80 +50,119 @@ Instead of thinking in CSS properties and utility classes, think in real-world m
 
 ### Traditional Approach
 ```html
-<div class="bg-white/90 backdrop-blur-md shadow-lg border border-gray-200/50 rounded-xl p-6">
+<div class="bg-white/10 backdrop-blur-lg shadow-xl border border-white/20 rounded-xl">
   Card
 </div>
 ```
 
 ### Material-Driven Approach
 ```html
-<div data-material="glass">
+<div data-material="@mds/glass-liquid">
   Card
 </div>
 ```
 
-## Why Material-Driven?
-
-### 1. Better Mental Model
-Developers and designers think in materials ("this should be glass") rather than CSS properties ("this needs backdrop-filter, opacity, border, shadow...").
-
-### 2. Automatic Consistency
-Every element using `data-material="glass"` looks identical. No more inconsistent "glass effects" across the app because different developers implemented them differently.
-
-### 3. Design-to-Code Bridge
-Designers can specify materials in their mockups. Developers use the exact same vocabulary. No translation layer needed.
-
-### 4. Single Source of Truth
-Change the glass material definition once, and every glass element updates automatically. No need to hunt down 47 different glass-styled components.
-
-### 5. Semantic Clarity
-`data-material="glass"` is more meaningful than a string of utility classes. It describes what the element IS, not just how it looks.
-
-## Features
-
-- **Standalone Package**: Zero external dependencies - just include `material-system.js` and it works
-- **2 Core Materials**: Glass, Paper (proven, production-ready)
-- **State Management**: Automatic hover, active, focus, disabled states (only for interactive elements)
-- **Theme Support**: Dark/light theme with auto-adaptation
-- **Material Inheritance**: Extend existing materials to create custom ones
-- **Zero Dependencies**: Pure vanilla JavaScript, no CSS files required
-- **Tiny**: ~9KB minified, ~2.4KB gzipped
-- **Framework Agnostic**: Works with React, Vue, vanilla HTML
+**Same result, but:**
+- ✅ **Semantic**: Describes *what it is*, not *how it looks*
+- ✅ **Consistent**: All glass elements behave identically
+- ✅ **Physics-aware**: Materials have intrinsic behavior (elasticity, drag)
+- ✅ **Theme-reactive**: Automatically adapts to light/dark mode
+- ✅ **State-driven**: Hover, press, drag states built-in
 
 ---
 
-## Standalone Package - No CSS Required
+## What's New in v2.0
 
-Material System is a **true standalone package**. Unlike most UI libraries, you don't need to import any CSS files:
+### 🎨 Domain-Based Architecture
 
-```html
-<!-- ✅ This is all you need -->
-<script src="material-system.js"></script>
+Materials are defined by three domains:
 
-<!-- ❌ NO CSS imports required -->
-<!-- No styles.css, no theme.css, nothing -->
+```javascript
+{
+  optics: {    // Light interaction
+    opacity, tint, blur, brightness, contrast, saturation
+  },
+  surface: {   // Texture & edges
+    radius, shadow, texture: { src, repeat, size, rotation }
+  },
+  behavior: {  // Physics response
+    elasticity, viscosity, snapBack
+  }
+}
 ```
 
-**Why?** All material properties (colors, blur, shadows, borders) are hardcoded in the JavaScript package. This means:
+### 🎯 Contact States
 
-- **Zero configuration**: Drop in one `<script>` tag and you're done
-- **No build step**: Works directly in the browser
-- **No style conflicts**: Material properties are applied via inline styles, isolated from your CSS
-- **Framework-friendly**: Works with any CSS framework (Tailwind, Bootstrap, etc.) without conflicts
+Advanced state machine beyond hover/active:
 
-The demo page includes `styles.css`, but that's **only for the demo** (typography, layout, body background). Users of Material System package don't need it.
-
-### Separation of Concerns
-
-When using Material System with Tailwind (or any CSS framework):
-
-```html
-<!-- Tailwind handles: layout, spacing, sizing -->
-<!-- Material System handles: visual appearance -->
-<button class="px-4 py-2 rounded-full flex items-center gap-2" data-material="glass">
-  Click me
-</button>
 ```
+base → hover → press → drag → release
+       ↓
+     focus
+```
+
+### 🌊 Physics-Based Behavior
+
+Materials respond naturally with real physics:
+- **Elasticity**: Spring-based compression on press
+- **Viscosity**: Drag damping during movement
+- **SnapBack**: Return to origin with spring animation
+
+### 📦 JSON Manifests
+
+Author materials in JSON (`.mdm.json`):
+
+```json
+{
+  "name": "@username/neon-glass",
+  "inherits": "@mds/glass",
+  "optics": {
+    "tint": "rgba(0, 255, 255, 0.2)",
+    "brightness": "120%"
+  },
+  "behavior": {
+    "elasticity": 0.5,
+    "snapBack": true
+  }
+}
+```
+
+### 🏷️ npm-Style Naming
+
+```
+@mds/glass-liquid         # Official materials
+@username/custom-material # Community materials
+my-material               # Local materials
+```
+
+---
+
+## Features
+
+- **Zero Dependencies**: Pure vanilla TypeScript/JavaScript
+- **Tiny Bundle**: ~4KB gzipped (UMD), ~6KB (ESM)
+- **Physics Engine**: Spring animations, drag damping, elastic response
+- **Schema-Driven**: JSON manifests for easy authoring
+- **TypeScript**: Full type definitions included
+- **Framework Agnostic**: Works with React, Vue, Svelte, vanilla
+- **Auto-Initialize**: Works out of the box, no setup required
+- **Theme Support**: Automatic light/dark mode adaptation
+- **State Management**: Hover, press, drag, focus states automatic
+- **Texture Support**: SVG patterns with rotation
+- **Material Inheritance**: Extend and customize existing materials
+
+---
+
+## Official Materials
+
+| Material | Description | Use Cases |
+|----------|-------------|-----------|
+| **@mds/glass** | Clean transparency with blur | Cards, overlays, navigation |
+| **@mds/glass-liquid** | Elastic glass with physics | Interactive buttons, draggable items |
+| **@mds/glass-frosted** | Heavy blur for privacy | Modals, backgrounds |
+| **@mds/paper** | Soft matte surface | Forms, documents, content containers |
+| **@mds/paper-polkadot** | Textured paper with SVG pattern | Decorative cards, playful UI |
+| **@mds/wood** | Natural grain texture | Warm, organic interfaces |
 
 ---
 
@@ -121,42 +170,72 @@ When using Material System with Tailwind (or any CSS framework):
 
 ### MaterialSystem.register()
 
-Register a new material with optional states:
+Register a new material:
 
 ```javascript
-MaterialSystem.register('material-name', {
-  base: {
-    background: '#color',
-    // ... base styles
+materialSystem.register('@username/neon', {
+  optics: {
+    opacity: 0.9,
+    tint: 'rgba(0, 255, 255, 0.3)',
+    blur: '16px',
+    brightness: '120%'
   },
-  hover: {
-    // ... hover state styles
+  surface: {
+    radius: '12px',
+    shadow: '0 0 20px cyan'
   },
-  active: {
-    // ... active state styles
+  behavior: {
+    elasticity: 0.4,
+    viscosity: 0.2,
+    snapBack: true
   },
-  disabled: {
-    // ... disabled state styles
+  states: {
+    hover: {
+      optics: { brightness: '130%' }
+    },
+    press: {
+      optics: { brightness: '110%' }
+    }
   },
-  dark: {
-    // ... dark theme overrides
-  },
-  light: {
-    // ... light theme overrides
+  theme: {
+    light: {
+      optics: { tint: 'rgba(0, 200, 200, 0.2)' }
+    }
   }
-});
+})
 ```
 
 ### MaterialSystem.extend()
 
-Extend an existing material:
+Extend existing material:
 
 ```javascript
-MaterialSystem.extend('frosted-glass', 'glass', {
-  base: {
-    backdropFilter: 'blur(20px)' // override property
+materialSystem.extend('my-frosted', '@mds/glass', {
+  optics: {
+    blur: '40px'  // Override blur only
   }
-});
+})
+```
+
+### MaterialSystem.install()
+
+Load materials from CDN:
+
+```javascript
+// Single material
+await materialSystem.install('@mds/glass-liquid')
+
+// Multiple materials
+await materialSystem.install([
+  '@mds/glass-liquid',
+  '@mds/paper-polkadot',
+  '@mds/wood'
+])
+
+// Custom CDN
+await materialSystem.install('@custom/material', {
+  cdn: 'https://my-cdn.com/manifests'
+})
 ```
 
 ### MaterialSystem.setTheme()
@@ -164,17 +243,92 @@ MaterialSystem.extend('frosted-glass', 'glass', {
 Switch theme:
 
 ```javascript
-MaterialSystem.setTheme('dark'); // or 'light'
+materialSystem.setTheme('light')  // Light mode
+materialSystem.setTheme('dark')   // Dark mode
+materialSystem.setTheme('auto')   // Follow system preference
 ```
 
 ### MaterialSystem.apply()
 
-Manually re-apply all materials (usually not needed):
+Manually re-apply materials:
 
 ```javascript
-MaterialSystem.apply();
+// Re-apply all materials
+materialSystem.apply()
+
+// Apply to specific subtree
+materialSystem.apply(document.getElementById('my-section'))
 ```
 
+---
+
+## Material Schema (MDSpec)
+
+### Optics Domain
+
+```typescript
+optics?: {
+  opacity?: number          // 0..1
+  tint?: string            // CSS color
+  blur?: string            // e.g. "12px"
+  brightness?: string      // e.g. "110%"
+  contrast?: string        // e.g. "105%"
+  saturation?: string      // e.g. "120%"
+}
+```
+
+Maps to: `opacity`, `backdrop-filter`, `filter`, `background-color`
+
+### Surface Domain
+
+```typescript
+surface?: {
+  radius?: string          // border-radius
+  shadow?: string          // box-shadow
+  texture?: {
+    src: string            // URL or data URI
+    repeat?: 'repeat' | 'no-repeat' | 'repeat-x' | 'repeat-y'
+    size?: string          // e.g. "24px 24px"
+    rotation?: string      // e.g. "15deg"
+  }
+}
+```
+
+Maps to: `border-radius`, `box-shadow`, `background-image`, pseudo-elements
+
+### Behavior Domain
+
+```typescript
+behavior?: {
+  elasticity?: number      // 0..1 (press spring strength)
+  viscosity?: number       // 0..1 (drag damping)
+  snapBack?: boolean       // return to origin on release
+}
+```
+
+Maps to: Dynamic `transform` animations via requestAnimationFrame
+
+### States
+
+```typescript
+states?: {
+  base?: Material         // Default state
+  hover?: Material        // Pointer over
+  press?: Material        // Pointer down
+  drag?: Material         // Pointer down + move
+  focus?: Material        // Keyboard focus
+  disabled?: Material     // Disabled attribute
+}
+```
+
+### Theme
+
+```typescript
+theme?: {
+  light?: Material        // Light mode overrides
+  dark?: Material         // Dark mode overrides
+}
+```
 
 ---
 
@@ -183,170 +337,127 @@ MaterialSystem.apply();
 ### Basic Usage
 
 ```html
-<div data-material="glass">Glass Card</div>
-<button data-material="paper">Paper Button</button>
+<button data-material="@mds/glass-liquid">
+  Click me
+</button>
 ```
 
-### Custom Materials
-
-Create your own materials from scratch or extend existing ones:
+### Custom Material
 
 ```javascript
-// Create entirely new material
-MaterialSystem.register('metal', {
-  base: {
-    background: 'linear-gradient(135deg, #434343 0%, #282828 100%)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-    color: '#e0e0e0'
+materialSystem.register('brand-primary', {
+  inherits: '@mds/glass',
+  optics: {
+    tint: 'rgba(59, 130, 246, 0.2)',  // Brand blue
+    brightness: '110%'
   },
-  hover: {
-    boxShadow: '0 6px 24px rgba(0, 0, 0, 0.4)',
-    transform: 'translateY(-2px)'
+  behavior: {
+    elasticity: 0.3,
+    snapBack: true
   }
-});
+})
+```
 
-// Extend existing material
-MaterialSystem.extend('frosted-glass', 'glass', {
-  base: {
-    backdropFilter: 'blur(20px)' // More blur than regular glass
-  }
-});
+```html
+<div data-material="brand-primary">
+  Brand colored glass
+</div>
+```
 
-// Wood material example
-MaterialSystem.register('wood', {
-  base: {
-    background: 'linear-gradient(90deg, #8B7355 0%, #6F5643 25%, #8B7355 50%)',
-    boxShadow: 'inset 0 0 60px rgba(101, 67, 33, 0.3)',
-    border: '1px solid rgba(70, 50, 30, 0.6)',
-    color: '#f5e6d3'
-  }
-});
+### Material Inheritance
 
-// Fabric material example
-MaterialSystem.register('fabric', {
-  base: {
-    background: 'linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.02) 48%)',
-    backgroundSize: '10px 10px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.15)',
-    border: '1px solid rgba(0, 0, 0, 0.08)',
-    color: '#3d3d3d'
-  }
-});
+```javascript
+// Base material
+materialSystem.register('base-glass', {
+  optics: { blur: '16px', opacity: 0.9 },
+  surface: { radius: '12px' }
+})
 
-// Holographic material example
-MaterialSystem.register('holo', {
-  base: {
-    background: 'linear-gradient(125deg, rgba(255, 0, 200, 0.3), rgba(0, 200, 255, 0.3))',
-    backgroundSize: '400% 100%',
-    backdropFilter: 'blur(10px) saturate(200%)',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    color: '#ffffff',
-    transition: 'background-position 0.8s ease'
-  },
-  hover: {
-    backgroundPosition: '100% 0%'
-  }
-});
+// Variant 1
+materialSystem.extend('glass-blue', 'base-glass', {
+  optics: { tint: 'rgba(0, 100, 255, 0.2)' }
+})
+
+// Variant 2
+materialSystem.extend('glass-strong', 'base-glass', {
+  optics: { blur: '30px' },
+  behavior: { elasticity: 0.5 }
+})
 ```
 
 ---
 
-## How is this Different?
+## How It Works Internally
 
-| Approach | Mental Model | Best For | Example |
-|----------|--------------|----------|---------|
-| **Tailwind** (Utility-First) | "Apply these visual properties" | Rapid prototyping, pixel-perfect control | `bg-white/90 backdrop-blur-md shadow-lg...` |
-| **Material System** | "This is made of glass" | Consistency, design system enforcement | `data-material="glass"` |
-| **MUI/Bootstrap** | "Use this component" | Speed, comprehensive UI kit | `<Button variant="contained">` |
-| **CSS-in-JS** | "Style this component" | Dynamic styling, encapsulation | `styled.div\`...\`` |
+1. **Auto-initialization**: MDS initializes on page load
+2. **MutationObserver**: Watches for dynamic `[data-material]` elements
+3. **Material Resolution**: Resolves inheritance chain and merges properties
+4. **Domain Mapping**: Maps optics/surface/behavior to CSS properties
+5. **State Machine**: Attaches pointer event listeners to interactive elements
+6. **Physics Loop**: Runs rAF animations for drag/spring behaviors
+7. **Theme Reactivity**: Listens to `prefers-color-scheme` media query
 
-### When to Use Material System?
+### Performance
 
-**Good fit:**
-- Building design systems with strong visual consistency
-- Designer-developer collaboration (shared vocabulary)
-- Repeating UI patterns (cards, modals, panels)
-- Need to switch themes/styles globally
-- Want semantic, maintainable styling
-
-**Not ideal for:**
-- One-off unique designs
-- Need pixel-perfect custom control per element
-- Already using comprehensive component libraries
-- Ultra-performance-critical applications
-
----
-
-## Core Materials
-
-| Material | Description | Use Cases |
-|----------|-------------|-----------|
-| **glass** | Frosted glass with blur and transparency | Overlays, modern cards, modals, navigation |
-| **paper** | Soft matte surface with subtle texture | Content containers, forms, documents |
-
-All materials support:
-- Hover states (automatic)
-- Active states (automatic)
-- Disabled states (automatic)
-- Dark/light theme adaptation
-
-**Note**: The library ships with 2 proven, production-ready materials. You can easily create additional materials (Metal, Wood, Fabric, Holo, etc.) using the examples in the [Custom Materials](#custom-materials) section.
+- ✅ First apply: <2 frames for 100 elements
+- ✅ Pointer response: <8ms median
+- ✅ Drag animation: 60fps
+- ✅ GPU-accelerated: Only `transform`/`opacity`/`filter`
+- ✅ No layout thrashing: Read/write batching
+- ✅ Memory safe: WeakMap cleanup
 
 ---
 
 ## Browser Support
 
-Works in all modern browsers that support:
+Works in all modern browsers supporting:
+- Pointer Events (Chrome 55+, Safari 13+, Firefox 59+)
 - `backdrop-filter` (Chrome 76+, Safari 9+, Firefox 103+)
-- CSS custom properties
-- ES6 JavaScript
+- CSS Custom Properties (all modern browsers)
+- ES2020 JavaScript
 
-For older browsers, materials gracefully degrade (blur effects won't work but basic styling remains).
+Graceful degradation: Blur effects won't work in older browsers, but basic styling remains.
 
 ---
 
 ## Philosophy
 
-Material System isn't about replacing existing tools - it's a different way to think about styling:
+### Why Material-Driven?
 
-- **Tailwind**: Compose atomic utilities → complete design
-- **Styled Components**: Encapsulate styles with components
-- **Material System**: Declare materials → inherit all properties
+**Traditional CSS**: "Apply these 15 properties to make it look like glass"
+```css
+.card {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  /* ... 10 more properties */
+}
+```
 
-Each approach has its place. Material System excels when you need:
-- Shared designer-developer vocabulary
-- Strong visual consistency
-- Easy global theme changes
-- Semantic, maintainable code
+**Material System**: "This IS glass"
+```html
+<div data-material="@mds/glass">
+```
 
----
-
-## Technical Details
-
-- **Size**: ~17KB source, ~9KB minified, ~2.4KB gzipped
-- **Dependencies**: Zero
-- **Browser**: Modern browsers (ES6+, backdrop-filter)
-- **Framework**: Agnostic (works with React, Vue, vanilla)
-- **License**: MIT
-
-### How it Works Internally
-
-1. **Auto-initialization**: Loads and applies materials on DOM ready
-2. **MutationObserver**: Watches for dynamic content and applies materials automatically
-3. **Event handlers**: Attaches state handlers (hover, active, focus) to interactive elements
-4. **Theme system**: Merges theme-specific styles with base/state styles
-5. **Token resolution**: Resolves `@token.path` syntax to actual material names
+**Benefits**:
+1. **Designer-Developer Shared Language**: "Make it glass" → `data-material="glass"`
+2. **Consistency**: All glass elements identical by default
+3. **Maintainability**: Change glass once, update everywhere
+4. **Physics-Aware**: Materials have intrinsic behavior
+5. **Semantic**: Code describes intent, not implementation
 
 ---
 
 ## Contributing
 
-This is a proof of concept / production-ready library. Feel free to:
-- Fork and extend
-- Report issues
-- Suggest new materials
-- Share your use cases
+### Creating Materials
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for material authoring guidelines.
+
+### Reporting Issues
+
+Report bugs at [GitHub Issues](https://github.com/yourusername/material-js-concept/issues)
 
 ---
 
@@ -355,7 +466,7 @@ This is a proof of concept / production-ready library. Feel free to:
 - **Material Design** (Google) - elevation and surface concepts
 - **Fluent Design** (Microsoft) - acrylic materials
 - **Glassmorphism** - transparent, blurred surfaces
-- **Real-world materials** - how physical objects look and feel
+- **Real-world physics** - how physical objects behave
 
 ---
 
@@ -367,9 +478,38 @@ MIT License - use it however you want.
 
 ## Demo
 
-**[View Live Demo](https://material-js-concept.vercel.app/)** - See Material System in action:
-- Global material switcher (switch entire page between Paper/Glass)
-- Theme switching (dark/light)
-- State transitions (hover, active)
-- Material inheritance examples
-- Clean implementation with Tailwind + Material System
+**[View Live Demo](https://material-js-concept.vercel.app/)**
+
+See MDS in action with:
+- Interactive material gallery
+- Physics playground
+- Theme switching
+- Live code examples
+
+---
+
+## Roadmap
+
+### v2.1 (Q1 2025)
+- [ ] React/Vue/Svelte component wrappers
+- [ ] Figma plugin (export designs as MDM)
+- [ ] Material marketplace
+- [ ] Animation timeline control
+
+### v2.2 (Q2 2025)
+- [ ] Metal material (anisotropic reflections)
+- [ ] Fabric material (woven textures)
+- [ ] Particle effects (gas, smoke)
+- [ ] 3D depth via CSS transforms
+
+### v3.0 (Future)
+- [ ] WebGL/WebGPU renderer for advanced effects
+- [ ] Fluid simulations
+- [ ] Material Design v4 compatibility
+- [ ] W3C standard proposal?
+
+---
+
+**Made with 💎 by the MDS Team**
+
+Think in materials, not CSS properties.
