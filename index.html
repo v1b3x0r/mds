@@ -461,143 +461,27 @@ MaterialSystem.setTheme('dark')</pre>
   </footer>
 
   <!-- Load MDS -->
-  <script src="../dist/mds.umd.js"></script>
+  <script src="./dist/mds.umd.js"></script>
 
   <script>
-    // Load official materials (inline JS objects from ../manifests/@mds/*.mdm.json)
-    const glassLiquid = {
-      "name": "@mds/glass-fake",
-      "version": "1.0.0",
-      "description": "Simplified glass effect - demonstrates the concept but lacks true liquid glass depth and refraction (technical limitation)",
-      "author": "MDS Team",
-      "license": "MIT",
-      "tags": ["glass", "simplified", "transparent", "demo"],
-      "inherits": null,
-      "optics": {
-        "opacity": 1,
-        "tint": "rgba(255, 255, 255, 0.08)",
-        "blur": "4px",
-        "saturation": "100%",
-        "brightness": "100%",
-        "contrast": "100%"
-      },
-      "surface": {
-        "radius": "12px",
-        "border": "1px solid rgba(255, 255, 255, 0.25)",
-        "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1), 0px 1px 5px 0px rgba(0, 0, 0, 0.2), 0px 6px 16px 0px rgba(0, 0, 0, 0.16)"
-      },
-      "states": {
-        "base": {
-          "optics": {
-            "opacity": 1,
-            "tint": "rgba(255, 255, 255, 0.08)",
-            "blur": "4px"
-          },
-          "surface": {
-            "border": "1px solid rgba(255, 255, 255, 0.25)",
-            "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1), 0px 1px 5px 0px rgba(0, 0, 0, 0.2), 0px 6px 16px 0px rgba(0, 0, 0, 0.16)"
-          }
-        },
-        "active": {
-          "optics": {
-            "tint": "rgba(255, 255, 255, 0.08)"
-          }
-        },
-        "disabled": {
-          "optics": {
-            "opacity": 0.5
-          }
-        }
-      },
-      "theme": {
-        "light": {
-          "optics": {
-            "tint": "rgba(0, 0, 0, 0.03)",
-            "blur": "4px"
-          },
-          "surface": {
-            "border": "1px solid rgba(255, 255, 255, 0.3)",
-            "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.036), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.06), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.06), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.03), 0px 1px 5px 0px rgba(0, 0, 0, 0.06), 0px 6px 16px 0px rgba(0, 0, 0, 0.048)"
-          },
-          "states": {
-            "active": {
-              "optics": {
-                "tint": "rgba(0, 0, 0, 0.08)"
-              }
-            }
-          }
-        }
-      }
+    // Load official materials from manifest files
+    async function loadMaterials() {
+      const [glassFake, paper] = await Promise.all([
+        fetch('./manifests/@mds/glass-fake.mdm.json').then(r => r.json()),
+        fetch('./manifests/@mds/paper.mdm.json').then(r => r.json())
+      ])
+
+      MaterialSystem.register('glass-liquid', glassFake)
+      MaterialSystem.register('paper', paper)
+      MaterialSystem.apply()
     }
 
-    const paper = {
-      "name": "@mds/paper",
-      "version": "1.0.0",
-      "description": "Matte paper with realistic noise texture",
-      "author": "MDS Team",
-      "license": "MIT",
-      "tags": ["paper", "matte", "texture"],
-      "inherits": null,
-      "optics": {
-        "opacity": 1,
-        "tint": "#ffffff",
-        "brightness": "100%",
-        "contrast": "100%"
-      },
-      "surface": {
-        "radius": "12px",
-        "border": "0.5px solid rgba(0, 0, 0, 0.08)",
-        "shadow": "0 2px 8px rgba(0, 0, 0, 0.08)",
-        "texture": {
-          "src": "data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' /%3E%3C/svg%3E",
-          "repeat": "repeat",
-          "size": "200px 200px"
-        }
-      },
-      "states": {
-        "base": {
-          "optics": {
-            "opacity": 1,
-            "tint": "#ffffff"
-          },
-          "surface": {
-            "border": "0.5px solid rgba(0, 0, 0, 0.08)",
-            "shadow": "0 2px 8px rgba(0, 0, 0, 0.08)"
-          }
-        },
-        "active": {
-          "surface": {
-            "shadow": "0 1px 4px rgba(0, 0, 0, 0.1)"
-          }
-        },
-        "disabled": {
-          "optics": {
-            "opacity": 0.6
-          }
-        }
-      },
-      "theme": {
-        "dark": {
-          "optics": {
-            "tint": "#1a1a1a"
-          },
-          "surface": {
-            "border": "1px solid rgba(255, 255, 255, 0.1)",
-            "shadow": "0 2px 24px rgba(0, 0, 0, 0.05)",
-            "texture": {
-              "src": "data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3' /%3E%3CfeColorMatrix values='0 0 0 0 1, 0 0 0 0 1, 0 0 0 0 1, 0 0 0 0.015 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' /%3E%3C/svg%3E",
-              "repeat": "repeat",
-              "size": "200px 200px"
-            }
-          }
-        }
-      }
-    }
-
-    // Register materials
-    MaterialSystem.register('glass-liquid', glassLiquid)
-    MaterialSystem.register('paper', paper)
-    MaterialSystem.apply()
+    // Initialize UI after materials load
+    loadMaterials().then(() => {
+      console.log('✅ Materials loaded from manifest files')
+    }).catch(err => {
+      console.error('❌ Failed to load materials:', err)
+    })
 
     // Theme switching
     const btnLight = document.getElementById('btn-light')
