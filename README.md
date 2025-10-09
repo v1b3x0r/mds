@@ -32,12 +32,21 @@ Material Definition System เป็น JavaScript library ที่ให้ค
 
 ### Installation
 
-```html
-<!-- CDN (recommended) -->
-<script src="https://your-domain.vercel.app/dist/material-system.js"></script>
+**Local/Manual installation only** (CDN coming in future release)
 
-<!-- Manual -->
-<script src="path/to/material-system.js"></script>
+Download the built file and include it locally:
+
+```html
+<script src="./dist/material-system.js"></script>
+```
+
+Or clone and build from source:
+
+```bash
+git clone https://github.com/v1b3x0r/material-js-concept.git
+cd material-js-concept
+npm install
+npm run build
 ```
 
 ### Basic Usage
@@ -210,6 +219,10 @@ await MaterialSystem.install('@mds/glass', {
   cdn: 'https://custom-cdn.com'
 })
 ```
+
+**Note**: Official CDN not yet available. To use `install()`, you need to:
+1. Host manifests on your own server/CDN
+2. Pass custom CDN URL via options parameter
 
 ### `MaterialSystem.register(name, material)`
 

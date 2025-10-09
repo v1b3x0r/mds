@@ -34,11 +34,11 @@
     "animation",
     "material-design"
   ],
-  "author": "MDS Team",
+  "author": "v1b3x0r",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/material-js-concept"
+    "url": "https://github.com/v1b3x0r/material-js-concept"
   },
   "devDependencies": {
     "terser": "^5.44.0",
