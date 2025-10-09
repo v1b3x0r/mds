@@ -92,7 +92,7 @@ The **core system** is production-ready and battle-tested:
 The **built-in materials** need visual improvement:
 
 - **Visual appeal**: @mds/glass and @mds/paper are too subtle/minimal
-- **Reason**: I'm a systems engineer, not a visual designer
+- **Reason**: I'm a normal nerd guy with diet coke , not a visual designer
 - **Solution**: You can create much better materials! See [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)
 - **Available**: 28+ properties (opacity, blur, shadows, textures) + customCSS for advanced effects
 
