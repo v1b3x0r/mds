@@ -184,6 +184,15 @@ export class MaterialSystem {
     applySurface(element, finalMaterial.surface)  // Apply texture first
     applyOptics(element, finalMaterial.optics)    // Then tint layers over it
 
+    // Apply customCSS (escape hatch for advanced users)
+    if (finalMaterial.customCSS) {
+      Object.entries(finalMaterial.customCSS).forEach(([prop, value]) => {
+        // Convert kebab-case to camelCase for style properties
+        const camelProp = prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+        ;(element.style as any)[camelProp] = value
+      })
+    }
+
     // Setup interactive states if applicable
     if (isInteractiveElement(element)) {
       const stateMachine = new StateMachine()
@@ -196,6 +205,14 @@ export class MaterialSystem {
           const stateSpecific: Material = deepMerge({}, finalMaterial, stateMaterial as any)
           applySurface(element, stateSpecific.surface)  // Texture first
           applyOptics(element, stateSpecific.optics)    // Tint second
+
+          // Apply state-specific customCSS
+          if (stateSpecific.customCSS) {
+            Object.entries(stateSpecific.customCSS).forEach(([prop, value]) => {
+              const camelProp = prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
+              ;(element.style as any)[camelProp] = value
+            })
+          }
         }
 
         // Apply behavior

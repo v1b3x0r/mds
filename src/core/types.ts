@@ -77,6 +77,10 @@ export interface Material {
   surface?: Surface
   behavior?: Behavior
 
+  // Advanced: Custom CSS properties (escape hatch for CSS experts)
+  // Supports ANY valid CSS property not covered by optics/surface/behavior
+  customCSS?: Record<string, string>
+
   // State variants
   states?: Partial<Record<StateType, PartialMaterial>>
 
