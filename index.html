@@ -385,7 +385,7 @@ MaterialSystem.apply()</pre>
     } else {
       // Production: Load from CDN
       const script = document.createElement('script')
-      script.src = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.0/dist/mds.umd.js'
+      script.src = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1/dist/mds.umd.js'
       document.head.appendChild(script)
 
       await new Promise((resolve, reject) => {
@@ -397,7 +397,7 @@ MaterialSystem.apply()</pre>
     }
 
     // Load materials from CDN manifests
-    const cdnBase = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.0'
+    const cdnBase = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1'
 
     async function loadMaterials() {
       const [glass, paper, liquidSilicone] = await Promise.all([

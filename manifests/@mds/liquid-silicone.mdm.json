@@ -23,7 +23,7 @@
   },
 
   "behavior": {
-    "physics": "./manifests/@mds/liquid-silicone.physics.js",
+    "physics": "https://unpkg.com/@v1b3x0r/mds-core@3.0.1/manifests/@mds/liquid-silicone.physics.js",
     "physicsParams": {
       "tension": 22,
       "damping": 18,

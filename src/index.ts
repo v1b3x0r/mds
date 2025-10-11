@@ -282,7 +282,11 @@ class MaterialSystem {
     // Option A: External .js file
     if (behavior.physics) {
       try {
-        const physicsPath = behavior.physics.replace(/^\.\//, '/')
+        // Support both absolute URLs (https://...) and relative paths (./...)
+        let physicsPath = behavior.physics
+        if (!physicsPath.startsWith('http://') && !physicsPath.startsWith('https://')) {
+          physicsPath = physicsPath.replace(/^\.\//, '/')
+        }
         const module = await import(/* @vite-ignore */ physicsPath)
         const physicsFn = module.default || module
 
