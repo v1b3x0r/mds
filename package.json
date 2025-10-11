@@ -2,6 +2,7 @@
   "name": "@v1b3x0r/mds-core",
   "version": "2.0.1",
   "description": "Material Definition System - Think in materials, not CSS properties",
+  "sideEffects": false,
   "main": "./dist/mds.umd.js",
   "module": "./dist/mds.esm.js",
   "types": "./dist/index.d.ts",
@@ -25,19 +26,28 @@
     "type-check": "tsc --noEmit"
   },
   "keywords": [
-    "material",
-    "design-system",
     "ui",
-    "glassmorphism",
-    "physics",
+    "design-system",
+    "material",
     "animation",
-    "material-design"
+    "interface",
+    "glassmorphism",
+    "interactive",
+    "motion",
+    "physics",
+    "soft-ui",
+    "mds",
+    "hci"
   ],
   "author": "v1b3x0r",
   "license": "MIT",
+  "homepage": "https://github.com/v1b3x0r/material-js-concept#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/v1b3x0r/material-js-concept.git"
+  },
+  "bugs": {
+    "url": "https://github.com/v1b3x0r/material-js-concept/issues"
   },
   "devDependencies": {
     "terser": "^5.44.0",
