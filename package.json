@@ -1,21 +1,20 @@
 {
-  "name": "@mds/core",
-  "version": "2.0.0",
+  "name": "@v1b3x0r/mds-core",
+  "version": "2.0.1",
   "description": "Material Definition System - Think in materials, not CSS properties",
   "main": "./dist/mds.umd.js",
   "module": "./dist/mds.esm.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/mds.esm.js",
-      "require": "./dist/mds.umd.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/mds.umd.js"
     }
   },
   "files": [
     "dist",
     "manifests",
-    "spec",
     "README.md",
     "LICENSE"
   ],
@@ -38,7 +37,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/v1b3x0r/material-js-concept"
+    "url": "git+https://github.com/v1b3x0r/material-js-concept.git"
   },
   "devDependencies": {
     "terser": "^5.44.0",
@@ -47,8 +46,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@vercel/analytics": "^1.5.0"
   }
 }
