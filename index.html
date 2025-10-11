@@ -372,16 +372,38 @@ MaterialSystem.apply()</pre>
     2025 © MIT License | <a href="https://github.com/v1b3x0r/material-js-concept" style="color: inherit;">GitHub</a>
   </footer>
 
-  <!-- Load MDS (Vite will handle this in dev/preview mode) -->
+  <!-- Load MDS - Auto-detect dev (Vite) vs production (CDN) -->
   <script type="module">
-    import MDS from './src/index.ts'
+    // Check if Vite dev server is available
+    const isDev = import.meta.env?.DEV ?? false
 
-    // Load materials from local manifests
+    let MDS
+
+    if (isDev) {
+      // Development: Load from source
+      MDS = (await import('./src/index.ts')).default
+    } else {
+      // Production: Load from CDN
+      const script = document.createElement('script')
+      script.src = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.0/dist/mds.umd.js'
+      document.head.appendChild(script)
+
+      await new Promise((resolve, reject) => {
+        script.onload = resolve
+        script.onerror = reject
+      })
+
+      MDS = window.MaterialSystem
+    }
+
+    // Load materials from CDN manifests
+    const cdnBase = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.0'
+
     async function loadMaterials() {
       const [glass, paper, liquidSilicone] = await Promise.all([
-        fetch('./manifests/@mds/glass.mdm.json').then(r => r.json()),
-        fetch('./manifests/@mds/paper.mdm.json').then(r => r.json()),
-        fetch('./manifests/@mds/liquid-silicone.mdm.json').then(r => r.json())
+        fetch(`${cdnBase}/manifests/@mds/glass.mdm.json`).then(r => r.json()),
+        fetch(`${cdnBase}/manifests/@mds/paper.mdm.json`).then(r => r.json()),
+        fetch(`${cdnBase}/manifests/@mds/liquid-silicone.mdm.json`).then(r => r.json())
       ])
 
       MDS.register('@mds/glass', glass)
