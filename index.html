@@ -396,15 +396,20 @@ MaterialSystem.apply()</pre>
       MDS = window.MaterialSystem
     }
 
-    // Load materials from CDN manifests
-    const cdnBase = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1'
+    // Load materials - use local in dev, CDN in production
+    const manifestBase = isDev ? './manifests/@mds' : 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1/manifests/@mds'
 
     async function loadMaterials() {
       const [glass, paper, liquidSilicone] = await Promise.all([
-        fetch(`${cdnBase}/manifests/@mds/glass.mdm.json`).then(r => r.json()),
-        fetch(`${cdnBase}/manifests/@mds/paper.mdm.json`).then(r => r.json()),
-        fetch(`${cdnBase}/manifests/@mds/liquid-silicone.mdm.json`).then(r => r.json())
+        fetch(`${manifestBase}/glass.mdm.json`).then(r => r.json()),
+        fetch(`${manifestBase}/paper.mdm.json`).then(r => r.json()),
+        fetch(`${manifestBase}/liquid-silicone.mdm.json`).then(r => r.json())
       ])
+
+      // Fix physics path for production (convert relative to absolute CDN URL)
+      if (!isDev && liquidSilicone.behavior?.physics?.startsWith('./')) {
+        liquidSilicone.behavior.physics = `https://unpkg.com/@v1b3x0r/mds-core@3.0.1${liquidSilicone.behavior.physics.slice(1)}`
+      }
 
       MDS.register('@mds/glass', glass)
       MDS.register('@mds/paper', paper)
