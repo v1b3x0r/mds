@@ -18,6 +18,11 @@ export default defineConfig({
     sourcemap: true
   },
   server: {
-    open: '/demo/index.html'
+    open: '/index.html',
+    port: 3000
+  },
+  preview: {
+    port: 3000,
+    open: '/index.html'
   }
 })

@@ -1,51 +1,93 @@
 {
   "name": "@mds/liquid-silicone",
   "version": "3.0.0",
-  "description": "Elastic tactile material with 8-way directional deformation and spring physics",
+  "description": "Elastic silicone material with tactile physics and glassmorphic appearance",
   "author": "MDS Team",
   "license": "MIT",
-  "tags": ["elastic", "tactile", "physics", "silicone"],
+  "tags": ["elastic", "tactile", "physics", "silicone", "glassmorphism"],
 
   "optics": {
     "opacity": 1,
-    "tint": "rgba(255, 255, 255, 0.9)",
-    "brightness": "100%",
-    "contrast": "100%"
+    "blur": "4px",
+    "saturation": "180%",
+    "tint": "rgba(255, 255, 255, 0.25)"
   },
 
   "surface": {
-    "radius": "16px",
-    "border": "1px solid rgba(0, 0, 0, 0.1)",
-    "shadow": "0 4px 12px rgba(0, 0, 0, 0.15)"
+    "radius": "24px",
+    "border": "1px solid rgba(255, 255, 255, 0.25)",
+    "shadow": [
+      "inset 0 1px 0 rgba(255, 255, 255, 0.55)",
+      "0 10px 28px rgba(0, 0, 0, 0.18)"
+    ]
   },
 
   "behavior": {
     "physics": "./manifests/@mds/liquid-silicone.physics.js",
-    "version": "1.0.0",
     "physicsParams": {
       "tension": 22,
       "damping": 18,
       "maxStretchX": 0.18,
       "maxStretchY": 0.12,
-      "parallax": 14,
-      "axes": "xy"
-    }
+      "parallax": 14
+    },
+    "cursor": "pointer",
+    "transition": "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-position 0.3s ease"
+  },
+
+  "customCSS": {
+    "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05))",
+    "background-blend-mode": "overlay",
+    "color": "#fff",
+    "font-weight": "600",
+    "letter-spacing": "0.2px",
+    "user-select": "none",
+    "-webkit-tap-highlight-color": "transparent",
+    "will-change": "transform, background-position, filter"
   },
 
   "states": {
     "base": {
       "surface": {
-        "shadow": "0 4px 12px rgba(0, 0, 0, 0.15)"
+        "shadow": [
+          "inset 0 1px 0 rgba(255, 255, 255, 0.55)",
+          "0 10px 28px rgba(0, 0, 0, 0.18)"
+        ]
       }
     },
     "hover": {
       "surface": {
-        "shadow": "0 6px 16px rgba(0, 0, 0, 0.2)"
+        "shadow": [
+          "inset 0 1px 0 rgba(255, 255, 255, 0.6)",
+          "0 12px 32px rgba(0, 0, 0, 0.22)"
+        ]
       }
     },
     "press": {
       "surface": {
-        "shadow": "0 2px 8px rgba(0, 0, 0, 0.2)"
+        "shadow": [
+          "inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+          "0 6px 16px rgba(0, 0, 0, 0.16)"
+        ]
+      }
+    }
+  },
+
+  "theme": {
+    "light": {
+      "optics": {
+        "tint": "rgba(255, 255, 255, 0.3)"
+      },
+      "customCSS": {
+        "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08))"
+      }
+    },
+    "dark": {
+      "optics": {
+        "tint": "rgba(255, 255, 255, 0.2)"
+      },
+      "customCSS": {
+        "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.03))"
       }
     }
   }

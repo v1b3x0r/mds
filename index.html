@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#ffffff" id="theme-color-meta">
-  <title>Material Definition System (MDS) — Technical Demonstration</title>
+  <title>Material Definition System v3.0 — Interactive Demonstration</title>
   <style>
     * {
       margin: 0;
@@ -28,7 +28,6 @@
       color: #fff;
     }
 
-    /* Typography */
     h1 {
       font-size: 28px;
       font-weight: bold;
@@ -48,7 +47,14 @@
 
     p {
       margin-bottom: 12px;
-      text-align: justify;
+    }
+
+    ul, ol {
+      margin: 0 0 16px 24px;
+    }
+
+    li {
+      margin-bottom: 6px;
     }
 
     .subtitle {
@@ -58,18 +64,33 @@
       font-size: 14px;
     }
 
-    .abstract {
+    .version-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: #000;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    body[data-theme="dark"] .version-badge {
+      background: #fff;
+      color: #000;
+    }
+
+    .overview-box {
       margin: 32px 0;
-      padding: 16px 24px;
+      padding: 20px 24px;
       border: 1px solid currentColor;
     }
 
-    .abstract-title {
-      font-weight: bold;
-      margin-bottom: 8px;
+    .overview-box strong {
+      display: block;
+      margin-bottom: 12px;
     }
 
-    /* Code */
     code {
       font-family: 'Courier New', monospace;
       font-size: 14px;
@@ -97,51 +118,50 @@
       background: rgba(255, 255, 255, 0.05);
     }
 
-    /* Specimens */
-    .specimen-grid {
+    .materials-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 32px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
       margin: 32px 0;
       padding: 24px 0;
       border-top: 1px solid currentColor;
       border-bottom: 1px solid currentColor;
     }
 
-    .specimen {
+    .material-card {
       text-align: center;
     }
 
-    .specimen-sample {
-      width: 240px;
-      height: 240px;
-      margin: 0 auto 16px;
+    .material-sample {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 12px;
       border: 1px solid currentColor;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 72px;
+      font-size: 48px;
       font-weight: bold;
-      position: relative;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .specimen-label {
+    .material-name {
       font-weight: bold;
       margin-bottom: 4px;
       font-size: 14px;
     }
 
-    .specimen-desc {
+    .material-desc {
       font-size: 12px;
       font-style: italic;
       color: #666;
     }
 
-    body[data-theme="dark"] .specimen-desc {
+    body[data-theme="dark"] .material-desc {
       color: #999;
     }
 
-    /* Controls */
     .controls {
       margin: 32px 0;
       padding: 16px;
@@ -195,71 +215,23 @@
       color: #000;
     }
 
-    /* Table */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 16px 0;
-      font-size: 14px;
-    }
-
-    th, td {
-      border: 1px solid currentColor;
-      padding: 8px 12px;
-      text-align: left;
-    }
-
-    th {
-      font-weight: bold;
-      background: rgba(0, 0, 0, 0.05);
-    }
-
-    body[data-theme="dark"] th {
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    /* Figure */
-    .figure {
-      margin: 32px 0;
-      text-align: center;
-    }
-
-    .figure-caption {
-      font-size: 13px;
-      font-style: italic;
-      margin-top: 8px;
-      text-align: center;
-    }
-
-    /* Background pattern for blur demonstration */
     .blur-demo-bg {
       position: fixed;
       inset: 0;
       z-index: -1;
       opacity: 0;
       transition: opacity 0.3s;
-      background:
-        repeating-linear-gradient(45deg,
-          transparent,
-          transparent 10px,
-          rgba(0,0,0,0.03) 10px,
-          rgba(0,0,0,0.03) 20px);
+      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.03) 10px, rgba(0,0,0,0.03) 20px);
     }
 
     body[data-theme="dark"] .blur-demo-bg {
-      background:
-        repeating-linear-gradient(45deg,
-          transparent,
-          transparent 10px,
-          rgba(255,255,255,0.03) 10px,
-          rgba(255,255,255,0.03) 20px);
+      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.03) 10px, rgba(255,255,255,0.03) 20px);
     }
 
     .blur-demo-bg.active {
       opacity: 1;
     }
 
-    /* Footer */
     footer {
       margin-top: 64px;
       padding-top: 16px;
@@ -275,106 +247,68 @@
   </style>
 </head>
 <body data-theme="light">
-
-  <!-- Background pattern for blur demonstration -->
   <div class="blur-demo-bg" id="blur-bg"></div>
 
   <!-- Header -->
-  <h1>Material Definition System</h1>
-  <p class="subtitle">A Schema-Driven Approach to DOM Material Properties</p>
+  <h1>
+    Material Definition System
+    <span class="version-badge">v3.0</span>
+  </h1>
+  <p class="subtitle">Manifest-driven material properties with tactile physics</p>
 
-  <!-- Abstract -->
-  <div class="abstract">
-    <div class="abstract-title">Abstract</div>
+  <!-- Overview -->
+  <div class="overview-box">
+    <strong>Overview</strong>
     <p>
-      We present Material Definition System (MDS), a runtime that applies visual properties
-      to DOM elements through declarative JSON manifests (MDSpec schema). The architecture separates
-      <em>optics</em>, <em>surface</em>, and <em>behavior</em> into distinct domains.
-      This demonstration includes two basic materials (glass-fake, paper) that prove the architecture works,
-      but produce minimal visual effects due to CSS/DOM limitations. The goal is architectural correctness,
-      not photorealistic rendering. Do not expect dramatic visual results.
+      MDS applies material properties (optics, surface, behavior) to DOM elements via JSON manifests.
+      Define materials once, apply everywhere with <code>data-material="name"</code>.
     </p>
+    <ul style="margin: 12px 0 0 24px;">
+      <li><strong>Manifest-driven</strong>: Materials defined in JSON, loaded at runtime</li>
+      <li><strong>Theme-aware</strong>: Auto light/dark switching</li>
+      <li><strong>State management</strong>: hover, press, pressed-and-moving, focus, disabled</li>
+      <li><strong>Physics system</strong>: Tactile deformation response (new in v3.0)</li>
+      <li><strong>Zero dependencies</strong>: Standalone runtime</li>
+    </ul>
   </div>
 
-  <!-- Live Demo Section -->
-  <div style="margin: 32px 0; padding: 24px; background: rgba(0, 150, 255, 0.05); border-left: 4px solid #0096ff; border-radius: 4px;">
-    <h2 style="margin-top: 0; border-bottom: none; padding-bottom: 0;">Interactive Demo</h2>
-    <p style="margin-bottom: 16px;">
-      Experience the material system with physics in action. The demo showcases liquid silicone with
-      elastic drag behavior, plus runtime material switching between different variants.
-    </p>
-    <p style="margin-bottom: 8px;">
-      <a href="./demo/" style="display: inline-block; padding: 12px 24px; background: #0096ff; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; font-family: ui-sans-serif, system-ui, sans-serif;">
-        View Interactive Demo →
-      </a>
-    </p>
-    <p style="font-size: 14px; margin-bottom: 0;">
-      Features: Elastic physics • Real-time material switching • 60fps animations • Zero-setup system
-    </p>
-  </div>
+  <!-- What's New -->
+  <h2>What's New in v3.0</h2>
+  <ul>
+    <li><strong>Physics system</strong>: External physics files for tactile simulation (<code>.physics.js</code>)</li>
+    <li><strong>Liquid silicone material</strong>: Elastic deformation with configurable spring parameters (K, D)</li>
+    <li><strong>Clean architecture</strong>: Material = Visual + Tactile | External behavior engines handle positional interactions</li>
+    <li><strong>Interop API</strong>: Query/drive material state from external systems (UICP integration)</li>
+    <li><strong>Auto-migration</strong>: Deprecated fields (elasticity, viscosity) → physicsParams with console warnings</li>
+  </ul>
 
-  <!-- Section 1: Methodology -->
-  <h2>1. Methodology</h2>
-
+  <!-- Materials -->
+  <h2>Built-in Materials</h2>
   <p>
-    Materials are registered via the global <code>MaterialSystem</code> API and applied to elements
-    bearing the <code>data-material</code> attribute. The runtime performs the following operations:
+    Three materials demonstrate the system architecture. Visual effects are minimal (CSS limitations), but physics
+    simulation showcases tactile response. Drag the liquid silicone sample to see elastic deformation.
   </p>
 
-  <ol style="margin-left: 24px; margin-bottom: 16px;">
-    <li>Parse material name and resolve manifest (JSON or programmatic)</li>
-    <li>Merge inheritance chain: base → theme → state</li>
-    <li>Map material properties to CSS inline styles and filters</li>
-    <li>Attach event listeners for state transitions (pointer, focus)</li>
-    <li>Observe DOM mutations for dynamic element application</li>
-  </ol>
-
-  <pre>// Example: Material Registration
-MaterialSystem.register('glass-liquid', {
-  optics: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    backdropFilter: 'blur(4px)',
-    color: '#ffffff'
-  },
-  surface: {
-    border: '1px solid rgba(255, 255, 255, 0.25)',
-    shadow: [...] // 10-layer system
-  }
-})</pre>
-
-  <!-- Section 2: Specimens -->
-  <h2>2. Reference Implementations</h2>
-
-  <p>
-    Two materials are provided as proof-of-concept only.
-    <strong>Specimen A</strong> (glass-fake) uses backdrop blur and shadows—the effect is minimal
-    and nearly invisible without a patterned background.
-    <strong>Specimen B</strong> (paper) has subtle noise texture that may not be visible on most displays.
-    These are architectural demonstrations, not production-ready visual effects.
-  </p>
-
-  <div class="figure">
-    <div class="specimen-grid">
-      <!-- Specimen A: Glass -->
-      <div class="specimen">
-        <div class="specimen-sample" data-material="glass-liquid">
-          A
-        </div>
-        <div class="specimen-label">Specimen A</div>
-        <div class="specimen-desc">glass-fake (simplified)</div>
-      </div>
-
-      <!-- Specimen B: Paper -->
-      <div class="specimen">
-        <div class="specimen-sample" data-material="paper">
-          B
-        </div>
-        <div class="specimen-label">Specimen B</div>
-        <div class="specimen-desc">paper</div>
-      </div>
+  <div class="materials-grid">
+    <!-- Glass -->
+    <div class="material-card">
+      <div class="material-sample" data-material="@mds/glass">A</div>
+      <div class="material-name">Glass</div>
+      <div class="material-desc">Backdrop blur + shadows</div>
     </div>
-    <div class="figure-caption">
-      Figure 1: Material specimens under controlled conditions
+
+    <!-- Paper -->
+    <div class="material-card">
+      <div class="material-sample" data-material="@mds/paper">B</div>
+      <div class="material-name">Paper</div>
+      <div class="material-desc">SVG noise texture</div>
+    </div>
+
+    <!-- Liquid Silicone (NEW) -->
+    <div class="material-card">
+      <div class="material-sample" data-material="@mds/liquid-silicone" id="silicone-sample">C</div>
+      <div class="material-name">Liquid Silicone (NEW)</div>
+      <div class="material-desc">Elastic physics (K=22, D=18)</div>
     </div>
   </div>
 
@@ -390,115 +324,80 @@ MaterialSystem.register('glass-liquid', {
     </div>
   </div>
 
-  <!-- Section 3: Properties -->
-  <h2>3. Material Properties</h2>
+  <!-- Quick Start -->
+  <h2>Quick Start</h2>
+  <pre>// 1. Install
+npm install @v1b3x0r/mds-core
 
-  <table>
-    <thead>
-      <tr>
-        <th>Property</th>
-        <th>Glass (Simplified)</th>
-        <th>Paper</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>backdrop-filter</code></td>
-        <td>blur(4px)</td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td><code>backgroundColor</code></td>
-        <td>rgba(255,255,255,0.08)</td>
-        <td>#ffffff (solid)</td>
-      </tr>
-      <tr>
-        <td><code>shadow (layers)</code></td>
-        <td>10 (inset + depth)</td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td><code>texture</code></td>
-        <td>—</td>
-        <td>SVG fractal noise</td>
-      </tr>
-      <tr>
-        <td><code>transition</code></td>
-        <td>400ms cubic-bezier</td>
-        <td>—</td>
-      </tr>
-    </tbody>
-  </table>
+// 2. HTML
+&lt;div data-material="@mds/glass"&gt;Content&lt;/div&gt;
 
-  <!-- Section 4: Observations -->
-  <h2>4. Observations</h2>
+// 3. Load materials
+const manifest = await fetch('./glass.mdm.json').then(r => r.json())
+MaterialSystem.register('@mds/glass', manifest)
+MaterialSystem.apply()</pre>
 
+  <!-- Architecture -->
+  <h2>Architecture</h2>
   <p>
-    <strong>Backdrop Blur:</strong> Specimen A uses 4px blur. Enable "Show Background Pattern" to see
-    the blur effect—otherwise it's just a transparent rectangle with barely visible shadows.
+    <strong>Material Layer (MDS)</strong>: Visual (optics, surface) + Tactile (deformation physics)<br>
+    <strong>Behavior Layer (External)</strong>: Positional interactions (drag-to-move, scroll, etc.)<br>
+    <strong>Interop API</strong>: Query material state, drive visual transitions
   </p>
+  <pre>// Material = Visual + Tactile (deform only, no translate)
+{
+  "name": "@mds/liquid-silicone",
+  "optics": { "tint": "rgba(200, 200, 255, 0.3)" },
+  "surface": { "radius": "16px" },
+  "behavior": {
+    "physics": "./liquid-silicone.physics.js",
+    "physicsParams": { "K": 22, "D": 18, "mass": 1.5 }
+  }
+}</pre>
 
-  <p>
-    <strong>Visual Limitations:</strong> The glass effect is nearly identical in light/dark themes because
-    it's transparent. The tint changes (white → black) but human eyes cannot distinguish this on a solid background.
-    This is a fundamental limitation of CSS-based glass effects.
-  </p>
-
-  <p>
-    <strong>Paper Material:</strong> Specimen B has subtle SVG noise texture (0.02 alpha in light mode,
-    0.015 alpha in dark). The texture is barely visible and may appear as a plain solid color on most displays.
-  </p>
-
-  <p>
-    <strong>Honest Assessment:</strong> These materials demonstrate the MDS architecture,
-    but visual results are minimal due to CSS/DOM constraints.
-    Do not expect dramatic glass effects or highly visible material differences.
-  </p>
-
-  <!-- Section 5: Implementation -->
-  <h2>5. Implementation Details</h2>
-
-  <pre>// HTML Usage (declarative)
-&lt;div data-material="glass-liquid"&gt;
-  Content
-&lt;/div&gt;
-
-// Theme control
-MaterialSystem.setTheme('dark')</pre>
-
-  <p>
-    Runtime size: <strong>4.34 KB</strong> (gzipped UMD).
-    Zero dependencies. Compatible with iOS ≥14, Safari ≥14, Chrome ≥90, Firefox ≥88.
-  </p>
+  <!-- System Details -->
+  <h2>System Details</h2>
+  <ul>
+    <li><strong>Runtime size</strong>: 6.74 KB (ESM gzipped)</li>
+    <li><strong>Browser support</strong>: Chrome 90+, Firefox 88+, Safari 14+</li>
+    <li><strong>Dependencies</strong>: Zero</li>
+    <li><strong>License</strong>: MIT</li>
+    <li><strong>GitHub</strong>: <a href="https://github.com/v1b3x0r/material-js-concept" style="color: currentColor;">v1b3x0r/material-js-concept</a></li>
+    <li><strong>npm</strong>: <a href="https://www.npmjs.com/package/@v1b3x0r/mds-core" style="color: currentColor;">@v1b3x0r/mds-core</a></li>
+  </ul>
 
   <!-- Footer -->
   <footer>
-    Material Definition System (MDS) — Technical Demonstration<br>
-    2025 © MIT License
+    Material Definition System v3.0 — Interactive Demonstration<br>
+    2025 © MIT License | <a href="https://github.com/v1b3x0r/material-js-concept" style="color: inherit;">GitHub</a>
   </footer>
 
-  <!-- Load MDS -->
-  <script src="./dist/mds.umd.js"></script>
+  <!-- Load MDS (Vite will handle this in dev/preview mode) -->
+  <script type="module">
+    import MDS from './src/index.ts'
 
-  <script>
-    // Load official materials from manifest files
+    // Load materials from local manifests
     async function loadMaterials() {
-      const [glassFake, paper] = await Promise.all([
-        fetch('./manifests/@mds/glass-fake.mdm.json').then(r => r.json()),
-        fetch('./manifests/@mds/paper.mdm.json').then(r => r.json())
+      const [glass, paper, liquidSilicone] = await Promise.all([
+        fetch('./manifests/@mds/glass.mdm.json').then(r => r.json()),
+        fetch('./manifests/@mds/paper.mdm.json').then(r => r.json()),
+        fetch('./manifests/@mds/liquid-silicone.mdm.json').then(r => r.json())
       ])
 
-      MaterialSystem.register('glass-liquid', glassFake)
-      MaterialSystem.register('paper', paper)
-      MaterialSystem.apply()
+      MDS.register('@mds/glass', glass)
+      MDS.register('@mds/paper', paper)
+      MDS.register('@mds/liquid-silicone', liquidSilicone)
+      MDS.apply()
     }
 
-    // Initialize UI after materials load
     loadMaterials().then(() => {
-      console.log('✅ Materials loaded from manifest files')
+      console.log('✅ Materials loaded')
     }).catch(err => {
       console.error('❌ Failed to load materials:', err)
     })
+
+    // Expose for theme switcher
+    window.MaterialSystem = MDS
 
     // Theme switching
     const btnLight = document.getElementById('btn-light')
@@ -534,6 +433,5 @@ MaterialSystem.setTheme('dark')</pre>
       btnBlurToggle.textContent = blurActive ? 'Hide Background Pattern' : 'Show Background Pattern'
     })
   </script>
-
 </body>
 </html>
