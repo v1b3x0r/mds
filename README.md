@@ -1,4 +1,4 @@
-# Material Definition System (MDS) v2.0
+# Material Definition System (MDS) v3.0
 
 [![npm version](https://img.shields.io/npm/v/@v1b3x0r/mds-core.svg)](https://www.npmjs.com/package/@v1b3x0r/mds-core)
 [![npm downloads](https://img.shields.io/npm/dm/@v1b3x0r/mds-core.svg)](https://www.npmjs.com/package/@v1b3x0r/mds-core)
@@ -8,8 +8,8 @@
 
 > **Think in materials, not CSS properties**
 
-**Status**: ✅ Published to npm | Zero dependencies | CDN available
-**Reality**: System works perfectly. Built-in materials (`@mds/glass`, `@mds/paper`) are minimal/subtle because I'm not good at visual design.
+**Status**: ✅ v3.0 | Published to npm | Zero dependencies | CDN available
+**Reality**: System works perfectly. Built-in materials (`@mds/glass`, `@mds/paper`, `@mds/liquid-silicone`) are minimal/subtle because I'm not good at visual design.
 **You Can**: Create much better-looking materials easily - see guide below!
 
 ---
@@ -102,6 +102,21 @@ import MaterialSystem from '@v1b3x0r/mds-core'
 </body>
 </html>
 ```
+
+---
+
+## Live Demo
+
+**[Interactive Demo →](./demo/)** - Runtime Material Switcher
+
+Experience the material system with tactile physics in action:
+- **Liquid Silicone** with elastic deformation (K=22, D=18 spring simulation)
+- **Real-time material switching** - Change materials without page reload
+- **Tactile response** - Press and drag to feel elastic deformation (no positional movement)
+- **Different material types** - Switch between silicone (tactile), glass (static), and paper (static)
+- **60fps animations** - Smooth, GPU-accelerated transforms
+
+Try pressing the button and moving your pointer to see the tactile simulation in action!
 
 ---
 
@@ -294,6 +309,62 @@ MaterialSystem.apply()  // Apply to document
 MaterialSystem.apply(document.querySelector('#container'))  // Apply to subtree
 ```
 
+### Interop API (for External Behavior Engines)
+
+**New in v3**: Methods for behavior libraries (like UICP) to integrate with MDS.
+
+#### `MaterialSystem.getMaterial(element)`
+
+Get material definition for element.
+
+```javascript
+const material = MaterialSystem.getMaterial(element)
+if (material) {
+  console.log('Material:', material.name)
+}
+```
+
+#### `MaterialSystem.getState(element)`
+
+Get current visual state.
+
+```javascript
+const state = MaterialSystem.getState(element)  // 'base' | 'hover' | 'press' | etc.
+```
+
+#### `MaterialSystem.setState(element, state)`
+
+Manually set visual state (for behavior engines to drive material state).
+
+```javascript
+// Behavior engine can programmatically transition visual states
+MaterialSystem.setState(element, 'hover')
+MaterialSystem.setState(element, 'press')
+```
+
+#### `MaterialSystem.hasTactilePhysics(element)`
+
+Check if element has tactile physics enabled.
+
+```javascript
+if (MaterialSystem.hasTactilePhysics(element)) {
+  // Element has physics - behavior engine can respond accordingly
+}
+```
+
+#### `MaterialSystem.getPhysicsParams(element)`
+
+Get physics parameters (for behavior engines to match feel).
+
+```javascript
+const params = MaterialSystem.getPhysicsParams(element)
+if (params) {
+  console.log('Elasticity:', params.elasticity)
+  console.log('Viscosity:', params.viscosity)
+  // Behavior engine can use these to match movement to deformation feel
+}
+```
+
 ---
 
 ## Architecture
@@ -327,6 +398,78 @@ MaterialSystem.apply(document.querySelector('#container'))  // Apply to subtree
 │   └── paper.mdm.json   # Built-in paper material
 └── package.json
 ```
+
+---
+
+## Architecture Philosophy
+
+### Material vs Behavior: Separation of Concerns
+
+MDS v3 clearly separates two architectural layers:
+
+#### Material Layer (MDS Responsibility)
+**What it is**: Visual appearance + tactile response (HOW it feels to touch)
+
+**Includes**:
+- **Optics**: Visual properties (opacity, tint, blur, saturation, etc.)
+- **Surface**: Geometry properties (radius, border, shadows, texture)
+- **Tactile Simulation**: Deformation response to pointer events (elastic, viscous, friction)
+  - Example: Liquid silicone deforms (skew/scale) when pressed, then springs back
+  - **Critical**: Tactile physics NEVER moves the element positionally (no translate)
+
+**Example**:
+```html
+<div data-material="@mds/liquid-silicone">
+  <!-- Material defines: "This looks like translucent silicone and deforms elastically when pressed" -->
+</div>
+```
+
+#### External Interaction Layer (UICP/Other Libraries)
+**What it is**: Functional behavior (WHAT the element does, WHERE it moves)
+
+**Includes**:
+- Positional dragging (translate across screen)
+- Drawer/modal mechanics
+- Scroll behaviors
+- Click/gesture handlers
+- Layout changes
+
+**Example**:
+```html
+<div data-material="@mds/liquid-silicone" data-behavior="drawer">
+  <!-- Material: Visual + deform response -->
+  <!-- Behavior: Drawer slide-out mechanics (external library handles this) -->
+</div>
+```
+
+### Why This Separation?
+
+**Before (v2)**: Built-in drag system caused conflicts
+- MDS had positional drag logic (transform: translate)
+- External physics had tactile deform logic (transform: skew/scale)
+- Result: Race condition, elements "dragging across screen"
+
+**After (v3)**: Clean architectural boundary
+- MDS: Handles visual + tactile substrate (deformation only)
+- External layer: Handles functional interactions (movement, gestures)
+- Result: No conflicts, each layer has clear responsibility
+
+### Interop API for Behavior Engines
+
+MDS exposes public methods for external behavior systems to integrate:
+
+```javascript
+// Query material state
+MaterialSystem.getMaterial(element)      // Get material definition
+MaterialSystem.getState(element)         // Get current visual state
+MaterialSystem.hasTactilePhysics(element) // Check if has physics
+MaterialSystem.getPhysicsParams(element) // Get physics parameters
+
+// Drive material state
+MaterialSystem.setState(element, 'hover') // Set visual state programmatically
+```
+
+**Use case**: Behavior engine can query tactile parameters to match its movement feel to the material's deformation feel.
 
 ---
 

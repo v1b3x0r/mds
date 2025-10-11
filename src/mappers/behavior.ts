@@ -20,8 +20,8 @@ export function applyBehavior(
       applyPressEffect(element, behavior.elasticity)
       break
 
-    case 'drag':
-      // Drag is handled in physics/drag.ts with pointer delta
+    case 'pressed-and-moving':
+      // Physics handles tactile deformation (no positional movement)
       break
 
     case 'base':

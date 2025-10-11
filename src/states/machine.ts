@@ -10,8 +10,8 @@ import type { StateType } from '../core/types'
 const STATE_FLOW: Record<StateType, StateType[]> = {
   base: ['hover', 'focus', 'disabled'],
   hover: ['press', 'base', 'disabled'],
-  press: ['drag', 'hover', 'base', 'disabled'],
-  drag: ['hover', 'base', 'disabled'],
+  press: ['pressed-and-moving', 'hover', 'base', 'focus', 'disabled'],
+  'pressed-and-moving': ['hover', 'base', 'disabled'],
   focus: ['base', 'hover', 'disabled'],
   disabled: [] // No transitions from disabled (except programmatic)
 }
@@ -22,6 +22,7 @@ const STATE_FLOW: Record<StateType, StateType[]> = {
 export class StateMachine {
   private currentState: StateType = 'base'
   private previousState: StateType = 'base'
+  private debug: boolean = false // Set to true to enable transition warnings
 
   /**
    * Check if transition to target state is valid
@@ -45,7 +46,9 @@ export class StateMachine {
     }
 
     if (!this.canTransition(to)) {
-      console.warn(`Invalid state transition: ${this.currentState} → ${to}`)
+      if (this.debug) {
+        console.warn(`Invalid state transition: ${this.currentState} → ${to}`)
+      }
       return false
     }
 

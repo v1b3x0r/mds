@@ -1,0 +1,52 @@
+{
+  "name": "@mds/liquid-silicone",
+  "version": "3.0.0",
+  "description": "Elastic tactile material with 8-way directional deformation and spring physics",
+  "author": "MDS Team",
+  "license": "MIT",
+  "tags": ["elastic", "tactile", "physics", "silicone"],
+
+  "optics": {
+    "opacity": 1,
+    "tint": "rgba(255, 255, 255, 0.9)",
+    "brightness": "100%",
+    "contrast": "100%"
+  },
+
+  "surface": {
+    "radius": "16px",
+    "border": "1px solid rgba(0, 0, 0, 0.1)",
+    "shadow": "0 4px 12px rgba(0, 0, 0, 0.15)"
+  },
+
+  "behavior": {
+    "physics": "./manifests/@mds/liquid-silicone.physics.js",
+    "version": "1.0.0",
+    "physicsParams": {
+      "tension": 22,
+      "damping": 18,
+      "maxStretchX": 0.18,
+      "maxStretchY": 0.12,
+      "parallax": 14,
+      "axes": "xy"
+    }
+  },
+
+  "states": {
+    "base": {
+      "surface": {
+        "shadow": "0 4px 12px rgba(0, 0, 0, 0.15)"
+      }
+    },
+    "hover": {
+      "surface": {
+        "shadow": "0 6px 16px rgba(0, 0, 0, 0.2)"
+      }
+    },
+    "press": {
+      "surface": {
+        "shadow": "0 2px 8px rgba(0, 0, 0, 0.2)"
+      }
+    }
+  }
+}

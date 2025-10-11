@@ -42,7 +42,7 @@ export function attachPointerEvents(
 
   // Pointer leave (back to base)
   const onPointerLeave = () => {
-    // Clean up drag state if active
+    // Clean up pressed-and-moving state if active
     if (pointerData?.isDragging) {
       pointerData = null
     }
@@ -66,18 +66,22 @@ export function attachPointerEvents(
       onStateChange('press', pointerData)
     }
 
-    // Capture pointer for reliable drag tracking
-    element.setPointerCapture(e.pointerId)
+    // Only capture pointer for non-interactive elements
+    // (buttons/inputs need native click events to work)
+    const isInteractive = element.matches('button, a, input, select, textarea, [role="button"]')
+    if (!isInteractive) {
+      element.setPointerCapture(e.pointerId)
+    }
   }
 
-  // Pointer move (potential drag)
+  // Pointer move (visual state transition)
   const onPointerMove = (e: PointerEvent) => {
     if (!pointerData) return
 
     pointerData.currentX = e.clientX
     pointerData.currentY = e.clientY
 
-    // Check if movement exceeds threshold for drag
+    // Check if movement exceeds threshold for pressed-and-moving state
     if (!pointerData.isDragging && stateMachine.getState() === 'press') {
       const deltaX = pointerData.currentX - pointerData.startX
       const deltaY = pointerData.currentY - pointerData.startY
@@ -85,15 +89,15 @@ export function attachPointerEvents(
 
       if (distance > DRAG_THRESHOLD) {
         pointerData.isDragging = true
-        if (stateMachine.transition('drag')) {
-          onStateChange('drag', pointerData)
+        if (stateMachine.transition('pressed-and-moving')) {
+          onStateChange('pressed-and-moving', pointerData)
         }
       }
     }
 
-    // Continue drag if active
+    // Continue pressed-and-moving visual state
     if (pointerData.isDragging) {
-      onStateChange('drag', pointerData)
+      onStateChange('pressed-and-moving', pointerData)
     }
   }
 
@@ -101,7 +105,7 @@ export function attachPointerEvents(
   const onPointerUp = (e: PointerEvent) => {
     const currentState = stateMachine.getState()
 
-    if (currentState === 'press' || currentState === 'drag') {
+    if (currentState === 'press' || currentState === 'pressed-and-moving') {
       // Transition back to hover or base
       const wasInside = element.matches(':hover')
       const targetState: StateType = wasInside ? 'hover' : 'base'
@@ -112,7 +116,16 @@ export function attachPointerEvents(
     }
 
     pointerData = null
-    element.releasePointerCapture(e.pointerId)
+
+    // Only release if we captured it (interactive elements don't capture)
+    const isInteractive = element.matches('button, a, input, select, textarea, [role="button"]')
+    if (!isInteractive) {
+      try {
+        element.releasePointerCapture(e.pointerId)
+      } catch {
+        // Ignore error if pointer wasn't captured
+      }
+    }
   }
 
   // Focus events

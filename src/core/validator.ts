@@ -3,7 +3,7 @@
  * Implements npm-style package naming rules
  */
 
-const RESERVED_SCOPES = ['@npm', '@node', '@mds', '@official']
+const RESERVED_SCOPES = ['@npm', '@node', '@official']  // @mds is our own scope
 const NAME_PATTERN = /^(@[a-z0-9-]+\/)?[a-z0-9-]+$/
 const MAX_LENGTH = 214
 

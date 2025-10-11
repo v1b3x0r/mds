@@ -1,4 +1,4 @@
-# Material Definition System v2.0 - AI Context
+# Material Definition System v3.0 - AI Context
 
 **For AI assistants only - not human documentation**
 
@@ -6,7 +6,7 @@
 
 ## 1. PROJECT REALITY (ความจริง - ไม่โม้)
 
-นี่คือ **MDS v2.0** - manifest-driven material system (architectural proof-of-concept)
+นี่คือ **MDS v3.0** - manifest-driven material system with tactile simulation (architectural proof-of-concept)
 
 **What we ship**:
 - `/dist/material-system.js` - standalone runtime that applies materials from JSON manifests
@@ -20,13 +20,16 @@
 - This is an **architectural demo**, NOT production-ready visual effects
 
 **Core concept**:
-- Materials defined in JSON (MDSpec v2 schema: optics, surface, behavior, customCSS)
+- Materials defined in JSON (MDSpec v3 schema: optics, surface, tactile physics, customCSS)
 - Runtime fetches manifests and applies CSS properties
+- External physics files loaded dynamically for tactile simulation (deform-only, no positional movement)
 - Demo proves the architecture works, but visual results are minimal due to CSS/DOM limitations
+
+**v3 Key Change**: Removed built-in positional drag system. MDS now only handles tactile deformation physics. External behavior engines (like UICP) handle positional interactions.
 
 ---
 
-## 2. ARCHITECTURE (MDSpec v2)
+## 2. ARCHITECTURE (MDSpec v3)
 
 ### File Structure
 ```
@@ -98,11 +101,21 @@ interface Material {
     transform?: string
   }
 
-  // Behavior (3 core)
+  // Behavior (v3: Physics system + deprecated fields)
   behavior?: {
+    // Physics system (v3) - preferred
+    physics?: string                    // External physics file URL
+    physicsInline?: string              // Inline physics code
+    physicsParams?: Record<string, any> // Physics parameters (K, D, etc.)
+
+    // Deprecated (v2) - auto-migrates with console warning
+    /** @deprecated Use physicsParams.elasticity instead */
     elasticity?: number      // 0..1 (spring strength)
+    /** @deprecated Use physicsParams.viscosity instead */
     viscosity?: number       // 0..1 (drag damping)
+    /** @deprecated Use physicsParams.snapBack instead */
     snapBack?: boolean       // return to origin
+
     // v1 compat:
     cursor?: string
     transition?: string
@@ -114,11 +127,12 @@ interface Material {
   // Examples: "clip-path", "mix-blend-mode", "mask", "filter"
   // Coverage: ~90% of CSS (vs ~40-50% without)
 
-  // States (5)
+  // States (v3: 6 states - renamed 'drag' to 'pressed-and-moving')
   states?: {
     base?: Partial<Material>
     hover?: Partial<Material>
-    active?: Partial<Material>
+    press?: Partial<Material>
+    'pressed-and-moving'?: Partial<Material>  // v3: renamed from 'drag'
     focus?: Partial<Material>
     disabled?: Partial<Material>
   }
@@ -159,25 +173,65 @@ if (material.customCSS) {
 
 **Why**: Texture rendering requires background-image applied before backdrop-filter
 
+### Architectural Philosophy (v3)
+
+**Material vs Behavior: Clean Separation**
+
+#### Material Layer (MDS Responsibility)
+- **Visual**: Optics (opacity, tint, blur, etc.) + Surface (geometry, texture, shadows)
+- **Tactile**: Deformation response to touch (elastic, viscous, friction)
+  - Physics simulates HOW material FEELS when touched
+  - Physics applies transform (skew, scale) for deformation
+  - Physics NEVER applies translate (positional movement)
+  - Example: Liquid silicone deforms when pressed, springs back when released
+
+#### External Interaction Layer (UICP/Behavior Engines)
+- **Functional**: WHAT element does, WHERE it moves
+- **Examples**: Drawer mechanics, modal positioning, scroll behavior, drag-to-reorder
+- **Integration**: Uses MDS interop API to query/drive material state
+
+**Critical Rule**: MDS provides **tactile substrate** (deform response), NOT **functional behavior** (positional interactions). This avoids transform conflicts (translate vs skew/scale race conditions).
+
+### Interop API (NEW in v3)
+
+External behavior engines can integrate with MDS via:
+
+```typescript
+// Query material state
+MDS.getMaterial(element)          // Get material definition
+MDS.getState(element)             // Get current visual state
+MDS.hasTactilePhysics(element)    // Check if has physics
+MDS.getPhysicsParams(element)     // Get physics parameters (K, D, etc.)
+
+// Drive material state
+MDS.setState(element, 'hover')    // Programmatically set visual state
+```
+
+**Use case**: Behavior engine can query tactile parameters to match its movement feel to material's deformation feel.
+
 ---
 
-## 3. CURRENT STATE (v2.0.1)
+## 3. CURRENT STATE (v3.0)
 
 ### Features Completed
 ✅ Core runtime (optics, surface, behavior mappers)
 ✅ Theme system (light/dark auto-switching)
-✅ State management (base, hover, active, focus, disabled)
+✅ State management (base, hover, press, pressed-and-moving, focus, disabled)
 ✅ Material inheritance (extend, override)
 ✅ JSON manifests (fetch from CDN)
 ✅ TypeScript types (full coverage)
-✅ customCSS support (NEW - ~90% CSS coverage)
-✅ Demo page with honest descriptions
+✅ customCSS support (~90% CSS coverage)
+✅ Physics system (external .physics.js files with dynamic import)
+✅ Auto-migration (deprecated fields → physicsParams)
+✅ Interop API (for external behavior engines)
+✅ Demo page with tactile simulation
 ✅ Vercel Analytics integration
-✅ Complete documentation (README, MATERIAL_GUIDE)
+✅ Complete documentation (README, MATERIAL_GUIDE, CLAUDE)
 
-### Materials (2 only - honest)
-- `@mds/glass` - Simplified glass effect (NOT photorealistic)
-- `@mds/paper` - Matte with barely-visible noise texture
+### Materials (3 materials - honest)
+- `@mds/liquid-silicone` - Tactile elastic deformation (K=22, D=18)
+- `@mds/glass` - Static visual material (no physics)
+- `@mds/paper` - Static matte with barely-visible texture
 
 ### Dependencies
 - **Runtime**: Zero (standalone)
@@ -268,6 +322,23 @@ Keep docs minimal, organized, centralized
 User request: "ไม่เอา TODO"
 Avoid stale documentation, integrate future work into CLAUDE.md instead
 
+### Why remove built-in drag system? (v3 refactor)
+**Problem**: User reported "มัน drag ไปได้ทั่วจอเลย" - elements moving across screen instead of elastic deformation
+**Root cause**: Transform conflict between built-in drag (translate) and external physics (skew/scale)
+**Solution**:
+- Removed built-in drag.ts/spring.ts completely
+- Renamed "drag" state → "pressed-and-moving" (clearer intent)
+- Physics now only handles tactile deformation (no translate)
+- External behavior layer (UICP) handles positional movement
+- Added interop API for behavior engines to integrate
+
+**User's philosophy**:
+- Material = Visual + Tactile (HOW it responds to touch)
+- Behavior = External Interaction Layer (WHAT it does, WHERE it moves)
+- Example: `<div data-material="@mds/liquid-silicone" data-behavior="drawer">`
+
+**Migration**: Deprecated `viscosity`/`elasticity`/`snapBack` with auto-migration to `physicsParams` + console warnings
+
 ---
 
 ## 7. KNOWN ISSUES & FIXES
@@ -278,6 +349,7 @@ Avoid stale documentation, integrate future work into CLAUDE.md instead
 - ✅ JSON parse error (changed to fetch())
 - ✅ Apply order (surface → optics for correct texture layering)
 - ✅ Limited CSS coverage (added `customCSS` field)
+- ✅ Transform conflicts (v3: removed built-in drag, physics = tactile only)
 
 ### Current Limitations (by design)
 - Glass effect invisible on solid backgrounds (CSS limitation)
@@ -371,8 +443,8 @@ Avoid stale documentation, integrate future work into CLAUDE.md instead
 - ⚠️ Not production-ready (architectural demo only)
 
 **Conclusion**:
-This is a successful architectural demonstration with honest limitations clearly stated. The manifest-driven approach works, TypeScript types are solid, and `customCSS` provides flexibility for advanced users. Visual quality needs improvement, but the foundation is strong.
+This is a successful architectural demonstration with honest limitations clearly stated. The manifest-driven approach works, TypeScript types are solid, `customCSS` provides flexibility for advanced users, and v3's clean separation of Material vs Behavior layers solves the transform conflict issue. Visual quality needs improvement, but the foundation is strong.
 
 ---
 
-**สรุป**: MDS v2.0 = Manifest-driven architecture ที่ทำงานได้ + customCSS support (~90% CSS coverage) แต่ visual effects จำกัดมาก (ตามความจริง)
+**สรุป**: MDS v3.0 = Manifest-driven architecture + Tactile simulation (deform-only) + Interop API for behavior engines + Clean Material/Behavior separation (~90% CSS coverage ด้วย customCSS) แต่ visual effects ยังจำกัดมาก (ตามความจริง)

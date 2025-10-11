@@ -7,8 +7,12 @@ import type { MaterialManifest } from '../core/types'
 
 /**
  * Default CDN for official @mds materials
+ * Auto-detects: localhost = local files, production = CDN
  */
-const DEFAULT_CDN = 'https://cdn.jsdelivr.net/npm/@mds/materials/manifests'
+const DEFAULT_CDN = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? '/manifests'  // Dev mode: use local files
+  : 'https://cdn.jsdelivr.net/npm/@mds/materials/manifests'  // Production: use CDN
 
 /**
  * Load manifest from CDN or custom URL

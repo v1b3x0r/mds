@@ -3,7 +3,7 @@
  * Think in materials, not CSS properties
  */
 
-import type { Material, MaterialManifest } from './core/types'
+import type { Material, MaterialManifest, StateType } from './core/types'
 import { MaterialRegistry } from './core/registry'
 import { ThemeManager } from './theme/manager'
 import { deepMerge } from './core/utils'
@@ -12,20 +12,18 @@ import { applyOptics } from './mappers/optics'
 import { applySurface } from './mappers/surface'
 import { applyBehavior } from './mappers/behavior'
 import { StateMachine } from './states/machine'
-import { attachPointerEvents, getPointerDelta } from './states/events'
+import { attachPointerEvents } from './states/events'
 import { isInteractiveElement } from './states/interactive'
-import { springToOrigin } from './physics/spring'
-import { applyDrag } from './physics/drag'
 
 /**
  * Main Material System class
  */
-export class MaterialSystem {
+class MaterialSystem {
   private registry = new MaterialRegistry()
   private themeManager = new ThemeManager()
   private observer: MutationObserver | null = null
   private elementStates = new WeakMap<HTMLElement, StateMachine>()
-  private elementCleanup = new WeakMap<HTMLElement, () => void>()
+  private elementCleanup = new WeakMap<HTMLElement, (() => void)[]>()  // Array-based unified cleanup
 
   /**
    * Register a material
@@ -75,13 +73,22 @@ export class MaterialSystem {
   /**
    * Apply materials to elements
    */
-  apply(root: Element = document.documentElement): void {
-    const elements = root.querySelectorAll('[data-material]')
-    elements.forEach(el => {
+  async apply(root: Element = document.documentElement): Promise<void> {
+    const elements: HTMLElement[] = []
+
+    // If root itself has data-material, include it
+    if (root instanceof HTMLElement && root.hasAttribute('data-material')) {
+      elements.push(root)
+    }
+
+    // Also find children with data-material
+    root.querySelectorAll('[data-material]').forEach(el => {
       if (el instanceof HTMLElement) {
-        this.applyToElement(el)
+        elements.push(el)
       }
     })
+
+    await Promise.all(elements.map(el => this.applyToElement(el)))
   }
 
   /**
@@ -128,10 +135,22 @@ export class MaterialSystem {
       })
     })
 
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    })
+    // Safely observe when DOM is ready
+    const startObserving = () => {
+      if (document.body && document.body instanceof Node && this.observer) {
+        this.observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        })
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startObserving)
+    } else {
+      // Use RAF to ensure DOM is fully rendered
+      requestAnimationFrame(startObserving)
+    }
 
     // Listen for theme changes
     this.themeManager.onChange(() => {
@@ -148,18 +167,62 @@ export class MaterialSystem {
   }
 
   /**
+   * === PRIVATE HELPERS ===
+   */
+
+  /**
+   * Apply material styles (surface + optics + customCSS)
+   */
+  private applyMaterialStyles(element: HTMLElement, material: Material): void {
+    applySurface(element, material.surface)
+    applyOptics(element, material.optics)
+
+    // Apply customCSS if present
+    material.customCSS && Object.entries(material.customCSS).forEach(([prop, value]) => {
+      const camelProp = prop.replace(/-([a-z])/g, (_, g) => g.toUpperCase())
+      ;(element.style as any)[camelProp] = value
+    })
+  }
+
+  /**
+   * Auto-migrate deprecated behavior fields to physicsParams
+   */
+  private migrateDeprecatedFields(behavior: any, params: Record<string, any>): void {
+    ['viscosity', 'elasticity', 'snapBack'].forEach(field => {
+      if (behavior[field] !== undefined && params[field] === undefined) {
+        params[field] = behavior[field]
+        console.warn(`[MDS] behavior.${field} is deprecated. Use physicsParams.${field} instead.`)
+      }
+    })
+  }
+
+  /**
+   * Add cleanup function for element
+   */
+  private addCleanup(element: HTMLElement, cleanup: () => void): void {
+    const cleanups = this.elementCleanup.get(element) ?? []
+    cleanups.push(cleanup)
+    this.elementCleanup.set(element, cleanups)
+  }
+
+  /**
+   * Cleanup all resources for element
+   */
+  private cleanupElement(element: HTMLElement): void {
+    this.elementCleanup.get(element)?.forEach(fn => fn())
+    this.elementCleanup.delete(element)
+    this.elementStates.delete(element)
+  }
+
+  /**
    * Apply material to single element
    */
-  private applyToElement(element: HTMLElement): void {
+  private async applyToElement(element: HTMLElement): Promise<void> {
     const materialName = element.getAttribute('data-material')
     if (!materialName) return
 
-    // Cleanup previous state if any
-    const cleanup = this.elementCleanup.get(element)
-    if (cleanup) {
-      cleanup()
-      this.elementCleanup.delete(element)
-    }
+    // Cleanup all previous resources
+    this.cleanupElement(element)
 
     // Resolve material with inheritance
     let material: Material
@@ -170,89 +233,157 @@ export class MaterialSystem {
       return
     }
 
-    // Get current theme
+    // Merge theme + base state
     const currentTheme = this.themeManager.getTheme()
-    const themeMaterial = material.theme?.[currentTheme]
+    const mergedMaterial: Material = deepMerge({}, material, material.theme?.[currentTheme] || {})
+    const finalMaterial: Material = deepMerge({}, mergedMaterial, mergedMaterial.states?.base || {})
 
-    // Merge base + theme
-    const mergedMaterial: Material = deepMerge({}, material, themeMaterial || {})
+    // Clear old styles before applying new material
+    element.style.cssText = ''
 
-    // Apply base state
-    const baseState = mergedMaterial.states?.base || {}
-    const finalMaterial: Material = deepMerge({}, mergedMaterial, baseState as any)
+    // Apply new material styles
+    this.applyMaterialStyles(element, finalMaterial)
 
-    applySurface(element, finalMaterial.surface)  // Apply texture first
-    applyOptics(element, finalMaterial.optics)    // Then tint layers over it
-
-    // Apply customCSS (escape hatch for advanced users)
-    if (finalMaterial.customCSS) {
-      Object.entries(finalMaterial.customCSS).forEach(([prop, value]) => {
-        // Convert kebab-case to camelCase for style properties
-        const camelProp = prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-        ;(element.style as any)[camelProp] = value
-      })
-    }
+    // Initialize physics if defined
+    await this.initPhysics(element, finalMaterial)
 
     // Setup interactive states if applicable
     if (isInteractiveElement(element)) {
       const stateMachine = new StateMachine()
       this.elementStates.set(element, stateMachine)
 
-      const cleanup = attachPointerEvents(element, stateMachine, (state, pointerData) => {
-        // Get state-specific material
+      const cleanup = attachPointerEvents(element, stateMachine, (state) => {
         const stateMaterial = mergedMaterial.states?.[state]
         if (stateMaterial) {
           const stateSpecific: Material = deepMerge({}, finalMaterial, stateMaterial as any)
-          applySurface(element, stateSpecific.surface)  // Texture first
-          applyOptics(element, stateSpecific.optics)    // Tint second
-
-          // Apply state-specific customCSS
-          if (stateSpecific.customCSS) {
-            Object.entries(stateSpecific.customCSS).forEach(([prop, value]) => {
-              const camelProp = prop.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-              ;(element.style as any)[camelProp] = value
-            })
-          }
+          this.applyMaterialStyles(element, stateSpecific)
         }
-
-        // Apply behavior
         applyBehavior(element, finalMaterial.behavior, state)
-
-        // Handle drag physics
-        if (state === 'drag' && pointerData && finalMaterial.behavior) {
-          const delta = getPointerDelta(pointerData)
-          applyDrag(
-            element,
-            delta,
-            finalMaterial.behavior.viscosity || 0,
-            finalMaterial.behavior.elasticity || 0
-          )
-        }
-
-        // Handle snap back
-        if (state === 'base' && stateMachine.getPreviousState() === 'drag') {
-          if (finalMaterial.behavior?.snapBack) {
-            const hasElasticity = (finalMaterial.behavior?.elasticity || 0) > 0
-            springToOrigin(element, hasElasticity)
-          }
-        }
       })
 
-      this.elementCleanup.set(element, cleanup)
+      this.addCleanup(element, cleanup)
     }
+  }
+
+  /**
+   * Initialize physics for an element
+   *
+   * Supports two modes:
+   * 1. External file: behavior.physics (path to .js file)
+   * 2. Inline script: behavior.physicsInline (function code string)
+   */
+  private async initPhysics(element: HTMLElement, material: Material): Promise<void> {
+    const behavior = material.behavior
+    if (!behavior) return
+
+    const params = behavior.physicsParams ?? {}
+    this.migrateDeprecatedFields(behavior, params)
+
+    // Option A: External .js file
+    if (behavior.physics) {
+      try {
+        const physicsPath = behavior.physics.replace(/^\.\//, '/')
+        const module = await import(/* @vite-ignore */ physicsPath)
+        const physicsFn = module.default || module
+
+        if (typeof physicsFn === 'function') {
+          const cleanup = physicsFn(element, params)
+          if (typeof cleanup === 'function') {
+            this.addCleanup(element, cleanup)
+          }
+        }
+      } catch (error) {
+        console.error(`[MDS] Failed to load physics: ${behavior.physics}`, error)
+      }
+      return
+    }
+
+    // Option B: Inline script
+    if (behavior.physicsInline) {
+      try {
+        const physicsFn = new Function('element', 'params', `
+          return (${behavior.physicsInline})(element, params)
+        `)
+        const cleanup = physicsFn(element, params)
+        if (typeof cleanup === 'function') {
+          this.addCleanup(element, cleanup)
+        }
+      } catch (error) {
+        console.error('[MDS] Failed to execute inline physics', error)
+      }
+    }
+  }
+
+  /**
+   * Public API for External Interaction Layer
+   * Allows behavior engines (e.g., UICP) to integrate with MDS tactile substrate
+   */
+
+  /** Get material definition for element */
+  getMaterial(element: HTMLElement): Material | null {
+    const name = element.getAttribute('data-material')
+    if (!name) return null
+    try {
+      return this.registry.resolve(name)
+    } catch {
+      return null
+    }
+  }
+
+  /** Get current visual state */
+  getState(element: HTMLElement): StateType | null {
+    return this.elementStates.get(element)?.getState() ?? null
+  }
+
+  /** Manually set visual state (for behavior engines) */
+  setState(element: HTMLElement, state: StateType): void {
+    const stateMachine = this.elementStates.get(element)
+    if (stateMachine) {
+      stateMachine.transition(state)
+    }
+  }
+
+  /** Check if element has tactile physics */
+  hasTactilePhysics(element: HTMLElement): boolean {
+    const material = this.getMaterial(element)
+    return !!(material?.behavior?.physics || material?.behavior?.physicsInline)
+  }
+
+  /** Get physics parameters (for behavior engines to match feel) */
+  getPhysicsParams(element: HTMLElement): Record<string, any> | null {
+    const material = this.getMaterial(element)
+    return material?.behavior?.physicsParams ?? null
   }
 }
 
 // Create and export singleton instance
-export const materialSystem = new MaterialSystem()
+const MDS = new MaterialSystem()
 
-// Auto-initialize
+// Auto-initialize (deferred to ensure DOM is ready)
 if (typeof window !== 'undefined') {
-  materialSystem.init()
+  // Expose globally first (for backward compatibility)
+  ;(window as any).MaterialSystem = MDS
 
-  // Expose globally
-  ;(window as any).MaterialSystem = materialSystem
+  // Only auto-init if not in demo mode (demo will call init() manually after install())
+  const isDemo = window.location.pathname.includes('/demo/')
+
+  if (!isDemo) {
+    // Defer init to ensure DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => MDS.init())
+    } else {
+      // Use setTimeout to ensure DOM is fully rendered
+      setTimeout(() => MDS.init(), 0)
+    }
+  }
 }
+
+// Export singleton as default + named
+export { MDS as materialSystem }
+export default MDS
+
+// Export class for advanced users
+export { MaterialSystem }
 
 // Export types
 export type {

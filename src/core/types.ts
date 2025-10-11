@@ -31,18 +31,29 @@ export interface Surface {
 }
 
 /**
- * Behavior domain - Physics response properties
+ * Behavior domain - Tactile simulation properties
  */
 export interface Behavior {
-  elasticity?: number      // 0..1 (press spring strength)
-  viscosity?: number       // 0..1 (drag damping)
-  snapBack?: boolean       // return to rest on release
+  // Physics system (v3) - preferred
+  physics?: string         // Path to .js file (relative to manifest)
+  physicsInline?: string   // Inline function code (for CDN distribution)
+  physicsParams?: Record<string, any>  // Params for physics simulation
+
+  // Deprecated (v2) - auto-migrates to physicsParams
+  /** @deprecated Use physicsParams.elasticity instead. Auto-migrates with console warning. */
+  elasticity?: number
+
+  /** @deprecated Use physicsParams.viscosity instead. Auto-migrates with console warning. */
+  viscosity?: number
+
+  /** @deprecated Use physicsParams.snapBack instead. Auto-migrates with console warning. */
+  snapBack?: boolean
 }
 
 /**
  * State types for material interactions
  */
-export type StateType = 'base' | 'hover' | 'press' | 'drag' | 'focus' | 'disabled'
+export type StateType = 'base' | 'hover' | 'press' | 'pressed-and-moving' | 'focus' | 'disabled'
 
 /**
  * Theme types

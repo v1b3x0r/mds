@@ -14,23 +14,10 @@ export default defineConfig({
         exports: 'named'
       }
     },
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.warn']
-      },
-      mangle: {
-        toplevel: true
-      },
-      format: {
-        comments: false
-      }
-    },
+    minify: false, // Disabled for UMD compatibility
     sourcemap: true
   },
   server: {
-    open: '/examples/index.html'
+    open: '/demo/index.html'
   }
 })

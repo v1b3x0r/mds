@@ -2,7 +2,7 @@
   "name": "@mds/glass",
   "version": "1.0.0",
   "description": "Simplified glass effect - demonstrates the concept but lacks true liquid glass depth and refraction (technical limitation)",
-  "author": "MDS Team",
+  "author": "v1b3x0r",
   "license": "MIT",
   "tags": ["glass", "simplified", "transparent", "demo"],
 
