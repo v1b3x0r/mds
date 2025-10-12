@@ -17,7 +17,8 @@
     "dist",
     "manifests",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+     "manifests/**/*.physics.js"
   ],
   "scripts": {
     "dev": "vite",
