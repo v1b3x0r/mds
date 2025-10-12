@@ -1,48 +1,50 @@
 {
   "name": "@mds/glass",
-  "version": "1.0.0",
-  "description": "Simplified glass effect - demonstrates the concept but lacks true liquid glass depth and refraction (technical limitation)",
-  "author": "v1b3x0r",
+  "version": "1.2.0",
+  "description": "Frosted glass surface with theme-aware highlights",
+  "author": "MDS Team",
   "license": "MIT",
-  "tags": ["glass", "simplified", "transparent", "demo"],
-
-  "inherits": null,
+  "tags": ["glass", "frosted", "static"],
 
   "optics": {
     "opacity": 1,
-    "tint": "rgba(255, 255, 255, 0.08)",
-    "blur": "4px",
-    "saturation": "100%",
-    "brightness": "100%",
-    "contrast": "100%"
+    "blur": "18px",
+    "saturation": "160%",
+    "tint": "rgba(255, 255, 255, 0.18)"
   },
 
   "surface": {
-    "radius": "12px",
-    "border": "1px solid rgba(255, 255, 255, 0.25)",
-    "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1), 0px 1px 5px 0px rgba(0, 0, 0, 0.2), 0px 6px 16px 0px rgba(0, 0, 0, 0.16)"
+    "radius": "20px",
+    "border": "1px solid rgba(255, 255, 255, 0.35)",
+    "shadow": [
+      "inset 0 1px 0 rgba(255,255,255,0.55)",
+      "0 28px 70px rgba(9, 13, 23, 0.35)"
+    ]
+  },
+
+  "customCSS": {
+    "background": "radial-gradient(at 35% 30%, rgba(255,255,255,0.22), rgba(255,255,255,0.04))",
+    "background-blend-mode": "overlay",
+    "color": "rgba(12,18,28,0.85)",
+    "font-weight": "500",
+    "letter-spacing": "0.2px"
   },
 
   "states": {
-    "base": {
-      "optics": {
-        "opacity": 1,
-        "tint": "rgba(255, 255, 255, 0.08)",
-        "blur": "4px"
-      },
+    "hover": {
       "surface": {
-        "border": "1px solid rgba(255, 255, 255, 0.25)",
-        "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1), 0px 1px 5px 0px rgba(0, 0, 0, 0.2), 0px 6px 16px 0px rgba(0, 0, 0, 0.16)"
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.65)",
+          "0 32px 82px rgba(9,13,23,0.38)"
+        ]
       }
     },
-    "active": {
-      "optics": {
-        "tint": "rgba(255, 255, 255, 0.08)"
-      }
-    },
-    "disabled": {
-      "optics": {
-        "opacity": 0.5
+    "press": {
+      "surface": {
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.5)",
+          "0 18px 40px rgba(9,13,23,0.32)"
+        ]
       }
     }
   },
@@ -50,19 +52,33 @@
   "theme": {
     "light": {
       "optics": {
-        "tint": "rgba(0, 0, 0, 0.03)",
-        "blur": "4px"
+        "tint": "rgba(255,255,255,0.26)"
       },
       "surface": {
-        "border": "1px solid rgba(255, 255, 255, 0.3)",
-        "shadow": "inset 0 0 0 1px rgba(255, 255, 255, 0.2), inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9), inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8), inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6), inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.036), inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.06), inset 0px 3px 4px -2px rgba(0, 0, 0, 0.06), inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.03), 0px 1px 5px 0px rgba(0, 0, 0, 0.06), 0px 6px 16px 0px rgba(0, 0, 0, 0.048)"
+        "border": "1px solid rgba(255,255,255,0.4)",
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.7)",
+          "0 20px 60px rgba(148,163,184,0.32)"
+        ]
       },
-      "states": {
-        "active": {
-          "optics": {
-            "tint": "rgba(0, 0, 0, 0.08)"
-          }
-        }
+      "customCSS": {
+        "background": "radial-gradient(at 30% 20%, rgba(255,255,255,0.3), rgba(255,255,255,0.08))"
+      }
+    },
+    "dark": {
+      "optics": {
+        "tint": "rgba(255,255,255,0.04)"
+      },
+      "surface": {
+        "border": "1px solid rgba(255,255,255,0.28)",
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.45)",
+          "0 34px 85px rgba(9,13,23,0.45)"
+        ]
+      },
+      "customCSS": {
+        "background": "radial-gradient(at 40% 25%, rgba(148,163,184,0.04), rgba(15,23,42,0.15))",
+        "color": "#13c2c2"
       }
     }
   }

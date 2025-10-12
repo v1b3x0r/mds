@@ -1,6 +1,6 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Material Definition System - Think in materials, not CSS properties",
   "sideEffects": false,
   "main": "./dist/mds.umd.js",

@@ -136,14 +136,10 @@
       width: 200px;
       height: 200px;
       margin: 0 auto 12px;
-      border: 1px solid currentColor;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 48px;
-      font-weight: bold;
-      cursor: pointer;
-      user-select: none;
     }
 
     .material-name {
@@ -385,7 +381,7 @@ MaterialSystem.apply()</pre>
     } else {
       // Production: Load from CDN
       const script = document.createElement('script')
-      script.src = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1/dist/mds.umd.js'
+      script.src = 'https://unpkg.com/@v1b3x0r/mds-core@3.0.2/dist/mds.umd.js'
       document.head.appendChild(script)
 
       await new Promise((resolve, reject) => {
@@ -397,7 +393,7 @@ MaterialSystem.apply()</pre>
     }
 
     // Load materials - use local in dev, CDN in production
-    const manifestBase = isDev ? './manifests/@mds' : 'https://unpkg.com/@v1b3x0r/mds-core@3.0.1/manifests/@mds'
+    const manifestBase = isDev ? './manifests/@mds' : 'https://unpkg.com/@v1b3x0r/mds-core@3.0.2/manifests/@mds'
 
     async function loadMaterials() {
       const [glass, paper, liquidSilicone] = await Promise.all([
@@ -408,7 +404,7 @@ MaterialSystem.apply()</pre>
 
       // Fix physics path for production (convert relative to absolute CDN URL)
       if (!isDev && liquidSilicone.behavior?.physics?.startsWith('./')) {
-        liquidSilicone.behavior.physics = `https://unpkg.com/@v1b3x0r/mds-core@3.0.1${liquidSilicone.behavior.physics.slice(1)}`
+        liquidSilicone.behavior.physics = `https://unpkg.com/@v1b3x0r/mds-core@3.0.2${liquidSilicone.behavior.physics.slice(1)}`
       }
 
       MDS.register('@mds/glass', glass)

@@ -1,70 +1,71 @@
 {
   "name": "@mds/liquid-silicone",
-  "version": "3.0.0",
-  "description": "Elastic silicone material with tactile physics and glassmorphic appearance",
+  "version": "1.2.0",
+  "description": "Liquid silicone effect with theme-aware overrides",
   "author": "MDS Team",
   "license": "MIT",
-  "tags": ["elastic", "tactile", "physics", "silicone", "glassmorphism"],
+  "tags": ["liquid", "silicone", "tactile", "glassmorphism"],
 
   "optics": {
     "opacity": 1,
     "blur": "22px",
     "saturation": "180%",
-    "tint": "rgba(255, 255, 255, 0.25)"
+    "tint": "rgba(255, 255, 255, 0.2)"
   },
 
   "surface": {
     "radius": "24px",
-    "border": "1px solid rgba(255, 255, 255, 0.25)",
+    "border": "1px solid rgba(148, 163, 184, 0.32)",
     "shadow": [
       "inset 0 1px 0 rgba(255, 255, 255, 0.55)",
-      "0 10px 28px rgba(0, 0, 0, 0.18)"
+      "0 32px 88px rgba(2, 6, 23, 0.55)"
     ]
   },
 
   "behavior": {
     "physics": "./manifests/@mds/liquid-silicone.physics.js",
     "physicsParams": {
-      "tension": 44,
-      "damping": 2,
-      "maxStretchX": 0.12,
-      "maxStretchY": 0.12,
-      "parallax": 14
+      "tension": 55,
+      "damping": 3,
+      "maxStretchX": 0.16,
+      "maxStretchY": 0.16,
+      "parallax": 16,
+      "axes": "xy",
+      "directionSnap": 4,
+      "snapThreshold": 0.08,
+      "snapEase": 0.35
     },
     "cursor": "pointer",
     "transition": "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-position 0.3s ease"
   },
 
   "customCSS": {
-    "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05))",
+    "background": "radial-gradient(at 35% 30%, rgba(255,255,255,0.28), rgba(255,255,255,0.06))",
     "background-blend-mode": "overlay",
+    "color": "rgba(241,245,249,0.96)",
+    "font-weight": "600",
+    "letter-spacing": "0.2px",
+    "display": "grid",
+    "place-items": "center",
     "user-select": "none",
     "-webkit-tap-highlight-color": "transparent",
     "will-change": "transform, background-position, filter"
   },
 
   "states": {
-    "base": {
-      "surface": {
-        "shadow": [
-          "inset 0 1px 0 rgba(255, 255, 255, 0.55)",
-          "0 10px 28px rgba(0, 0, 0, 0.18)"
-        ]
-      }
-    },
     "hover": {
       "surface": {
         "shadow": [
-          "inset 0 1px 0 rgba(255, 255, 255, 0.6)",
-          "0 12px 32px rgba(0, 0, 0, 0.22)"
+          "inset 0 1px 0 rgba(255,255,255,0.6)",
+          "0 36px 96px rgba(2,6,23,0.6)"
         ]
       }
     },
     "press": {
       "surface": {
         "shadow": [
-          "inset 0 1px 0 rgba(255, 255, 255, 0.5)",
-          "0 6px 16px rgba(0, 0, 0, 0.16)"
+          "inset 0 1px 0 rgba(255,255,255,0.5)",
+          "0 20px 52px rgba(2,6,23,0.5)"
         ]
       }
     }
@@ -73,18 +74,35 @@
   "theme": {
     "light": {
       "optics": {
-        "tint": "rgba(255, 255, 255, 0.3)"
+        "tint": "rgba(255, 255, 255, 0.28)",
+        "brightness": "108%"
+      },
+      "surface": {
+        "border": "1px solid rgba(148, 163, 184, 0.25)",
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.65)",
+          "0 24px 70px rgba(148,163,184,0.35)"
+        ]
       },
       "customCSS": {
-        "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08))"
+        "background": "radial-gradient(at 30% 20%, rgba(255,255,255,0.35), rgba(255,255,255,0.1))",
+        "color": "#ce5000"
       }
     },
     "dark": {
       "optics": {
-        "tint": "rgba(255, 255, 255, 0.2)"
+        "tint": "rgba(255, 255, 255, 0.16)"
+      },
+      "surface": {
+        "border": "1px solid rgba(148, 163, 184, 0.38)",
+        "shadow": [
+          "inset 0 1px 0 rgba(255,255,255,0.45)",
+          "0 36px 96px rgba(2,6,23,0.65)"
+        ]
       },
       "customCSS": {
-        "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.03))"
+        "background": "radial-gradient(at 35% 30%, rgba(148,163,184,0.24), rgba(15,23,42,0.4))",
+        "color": "#fe5000"
       }
     }
   }
