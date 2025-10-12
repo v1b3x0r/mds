@@ -8,9 +8,9 @@
 
   "optics": {
     "opacity": 1,
-    "blur": "18px",
+    "blur": "4px",
     "saturation": "160%",
-    "tint": "rgba(255, 255, 255, 0.18)"
+    "tint": "rgba(255, 255, 255, 0.04)"
   },
 
   "surface": {
@@ -62,7 +62,7 @@
         ]
       },
       "customCSS": {
-        "background": "radial-gradient(at 30% 20%, rgba(255,255,255,0.3), rgba(255,255,255,0.08))"
+        "background": "radial-gradient(at 30% 20%, rgba(255,255,255,0.15), rgba(255,255,255,0.04))"
       }
     },
     "dark": {
