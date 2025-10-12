@@ -1,325 +1,266 @@
-# Material Creation Guide - Complete Reference
+# Material Creation Guide v3.0
 
-**For users who want to create custom materials**
-
----
-
-## Table of Contents
-
-1. [Requirements (ข้อกำหนด)](#requirements)
-2. [MDSpec v2 Schema (โครงสร้าง)](#schema)
-3. [All Properties (properties ทั้งหมด)](#properties)
-4. [Examples (ตัวอย่าง)](#examples)
-5. [Validation Rules (กฎการตรวจสอบ)](#validation)
-6. [Common Mistakes (ข้อผิดพลาดที่พบบ่อย)](#mistakes)
+Complete reference for creating custom materials. Reading time: 10 minutes.
 
 ---
 
-## Requirements (ข้อกำหนด) {#requirements}
+## Quick Start
 
-### 1. File Format
-- **Must be**: Valid JSON (`.mdm.json` extension)
-- **Encoding**: UTF-8
-- **No trailing commas**: `{ "a": 1, }` ❌ → `{ "a": 1 }` ✅
-- **Quoted keys**: `{ name: "x" }` ❌ → `{ "name": "x" }` ✅
-
-### 2. Required Fields
-- `"name"` (string) - **REQUIRED**, format: `"@scope/material-name"` or `"material-name"`
-
-### 3. Optional Fields
-- `"version"` (string) - e.g., `"1.0.0"`
-- `"description"` (string)
-- `"author"` (string)
-- `"license"` (string) - e.g., `"MIT"`
-- `"tags"` (array of strings)
-- `"inherits"` (string | null) - parent material name
-- `"optics"` (object) - visual properties
-- `"surface"` (object) - texture & relief
-- `"behavior"` (object) - interaction
-- `"customCSS"` (object) - **advanced** custom CSS properties (escape hatch)
-- `"states"` (object) - state variants
-- `"theme"` (object) - theme variants
-
-### 4. At Least One Domain
-Must have **at least one** of: `optics`, `surface`, `behavior`, or `customCSS`
-
----
-
-## MDSpec v2 Schema (โครงสร้าง) {#schema}
+**Minimal valid material:**
 
 ```json
 {
-  "name": "string (REQUIRED)",
-  "version": "string (optional)",
-  "description": "string (optional)",
-  "author": "string (optional)",
-  "license": "string (optional)",
-  "tags": ["string", "string"] (optional),
-  "inherits": "string | null (optional)",
+  "name": "@my/material",
+  "optics": { "tint": "#fff" }
+}
+```
 
-  "optics": {
-    "opacity": "number (0-1)",
-    "tint": "string (color)",
-    "blur": "string (CSS length)",
-    "saturation": "string (percentage)",
-    "brightness": "string (percentage)",
-    "contrast": "string (percentage)"
-  },
+**Requirements:**
+- Valid JSON (no trailing commas, quoted keys)
+- `name` field (required)
+- At least one domain: `optics`, `surface`, `behavior`, or `customCSS`
 
-  "surface": {
-    "radius": "string (CSS length)",
-    "border": "string (CSS border)",
-    "shadow": "string | array (CSS box-shadow)",
-    "texture": {
-      "src": "string (URL or data URI)",
-      "repeat": "string (CSS background-repeat)",
-      "size": "string (CSS background-size)"
+**File format:** `.mdm.json` (UTF-8 encoding)
+
+**Recommended tools:**
+- [jsonlint.com](https://jsonlint.com) - JSON validation
+- VSCode with JSON schema support
+
+---
+
+## Schema Reference
+
+```typescript
+interface Material {
+  // Meta
+  name: string              // Required
+  version?: string
+  description?: string
+  author?: string
+  license?: string
+  tags?: string[]
+
+  // Visual domains
+  optics?: {
+    opacity?: number        // 0-1
+    tint?: string          // Color
+    blur?: string          // CSS length
+    saturation?: string    // Percentage
+    brightness?: string
+    contrast?: string
+  }
+
+  surface?: {
+    radius?: string
+    border?: string
+    shadow?: string | string[]
+    texture?: {
+      src: string
+      repeat?: string
+      size?: string
     }
-  },
+  }
 
+  behavior?: {
+    cursor?: string
+    transition?: string
+
+    // v3: Physics system
+    physics?: string                    // External .physics.js URL
+    physicsInline?: string              // Inline code
+    physicsParams?: Record<string, any> // Custom params
+  }
+
+  // Advanced
+  customCSS?: Record<string, string>  // Any CSS property
+
+  // Variants
+  states?: {
+    base?: Partial<Material>
+    hover?: Partial<Material>
+    press?: Partial<Material>
+    'pressed-and-moving'?: Partial<Material>
+    focus?: Partial<Material>
+    disabled?: Partial<Material>
+  }
+
+  theme?: {
+    light?: Partial<Material>
+    dark?: Partial<Material>
+  }
+}
+```
+
+---
+
+## Properties
+
+### Optics (Visual)
+
+| Property | Type | Example | Maps to CSS |
+|----------|------|---------|-------------|
+| `opacity` | number (0-1) | `0.9` | `opacity` |
+| `tint` | string | `"rgba(255,255,255,0.2)"` | `background` |
+| `blur` | string | `"22px"` | `backdrop-filter: blur()` |
+| `saturation` | string | `"180%"` | `filter: saturate()` |
+| `brightness` | string | `"110%"` | `filter: brightness()` |
+| `contrast` | string | `"105%"` | `filter: contrast()` |
+
+**Note:** `blur` requires `backdrop-filter` support (Safari 9+, Chrome 76+, Firefox 103+)
+
+**How filters combine:**
+```css
+filter: saturate(180%) brightness(110%) contrast(105%);
+```
+
+---
+
+### Surface (Geometry)
+
+| Property | Type | Example | Maps to CSS |
+|----------|------|---------|-------------|
+| `radius` | string | `"24px"` | `border-radius` |
+| `border` | string | `"1px solid rgba(255,255,255,0.2)"` | `border` |
+| `shadow` | string \| array | `["shadow1", "shadow2"]` | `box-shadow` |
+| `texture.src` | string | `"data:image/svg+xml,..."` | `background-image` |
+| `texture.repeat` | string | `"repeat"` | `background-repeat` |
+| `texture.size` | string | `"200px 200px"` | `background-size` |
+
+**Shadow types:**
+- Single: `"0 4px 12px rgba(0,0,0,0.1)"`
+- Multiple: `["0 1px 2px rgba(0,0,0,0.1)", "0 4px 8px rgba(0,0,0,0.08)"]`
+- Inset: `"inset 0 0 0 1px rgba(255,255,255,0.2)"`
+
+---
+
+### Behavior (Interaction + Physics)
+
+| Property | Type | Example | Description |
+|----------|------|---------|-------------|
+| `cursor` | string | `"pointer"` | Mouse cursor type |
+| `transition` | string | `"all 0.3s ease"` | CSS transition |
+| `physics` | string | `"./material.physics.js"` | External physics file URL |
+| `physicsInline` | string | `"(el, params) => {...}"` | Inline physics code |
+| `physicsParams` | object | `{ tension: 55, damping: 3 }` | Custom physics parameters |
+
+**Physics system (v3):**
+- **External:** Load from `.physics.js` file (recommended for complex physics)
+- **Inline:** Small physics code directly in manifest
+- **Parameters:** Pass custom values via `physicsParams`
+- **Purpose:** Tactile deformation only (skew/scale, no translate)
+
+**Example - Elastic Physics:**
+```json
+{
   "behavior": {
-    "cursor": "string (CSS cursor)",
-    "transition": "string (CSS transition)"
-  },
+    "physics": "https://unpkg.com/@v1b3x0r/mds-core@3/manifests/@mds/liquid-silicone.physics.js",
+    "physicsParams": {
+      "tension": 55,      // Spring stiffness
+      "damping": 3,       // Energy loss
+      "maxStretchX": 0.16,
+      "maxStretchY": 0.16
+    }
+  }
+}
+```
 
+**Architecture note:** MDS handles tactile response (HOW it feels). External libraries handle functional behavior (WHAT it does, WHERE it moves). This prevents transform conflicts.
+
+---
+
+### customCSS (Advanced)
+
+**Purpose:** Escape hatch for any CSS property not covered by core domains
+
+**Coverage:** ~90% of CSS properties
+
+**Limitations:**
+- No pseudo-elements (`::before`, `::after`)
+- No `@keyframes` animations
+- Static properties only
+
+**Example:**
+```json
+{
   "customCSS": {
-    "anyProperty": "string (any valid CSS value)",
-    "clip-path": "...",
-    "mix-blend-mode": "...",
-    "filter": "..."
-  },
+    "clip-path": "polygon(0 0, 100% 0, 100% 95%, 50% 100%, 0 95%)",
+    "mix-blend-mode": "multiply",
+    "filter": "drop-shadow(0 4px 8px rgba(0,0,0,0.2))",
+    "background-blend-mode": "overlay"
+  }
+}
+```
 
+**When to use:**
+- Advanced CSS techniques (clipping, masking, blending)
+- Properties not in optics/surface/behavior
+- High-detail textures
+
+**Kebab-case or camelCase:** Both work (`clip-path` or `clipPath`)
+
+---
+
+## States & Themes
+
+### States (6 available)
+
+| State | When Applied |
+|-------|--------------|
+| `base` | Default state |
+| `hover` | Mouse hover |
+| `press` | Element pressed (pointer down) |
+| `pressed-and-moving` | Pressed + pointer moving |
+| `focus` | Keyboard focus |
+| `disabled` | Disabled state |
+
+**Structure:**
+```json
+{
   "states": {
-    "base": { /* same structure as root */ },
-    "active": { /* same structure as root */ },
-    "hover": { /* same structure as root */ },
-    "focus": { /* same structure as root */ },
-    "disabled": { /* same structure as root */ }
-  },
+    "hover": {
+      "optics": { "opacity": 1 }
+    },
+    "press": {
+      "surface": { "shadow": "inset 0 2px 4px rgba(0,0,0,0.1)" }
+    }
+  }
+}
+```
 
+### Themes (2 available)
+
+| Theme | When Applied |
+|-------|--------------|
+| `light` | Light mode |
+| `dark` | Dark mode |
+
+**Structure:**
+```json
+{
   "theme": {
-    "light": { /* same structure as root */ },
-    "dark": { /* same structure as root */ }
+    "dark": {
+      "optics": { "tint": "rgba(255,255,255,0.1)" },
+      "surface": { "border": "1px solid rgba(255,255,255,0.2)" }
+    },
+    "light": {
+      "optics": { "tint": "rgba(0,0,0,0.05)" }
+    }
   }
 }
 ```
 
----
+**Merge order:** `base → theme → state`
 
-## All Properties (properties ทั้งหมด) {#properties}
-
-### Meta Properties (ไม่ใช่ visual)
-
-| Property | Type | Required | Example | Description |
-|----------|------|----------|---------|-------------|
-| `name` | string | ✅ Yes | `"@mds/glass"` | Material identifier |
-| `version` | string | ❌ No | `"1.0.0"` | Semantic version |
-| `description` | string | ❌ No | `"Glass effect"` | Human description |
-| `author` | string | ❌ No | `"Your Name"` | Creator name |
-| `license` | string | ❌ No | `"MIT"` | License type |
-| `tags` | string[] | ❌ No | `["glass", "transparent"]` | Searchable tags |
-| `inherits` | string\|null | ❌ No | `"@mds/base"` | Parent material |
+**Example:** Element in dark mode with hover:
+1. Apply base material
+2. Merge `theme.dark` properties
+3. Merge `states.hover` properties
 
 ---
 
-### Domain: `optics` (Visual Appearance)
+## Examples
 
-**Purpose**: Controls transparency, color, blur, and filters
-
-| Property | Type | Default | Example | Maps to CSS | Description |
-|----------|------|---------|---------|-------------|-------------|
-| `opacity` | number (0-1) | `1` | `0.8` | `opacity` | Element transparency |
-| `tint` | string (color) | - | `"rgba(255,255,255,0.1)"` | `background` | Background color (layered as gradient) |
-| `blur` | string (length) | - | `"4px"` | `backdrop-filter: blur()` | Backdrop blur amount |
-| `saturation` | string (%) | `"100%"` | `"120%"` | `filter: saturate()` | Color saturation |
-| `brightness` | string (%) | `"100%"` | `"90%"` | `filter: brightness()` | Brightness level |
-| `contrast` | string (%) | `"100%"` | `"110%"` | `filter: contrast()` | Contrast level |
-
-**Notes**:
-- `tint` creates **background gradient**, NOT solid fill (unless opacity=1)
-- `blur` requires browser support for `backdrop-filter` (Safari 9+, Chrome 76+)
-- Filters (`saturation`, `brightness`, `contrast`) combine: `filter: saturate(120%) brightness(90%)`
-
-**Extended Properties** (v1 compatibility):
-- `color` (string) → `color` CSS property (text color)
-- `backgroundColor` (string) → `background-color` CSS property (direct, no gradient)
-- `backdropFilter` (string) → `backdrop-filter` CSS property (direct string)
-
----
-
-### Domain: `surface` (Texture & Relief)
-
-**Purpose**: Controls borders, shadows, textures, and 3D appearance
-
-| Property | Type | Default | Example | Maps to CSS | Description |
-|----------|------|---------|---------|-------------|-------------|
-| `radius` | string (length) | - | `"12px"` | `border-radius` | Corner rounding |
-| `border` | string | - | `"1px solid rgba(255,255,255,0.2)"` | `border` | Border style |
-| `shadow` | string \| array | - | `"0 4px 12px rgba(0,0,0,0.1)"` | `box-shadow` | Drop shadow(s) |
-| `texture` | object | - | See below | `background-image` | Background pattern |
-
-#### `texture` Object:
-
-| Property | Type | Required | Example | Maps to CSS | Description |
-|----------|------|----------|---------|-------------|-------------|
-| `src` | string (URL) | ✅ Yes | `"data:image/svg+xml,..."` | `background-image: url()` | Image source |
-| `repeat` | string | ❌ No | `"repeat"` | `background-repeat` | Repeat pattern |
-| `size` | string | ❌ No | `"200px 200px"` | `background-size` | Image size |
-
-**Shadow Types**:
-- **Single**: `"0 4px 12px rgba(0,0,0,0.1)"`
-- **Multiple (array)**: `["0 1px 2px rgba(0,0,0,0.1)", "0 4px 8px rgba(0,0,0,0.08)"]`
-- **Inset shadows**: `"inset 0 0 0 1px rgba(255,255,255,0.2)"`
-
-**Extended Properties** (v1 compatibility):
-- `borderTop` (string) → `border-top` CSS property
-- `background` (string) → `background` CSS property (direct)
-- `transform` (string) → `transform` CSS property
-- `transition` (string) → `transition` CSS property
-
----
-
-### Domain: `behavior` (Interaction)
-
-**Purpose**: Controls cursor and transitions
-
-| Property | Type | Default | Example | Maps to CSS | Description |
-|----------|------|---------|---------|-------------|-------------|
-| `cursor` | string | - | `"pointer"` | `cursor` | Mouse cursor type |
-| `transition` | string | - | `"all 0.2s ease"` | `transition` | CSS transition |
-
-**Cursor Values**: `auto`, `pointer`, `default`, `move`, `text`, `wait`, `not-allowed`, `grab`, `grabbing`, etc.
-
----
-
-### Domain: `customCSS` (Advanced - Escape Hatch)
-
-**Purpose**: Apply **any** CSS property not covered by optics/surface/behavior
-
-**⚠️ Warning**: This is an advanced feature for CSS experts. Use with caution.
-
-| Feature | Support |
-|---------|---------|
-| Any CSS property | ✅ Yes |
-| Kebab-case or camelCase | ✅ Both work |
-| Type safety | ❌ No (use carefully) |
-
-**Supported Properties** (examples - not exhaustive):
-- `clip-path`, `clipPath` - Clip element shape
-- `mix-blend-mode`, `mixBlendMode` - Blend mode
-- `mask`, `mask-image` - Image masking
-- `filter` - CSS filters (multiple)
-- `backdrop-filter` - Advanced blur/filters
-- `background-blend-mode` - Background blending
-- `transform-origin` - Transform pivot point
-- **ANY other CSS property**
-
-**Structure**:
-```json
-"customCSS": {
-  "clip-path": "polygon(0 0, 100% 0, 100% 80%, 0 100%)",
-  "mix-blend-mode": "multiply",
-  "filter": "drop-shadow(0 4px 8px rgba(0,0,0,0.2))"
-}
-```
-
-**Example**:
-```json
-{
-  "name": "advanced-material",
-  "optics": { "tint": "#fff" },
-  "customCSS": {
-    "clip-path": "circle(50%)",
-    "background-blend-mode": "overlay",
-    "mix-blend-mode": "screen"
-  }
-}
-```
-
-**Limitations**:
-- ❌ No support for pseudo-elements (::before, ::after)
-- ❌ No support for @keyframes animations
-- ❌ No support for dynamic values (e.g., mouse tracking)
-- ✅ Static CSS properties only
-
-**When to use**:
-- When optics/surface/behavior don't cover your needs
-- For advanced CSS techniques (clipping, masking, blending)
-- For high-detail textures requiring complex backgrounds
-
----
-
-### Domain: `states` (State Variants)
-
-**Purpose**: Override properties for different interaction states
-
-**Available States**:
-- `base` - Default state (applied first)
-- `active` - When element is active (e.g., button pressed)
-- `hover` - When mouse hovers over element
-- `focus` - When element has keyboard focus
-- `disabled` - When element is disabled
-
-**Structure**:
-```json
-"states": {
-  "active": {
-    "optics": { "opacity": 1 },
-    "surface": { "shadow": "..." }
-  },
-  "disabled": {
-    "optics": { "opacity": 0.5 }
-  }
-}
-```
-
-**Merge Order**: `base` → current state → specific state
-
----
-
-### Domain: `theme` (Theme Variants)
-
-**Purpose**: Override properties for light/dark themes
-
-**Available Themes**:
-- `light` - Light mode
-- `dark` - Dark mode
-
-**Structure**:
-```json
-"theme": {
-  "dark": {
-    "optics": { "tint": "rgba(255,255,255,0.1)" },
-    "surface": { "border": "1px solid rgba(255,255,255,0.2)" }
-  },
-  "light": {
-    "optics": { "tint": "rgba(0,0,0,0.05)" }
-  }
-}
-```
-
-**Merge Order**: base → theme → state
-
----
-
-## Examples (ตัวอย่าง) {#examples}
-
-### Example 1: Minimal Material (ที่สุดแบบง่าย)
-
-```json
-{
-  "name": "minimal",
-  "optics": {
-    "tint": "#ffffff"
-  }
-}
-```
-
-**Result**: White background, nothing else
-
----
-
-### Example 2: Simple Glass
+### 1. Simple Glass
 
 ```json
 {
@@ -337,41 +278,17 @@ Must have **at least one** of: `optics`, `surface`, `behavior`, or `customCSS`
 }
 ```
 
-**Result**: Transparent white + blur + rounded corners + shadow
+**Result:** Transparent white background with blur, rounded corners, and shadow
+
+**Use case:** Cards, modals, overlays
 
 ---
 
-### Example 3: Paper with Texture
+### 2. Interactive Button
 
 ```json
 {
-  "name": "paper-textured",
-  "optics": {
-    "tint": "#ffffff",
-    "opacity": 1
-  },
-  "surface": {
-    "radius": "8px",
-    "border": "1px solid rgba(0, 0, 0, 0.1)",
-    "shadow": "0 2px 8px rgba(0, 0, 0, 0.08)",
-    "texture": {
-      "src": "data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)'/%3E%3C/svg%3E",
-      "repeat": "repeat",
-      "size": "200px 200px"
-    }
-  }
-}
-```
-
-**Result**: Solid white + subtle noise texture + shadow
-
----
-
-### Example 4: Interactive Button
-
-```json
-{
-  "name": "button-interactive",
+  "name": "button",
   "optics": {
     "tint": "rgba(59, 130, 246, 0.9)",
     "opacity": 1
@@ -389,7 +306,7 @@ Must have **at least one** of: `optics`, `surface`, `behavior`, or `customCSS`
       "optics": { "tint": "rgba(59, 130, 246, 1)" },
       "surface": { "shadow": "0 4px 8px rgba(0, 0, 0, 0.15)" }
     },
-    "active": {
+    "press": {
       "surface": { "shadow": "inset 0 2px 4px rgba(0, 0, 0, 0.1)" }
     },
     "disabled": {
@@ -400,84 +317,62 @@ Must have **at least one** of: `optics`, `surface`, `behavior`, or `customCSS`
 }
 ```
 
-**Result**: Blue button with hover/active/disabled states
+**Result:** Blue button with hover/press/disabled states
+
+**Use case:** Primary action buttons
 
 ---
 
-### Example 5: Theme-Aware Material
+### 3. Physics Material (Liquid Silicone)
 
 ```json
 {
-  "name": "theme-aware",
+  "name": "liquid-silicone",
   "optics": {
-    "tint": "rgba(255, 255, 255, 0.1)",
-    "blur": "4px"
+    "opacity": 1,
+    "blur": "22px",
+    "saturation": "180%",
+    "tint": "rgba(255, 255, 255, 0.2)"
   },
   "surface": {
-    "radius": "12px",
-    "border": "1px solid rgba(255, 255, 255, 0.2)",
-    "shadow": "0 4px 12px rgba(0, 0, 0, 0.1)"
-  },
-  "theme": {
-    "light": {
-      "optics": { "tint": "rgba(0, 0, 0, 0.05)" },
-      "surface": {
-        "border": "1px solid rgba(0, 0, 0, 0.1)",
-        "shadow": "0 4px 12px rgba(0, 0, 0, 0.08)"
-      }
-    },
-    "dark": {
-      "optics": { "tint": "rgba(255, 255, 255, 0.1)" },
-      "surface": {
-        "border": "1px solid rgba(255, 255, 255, 0.2)",
-        "shadow": "0 4px 12px rgba(0, 0, 0, 0.3)"
-      }
-    }
-  }
-}
-```
-
-**Result**: Adapts colors to light/dark theme
-
----
-
-### Example 6: Multi-Layer Shadow (10-layer system)
-
-```json
-{
-  "name": "glass-realistic",
-  "optics": {
-    "tint": "rgba(255, 255, 255, 0.08)",
-    "blur": "4px"
-  },
-  "surface": {
-    "radius": "12px",
-    "border": "1px solid rgba(255, 255, 255, 0.25)",
+    "radius": "24px",
+    "border": "1px solid rgba(148, 163, 184, 0.32)",
     "shadow": [
-      "inset 0 0 0 1px rgba(255, 255, 255, 0.2)",
-      "inset 1.8px 3px 0px -2px rgba(255, 255, 255, 0.9)",
-      "inset -2px -2px 0px -2px rgba(255, 255, 255, 0.8)",
-      "inset -3px -8px 1px -6px rgba(255, 255, 255, 0.6)",
-      "inset -0.3px -1px 4px 0px rgba(0, 0, 0, 0.12)",
-      "inset -1.5px 2.5px 0px -2px rgba(0, 0, 0, 0.2)",
-      "inset 0px 3px 4px -2px rgba(0, 0, 0, 0.2)",
-      "inset 2px -6.5px 1px -4px rgba(0, 0, 0, 0.1)",
-      "0px 1px 5px 0px rgba(0, 0, 0, 0.2)",
-      "0px 6px 16px 0px rgba(0, 0, 0, 0.16)"
+      "inset 0 1px 0 rgba(255, 255, 255, 0.55)",
+      "0 32px 88px rgba(2, 6, 23, 0.55)"
     ]
+  },
+  "behavior": {
+    "physics": "./liquid-silicone.physics.js",
+    "physicsParams": {
+      "tension": 55,
+      "damping": 3,
+      "maxStretchX": 0.16,
+      "maxStretchY": 0.16,
+      "parallax": 16
+    },
+    "cursor": "pointer"
+  },
+  "customCSS": {
+    "background": "radial-gradient(at 35% 30%, rgba(255,255,255,0.28), rgba(255,255,255,0.06))",
+    "background-blend-mode": "overlay"
   }
 }
 ```
 
-**Result**: Complex glass effect with depth
+**Result:** Squishy, elastic material with tactile deformation and parallax
+
+**Use case:** Interactive hero elements, feature cards, "wow" factor buttons
+
+**Performance:** 60fps on modern devices (M1/M2 Macs, iPhone 12+, recent Androids)
 
 ---
 
-### Example 7: Advanced CSS (customCSS)
+### 4. Advanced (customCSS)
 
 ```json
 {
-  "name": "ultra-detailed",
+  "name": "advanced",
   "optics": {
     "tint": "rgba(255, 255, 255, 0.1)"
   },
@@ -486,229 +381,221 @@ Must have **at least one** of: `optics`, `surface`, `behavior`, or `customCSS`
   },
   "customCSS": {
     "clip-path": "polygon(0 0, 100% 0, 100% 95%, 50% 100%, 0 95%)",
-    "background": "repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px), repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px), radial-gradient(circle at 30% 40%, rgba(255,255,255,0.3), transparent)",
+    "background": "repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px), radial-gradient(circle at 30% 40%, rgba(255,255,255,0.3), transparent)",
     "mix-blend-mode": "multiply",
-    "filter": "drop-shadow(0 2px 4px rgba(0,0,0,0.1)) drop-shadow(0 4px 12px rgba(0,0,0,0.08))"
+    "filter": "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
   }
 }
 ```
 
-**Result**: Ultra-detailed material with clipping, complex gradients, blending, and custom filters
+**Result:** Complex material with custom clipping, gradients, blending, and filters
 
-**Use case**: When you need ~90% of CSS capabilities for extreme detail
+**Use case:** Ultra-detailed materials requiring advanced CSS
 
 ---
 
-## Validation Rules (กฎการตรวจสอบ) {#validation}
+## Validation Rules
 
 ### JSON Syntax
-- ✅ Valid: `{ "name": "test", "optics": { "tint": "#fff" } }`
-- ❌ Invalid: `{ name: "test" }` (keys not quoted)
-- ❌ Invalid: `{ "name": "test", }` (trailing comma)
+
+**Quoted keys:**
+```json
+// Good
+{ "name": "x" }
+
+// Bad
+{ name: "x" }
+```
+
+**No trailing commas:**
+```json
+// Good
+{ "name": "x", "optics": { "tint": "#fff" } }
+
+// Bad
+{ "name": "x", "optics": { "tint": "#fff", } }
+```
+
+---
+
+### Type Rules
+
+| Property | Type | Valid | Invalid |
+|----------|------|-------|---------|
+| `opacity` | number (0-1) | `0.5`, `1`, `0` | `"0.5"` (string), `1.5` (>1) |
+| `blur` | string (length) | `"4px"`, `"0.5rem"` | `4` (no quotes), `"4"` (no unit) |
+| `tint` | string (color) | `"#fff"`, `"rgba(...)"` | `123` (not string) |
+| `shadow` | string \| array | `"0 4px ..."`, `[...]` | `123` (wrong type) |
+
+---
 
 ### Required Fields
-- ✅ Valid: `{ "name": "test", "optics": {} }`
-- ❌ Invalid: `{ "optics": {} }` (no name)
 
-### At Least One Domain
-- ✅ Valid: `{ "name": "test", "optics": {} }`
-- ✅ Valid: `{ "name": "test", "surface": {} }`
-- ❌ Invalid: `{ "name": "test" }` (no domain)
+**Must have:**
+- `name` field
+- At least one domain: `optics`, `surface`, `behavior`, or `customCSS`
 
-### Type Validation
-- `opacity`: number 0-1
-  - ✅ `0.5`, `1`, `0`
-  - ❌ `"0.5"` (string), `1.5` (>1), `-0.1` (<0)
-- `tint`: string (color)
-  - ✅ `"#fff"`, `"rgba(255,255,255,0.1)"`, `"blue"`
-  - ❌ `123` (not string)
-- `blur`: string (CSS length)
-  - ✅ `"4px"`, `"0.5rem"`, `"10px"`
-  - ❌ `4` (not string), `"4"` (no unit)
-- `shadow`: string OR array
-  - ✅ `"0 4px 12px rgba(0,0,0,0.1)"`
-  - ✅ `["shadow1", "shadow2"]`
-  - ❌ `123` (not string/array)
+**Valid:**
+```json
+{ "name": "test", "optics": {} }
+{ "name": "test", "surface": {} }
+```
 
-### Forbidden Properties (ห้ามใช้)
-These will be **ignored** or cause **errors**:
-- Layout: `width`, `height`, `margin`, `padding`, `top`, `left`, `right`, `bottom`
-- Display: `display`, `flex-direction`, `justify-content`, `align-items`
-- Position: `position`, `z-index`
-- Typography: `font-size`, `font-family`, `line-height` (use CSS for these)
+**Invalid:**
+```json
+{ "optics": {} }  // No name
+{ "name": "test" }  // No domain
+```
 
 ---
 
-## Common Mistakes (ข้อผิดพลาดที่พบบ่อย) {#mistakes}
+### Forbidden Properties
 
-### ❌ Mistake 1: Trailing Comma
+**These belong in CSS/Tailwind, not materials:**
+- **Layout:** `width`, `height`, `margin`, `padding`, `position`, `top`, `left`, `right`, `bottom`
+- **Display:** `display`, `flex-direction`, `justify-content`, `align-items`
+- **Typography:** `font-size`, `font-family`, `line-height`, `letter-spacing`
+
+**Reason:** Separation of concerns. MDS = material properties, CSS = layout/spacing.
+
+**Use JSON validator:** [jsonlint.com](https://jsonlint.com)
+
+---
+
+## Common Mistakes
+
+### 1. Trailing Comma
+
 ```json
+// Bad
 {
   "name": "test",
   "optics": {
-    "tint": "#fff",  // ← trailing comma
+    "tint": "#fff",  // ← Trailing comma
   }
 }
-```
-**Fix**: Remove trailing comma
-```json
+
+// Good
 {
   "name": "test",
-  "optics": {
-    "tint": "#fff"
-  }
-}
-```
-
----
-
-### ❌ Mistake 2: Unquoted Keys
-```json
-{
-  name: "test"  // ← key not quoted
-}
-```
-**Fix**: Quote all keys
-```json
-{
-  "name": "test"
-}
-```
-
----
-
-### ❌ Mistake 3: Wrong Type
-```json
-{
-  "name": "test",
-  "optics": {
-    "opacity": "0.5"  // ← string, should be number
-  }
-}
-```
-**Fix**: Use number
-```json
-{
-  "name": "test",
-  "optics": {
-    "opacity": 0.5
-  }
-}
-```
-
----
-
-### ❌ Mistake 4: Missing Units
-```json
-{
-  "name": "test",
-  "surface": {
-    "radius": "12"  // ← no unit
-  }
-}
-```
-**Fix**: Add unit
-```json
-{
-  "name": "test",
-  "surface": {
-    "radius": "12px"
-  }
-}
-```
-
----
-
-### ❌ Mistake 5: Using Layout Properties
-```json
-{
-  "name": "test",
-  "surface": {
-    "width": "100px"  // ← FORBIDDEN
-  }
-}
-```
-**Fix**: Remove layout properties (use CSS/Tailwind)
-```json
-{
-  "name": "test",
-  "surface": {
-    "radius": "12px"
-  }
-}
-```
-
----
-
-### ❌ Mistake 6: No Name
-```json
-{
   "optics": {
     "tint": "#fff"
   }
 }
 ```
-**Fix**: Add name
+
+---
+
+### 2. Wrong Type
+
 ```json
+// Bad (opacity is string)
+{
+  "optics": { "opacity": "0.5" }
+}
+
+// Good (opacity is number)
+{
+  "optics": { "opacity": 0.5 }
+}
+```
+
+---
+
+### 3. Missing Units
+
+```json
+// Bad (no unit)
+{
+  "surface": { "radius": "12" }
+}
+
+// Good (has unit)
+{
+  "surface": { "radius": "12px" }
+}
+```
+
+---
+
+### 4. No Name Field
+
+```json
+// Bad (no name)
+{
+  "optics": { "tint": "#fff" }
+}
+
+// Good (has name)
 {
   "name": "my-material",
-  "optics": {
-    "tint": "#fff"
-  }
+  "optics": { "tint": "#fff" }
 }
 ```
 
 ---
 
-## Quick Reference Card
+### 5. Using Layout Properties
 
+```json
+// Bad (use Tailwind/CSS instead)
+{
+  "customCSS": {
+    "width": "100px",
+    "display": "flex",
+    "margin": "20px"
+  }
+}
+
+// Good (material properties only)
+{
+  "optics": { "tint": "#fff" },
+  "surface": { "radius": "8px" }
+}
 ```
-✅ ALLOWED PROPERTIES (28+ core):
 
-Meta (7):
-- name, version, description, author, license, tags, inherits
+**HTML example (correct separation):**
+```html
+<!-- Layout: Tailwind -->
+<div class="w-full px-4 py-2 flex items-center"
 
-Optics (6):
-- opacity, tint, blur, saturation, brightness, contrast
-
-Surface (4 + 3 sub):
-- radius, border, shadow
-- texture { src, repeat, size }
-
-Behavior (2):
-- cursor, transition
-
-State (5):
-- base, active, hover, focus, disabled
-
-Theme (2):
-- light, dark
-
-Extended (v1 compatibility):
-- optics: color, backgroundColor, backdropFilter
-- surface: borderTop, background, transform, transition
-
-Advanced (unlimited):
-- customCSS: { anyProperty: "value" }
-  ⚠️ Escape hatch for CSS experts - any valid CSS property
-
-❌ FORBIDDEN (in core fields - use customCSS instead):
-- Layout: width, height, margin, padding, position, top, left
-- Display: display, flex*, justify*, align*
-- Typography: font-*, line-height
+     <!-- Material: MDS -->
+     data-material="@mds/glass">
+  Content
+</div>
 ```
 
 ---
 
-## Summary (สรุป)
+## Debug Tips
 
-1. **Format**: Valid JSON, no trailing commas
-2. **Required**: `"name"` field + at least 1 domain
-3. **Domains**: `optics`, `surface`, `behavior`
-4. **Total properties**: ~27 core + 6 extended
-5. **States**: base, active, hover, focus, disabled
-6. **Themes**: light, dark
-7. **Forbidden**: Layout, display, position, typography
-8. **Validation**: Check types (number vs string, units, etc.)
+**Check browser console** for MDS runtime warnings:
+```javascript
+// Console output example:
+[MDS] Material "@mds/invalid" not found
+[MDS] behavior.elasticity is deprecated. Use physicsParams.elasticity instead.
+```
 
-**Need help?** Check examples above or copy-paste and modify!
+**Validate JSON syntax:**
+- [jsonlint.com](https://jsonlint.com)
+- VSCode JSON validation (built-in)
+- Browser console (if syntax error, parsing fails)
+
+**Test incrementally:**
+1. Start with minimal material (name + one property)
+2. Add properties one by one
+3. Test in browser after each addition
+4. Check console for errors
+
+---
+
+## Reference
+
+- [Live Demo](material-js-concept.vercel.app) - Interactive examples
+- [README](../README.md) - System documentation
+- [GitHub](https://github.com/v1b3x0r/material-js-concept) - Source code
+- [npm package](https://www.npmjs.com/package/@v1b3x0r/mds-core) - Installation
+
+---
+
+**Version:** v3.0.2 | **License:** MIT | **Reading time:** ~10 minutes
