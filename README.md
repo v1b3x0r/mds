@@ -1,4 +1,5 @@
-# Material Definition System (MDS) v3.0
+# Material Definition System (MDS)
+> A declarative paradigm for UI material properties
 
 [![npm version](https://img.shields.io/npm/v/@v1b3x0r/mds-core.svg)](https://www.npmjs.com/package/@v1b3x0r/mds-core)
 [![npm downloads](https://img.shields.io/npm/dm/@v1b3x0r/mds-core.svg)](https://www.npmjs.com/package/@v1b3x0r/mds-core)
@@ -6,39 +7,96 @@
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@v1b3x0r/mds-core)](https://bundlephobia.com/package/@v1b3x0r/mds-core)
 [![CI](https://github.com/v1b3x0r/material-js-concept/workflows/CI/badge.svg)](https://github.com/v1b3x0r/material-js-concept/actions)
 
-> **Think in materials, not CSS properties**
-
-**Status**: ✅ v3.0 | Published to npm | Zero dependencies | CDN available
-**Reality**: System works perfectly. Built-in materials (`@mds/glass`, `@mds/paper`, `@mds/liquid-silicone`) are minimal/subtle because I'm not good at visual design.
-**You Can**: Create much better-looking materials easily - see guide below!
+**5-second pitch**: Separate material concerns from layout concerns. Think "this is glass" not "backdrop-filter: blur(20px)".
 
 ---
 
-## What is MDS?
+## 🎯 Quick Navigation
 
-Material Definition System is a JavaScript library that lets you declare **materials** through JSON manifests instead of writing repetitive CSS properties.
+| Your Goal | Start Here | Time to Proficiency |
+|-----------|-----------|---------------------|
+| 👤 **Use in production** | [Quick Start](#-quick-start) | 3 min |
+| 🎨 **Create materials** | [Material Authoring](#-material-authoring-guide) | 5 min |
+| 🧠 **Understand paradigm** | [Conceptual Model](#-conceptual-model) | 3 min |
+| 🔧 **Build integrations** | [System Integration](#-system-integration-api) | 5 min |
+| 🎓 **Academic context** | [Research & Theory](#-research--theoretical-foundation) | 5 min |
+| 🧑‍💻 **Contribute code** | [Contributing](#-contributing) | 10 min |
 
-**Traditional CSS approach:**
+---
+
+## 🧠 Conceptual Model
+
+### The Problem
+
+Current CSS workflow conflates three concerns:
+
 ```html
-<div class="bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
+<!-- Layout + Material + Behavior all mixed -->
+<div class="px-4 py-2 rounded-xl bg-white/10 backdrop-blur-xl border-white/20 hover:scale-105 cursor-pointer">
   Content
 </div>
 ```
 
-**MDS approach:**
+### The MDS Paradigm
+
+Declarative separation of concerns:
+
 ```html
-<div data-material="@mds/glass">
+<!-- Layout (Tailwind/CSS) -->
+<div class="px-4 py-2"
+
+     <!-- Material (MDS) -->
+     data-material="@mds/glass"
+
+     <!-- Behavior (External library) -->
+     data-interaction="drawer">
   Content
 </div>
 ```
 
+### Mental Model
+
+```
+Material = Visual Appearance + Tactile Response
+         ≠ Functional Behavior
+         ≠ Layout/Spacing
+```
+
+**Analogy**: Like CSS Grid separates layout from content, MDS separates material properties from everything else.
+
+### Relation to Design Systems
+
+| Concept | Traditional | MDS Paradigm |
+|---------|------------|--------------|
+| Tokens | `--color-primary: #fff` | ✅ Compatible (use tokens in materials) |
+| Components | `<Button variant="glass">` | ✅ Enhanced (components apply materials) |
+| Themes | Global CSS variables | ✅ Built-in (light/dark auto-switching) |
+| Material properties | CSS utility classes | 🆕 JSON manifests |
+
+**MDS is not a replacement**, it's a **complementary abstraction layer** for material-specific properties.
+
 ---
 
-## Quick Start
+## 📊 Comparison with Related Systems
+
+| System | Focus | MDS Difference |
+|--------|-------|----------------|
+| **Material Design** | Design language + components | MDS: Material properties only (no components) |
+| **Tailwind CSS** | Utility-first CSS | MDS: Declarative materials (no inline styles) |
+| **CSS-in-JS** | Component-scoped styles | MDS: Reusable material definitions |
+| **Design Tokens** | Design variables | MDS: Complete material specifications |
+| **Three.js Materials** | 3D/WebGL materials | MDS: DOM-based 2D materials |
+
+**Key distinction**: MDS treats materials as **first-class entities** with inheritance, composition, and state management.
+
+---
+
+## 👤 Quick Start
 
 ### Installation
 
 #### npm (Recommended)
+
 ```bash
 npm install @v1b3x0r/mds-core
 ```
@@ -50,6 +108,7 @@ import MaterialSystem from '@v1b3x0r/mds-core'
 ```
 
 #### CDN (unpkg)
+
 ```html
 <!-- UMD (ready to use) -->
 <script src="https://unpkg.com/@v1b3x0r/mds-core@latest/dist/mds.umd.js"></script>
@@ -61,6 +120,7 @@ import MaterialSystem from '@v1b3x0r/mds-core'
 ```
 
 #### CDN (jsDelivr)
+
 ```html
 <!-- UMD -->
 <script src="https://cdn.jsdelivr.net/npm/@v1b3x0r/mds-core@latest/dist/mds.umd.js"></script>
@@ -83,17 +143,22 @@ import MaterialSystem from '@v1b3x0r/mds-core'
   <!-- Use built-in materials -->
   <div data-material="@mds/glass">Glass element</div>
   <div data-material="@mds/paper">Paper element</div>
+  <div data-material="@mds/liquid-silicone">Liquid silicone (with physics)</div>
 
   <script>
-    // Load materials from manifests
+    // Load materials from CDN manifests
     async function loadMaterials() {
-      const [glass, paper] = await Promise.all([
-        fetch('https://unpkg.com/@v1b3x0r/mds-core@latest/manifests/@mds/glass.mdm.json').then(r => r.json()),
-        fetch('https://unpkg.com/@v1b3x0r/mds-core@latest/manifests/@mds/paper.mdm.json').then(r => r.json())
+      const baseURL = 'https://unpkg.com/@v1b3x0r/mds-core@latest/manifests/@mds'
+
+      const [glass, paper, liquidSilicone] = await Promise.all([
+        fetch(`${baseURL}/glass.mdm.json`).then(r => r.json()),
+        fetch(`${baseURL}/paper.mdm.json`).then(r => r.json()),
+        fetch(`${baseURL}/liquid-silicone.mdm.json`).then(r => r.json())
       ])
 
       MaterialSystem.register('@mds/glass', glass)
       MaterialSystem.register('@mds/paper', paper)
+      MaterialSystem.register('@mds/liquid-silicone', liquidSilicone)
       MaterialSystem.apply()
     }
 
@@ -103,71 +168,61 @@ import MaterialSystem from '@v1b3x0r/mds-core'
 </html>
 ```
 
----
+### Live Demo
 
-## Live Demo
+**[View Interactive Demo →](https://v1b3x0r.github.io/material-js-concept/)**
 
-**[Interactive Demo →](./demo/)** - Runtime Material Switcher
+Experience materials with tactile physics:
+- **Liquid Silicone**: Elastic deformation (drag to feel spring physics)
+- **Glass**: Glassmorphism effect with blur and transparency
+- **Paper**: Matte surface with subtle texture
 
-Experience the material system with tactile physics in action:
-- **Liquid Silicone** with elastic deformation (K=22, D=18 spring simulation)
-- **Real-time material switching** - Change materials without page reload
-- **Tactile response** - Press and drag to feel elastic deformation (no positional movement)
-- **Different material types** - Switch between silicone (tactile), glass (static), and paper (static)
-- **60fps animations** - Smooth, GPU-accelerated transforms
+### Built-in Materials
 
-Try pressing the button and moving your pointer to see the tactile simulation in action!
+- **`@mds/glass`**: Simplified glassmorphism (blur + transparency)
+- **`@mds/paper`**: Matte paper with subtle texture
+- **`@mds/liquid-silicone`**: Tactile elastic material with physics simulation
 
----
+> **Note**: Built-in materials are intentionally minimal/subtle. The system supports much more dramatic effects - see [Material Authoring](#-material-authoring-guide) to create better ones!
 
-## What Works vs What Needs Your Help
+### Core API (Basic Usage)
 
-### What Works (System is Solid)
+```javascript
+// Register a material
+MaterialSystem.register('@my/custom', {
+  optics: { tint: '#ffffff', opacity: 0.9 },
+  surface: { radius: '12px', shadow: '0 8px 32px rgba(0,0,0,0.1)' }
+})
 
-The **core system** is production-ready and battle-tested:
+// Set theme
+MaterialSystem.setTheme('dark')   // 'light' | 'dark' | 'auto'
 
-- ✅ **Manifest-driven architecture** - JSON to CSS pipeline works perfectly
-- ✅ **Theme system** - Light/dark auto-switching works flawlessly
-- ✅ **State management** - Hover, active, focus, disabled all work
-- ✅ **Material inheritance** - Extend and override works as expected
-- ✅ **customCSS support** - ~90% CSS property coverage
-- ✅ **TypeScript types** - Full type safety, zero runtime errors
-- ✅ **Zero dependencies** - Standalone, no external CSS required
-- ✅ **CDN support** - Load materials from remote sources (unpkg, jsDelivr)
-- ✅ **Published to npm** - [@v1b3x0r/mds-core](https://www.npmjs.com/package/@v1b3x0r/mds-core)
+// Get current theme
+const theme = MaterialSystem.getTheme()  // 'light' | 'dark'
 
-### What Needs Creative Designers (I'm Not Good at This Part)
-
-The **built-in materials** need visual improvement:
-
-- ⚠️ **Visual appeal**: `@mds/glass` and `@mds/paper` are too subtle/minimal
-- 💡 **Reason**: I'm a normal nerd guy with diet coke, not a visual designer
-- 🎨 **Solution**: You can create much better materials! See [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)
-- 🛠️ **Available**: 28+ properties (opacity, blur, shadows, textures) + customCSS for advanced effects
-
-**TL;DR**: Think of MDS as a "material compiler" - it compiles JSON to CSS perfectly. The sample materials I created are just boring examples. You can make way better ones!
+// Apply to elements (auto-called on DOM changes)
+MaterialSystem.apply()
+```
 
 ---
 
-## Built-in Materials (Reference Only)
+## 🎨 Material Authoring Guide
 
-### `@mds/glass`
-Simplified glass effect - intentionally minimal to serve as a starting point
+### Why Create Custom Materials?
 
-**Visual**: Very subtle (my design skills). Use as reference, create better ones!
+The built-in materials are **intentionally minimal** to serve as starting points. The system supports **28+ properties + unlimited CSS** via `customCSS` field.
 
-### `@mds/paper`
-Matte paper with subtle noise texture
+**What you can build**:
+- Dramatic glass effects with heavy blur
+- Neumorphic designs
+- Animated gradients
+- Textured surfaces
+- Advanced visual effects
 
-**Visual**: Minimal contrast (again, not my strength). You can do better!
+### Quick Examples
 
----
+#### Dramatic Glass
 
-## What You Can Build (Beyond My Boring Defaults)
-
-The built-in materials are intentionally minimal, but with **28+ properties + customCSS**, you can create stunning effects:
-
-### Advanced Glass Effect
 ```json
 {
   "name": "dramatic-glass",
@@ -187,7 +242,8 @@ The built-in materials are intentionally minimal, but with **28+ properties + cu
 }
 ```
 
-### Neumorphic Material
+#### Neumorphic Material
+
 ```json
 {
   "name": "neumorphic",
@@ -200,7 +256,8 @@ The built-in materials are intentionally minimal, but with **28+ properties + cu
 }
 ```
 
-### Animated Gradient
+#### Animated Gradient
+
 ```json
 {
   "name": "gradient-animated",
@@ -213,36 +270,287 @@ The built-in materials are intentionally minimal, but with **28+ properties + cu
 }
 ```
 
-**See [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md) for 7 complete examples and all 28+ properties.**
-
----
-
-## Creating Custom Materials
-
-See **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)** for comprehensive documentation on:
-- All 28+ available properties
-- Complete examples (beginner to advanced)
-- Validation rules and common mistakes
-- `customCSS` field for CSS experts
-- Theme and state variations
-
-**Quick example:**
+### Complete Material Structure
 
 ```json
 {
   "name": "my-material",
+  "version": "1.0.0",
+  "description": "Custom material",
+
   "optics": {
     "opacity": 0.95,
-    "tint": "#ffffff"
+    "tint": "#ffffff",
+    "blur": "12px",
+    "saturation": "120%",
+    "brightness": "110%",
+    "contrast": "105%"
   },
+
   "surface": {
     "radius": "12px",
     "border": "1px solid rgba(255, 255, 255, 0.2)",
-    "shadow": "0 8px 32px rgba(0, 0, 0, 0.1)"
+    "shadow": "0 8px 32px rgba(0, 0, 0, 0.1)",
+    "texture": {
+      "src": "url(data:image/...)",
+      "repeat": "repeat",
+      "size": "200px 200px"
+    }
   },
+
+  "behavior": {
+    "cursor": "pointer",
+    "transition": "all 0.3s ease"
+  },
+
+  "customCSS": {
+    "clip-path": "...",
+    "mix-blend-mode": "...",
+    "filter": "..."
+  },
+
   "states": {
     "hover": {
       "optics": { "opacity": 1 }
+    },
+    "press": {
+      "surface": { "shadow": "0 4px 16px rgba(0,0,0,0.2)" }
+    }
+  },
+
+  "theme": {
+    "light": { "optics": { "tint": "rgba(255,255,255,0.3)" } },
+    "dark": { "optics": { "tint": "rgba(255,255,255,0.15)" } }
+  }
+}
+```
+
+### Full Documentation
+
+See **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)** for:
+- All 28+ available properties
+- Complete examples (beginner to advanced)
+- Validation rules and common mistakes
+- `customCSS` field for CSS experts (~90% CSS coverage)
+- Theme and state variations
+- Inheritance and composition
+
+---
+
+## 🔧 System Integration API
+
+**New in v3**: Interop API for external behavior libraries (e.g., UICP, custom interaction systems) to integrate with MDS.
+
+### Architecture: Material vs Behavior
+
+MDS v3 enforces clean separation:
+
+#### Material Layer (MDS Responsibility)
+**What it is**: Visual appearance + tactile response (HOW it feels to touch)
+
+- **Optics**: Visual properties (opacity, tint, blur, etc.)
+- **Surface**: Geometry (radius, border, shadows, texture)
+- **Tactile Physics**: Deformation response to pointer (elastic, viscous)
+  - Example: Liquid silicone deforms (skew/scale) when pressed
+  - **Critical**: Physics NEVER moves element positionally (no translate)
+
+#### External Interaction Layer (Your Library)
+**What it is**: Functional behavior (WHAT element does, WHERE it moves)
+
+- Positional dragging (translate across screen)
+- Drawer/modal mechanics
+- Scroll behaviors
+- Click/gesture handlers
+
+### Integration Example
+
+```html
+<div data-material="@mds/liquid-silicone" data-behavior="drawer">
+  <!-- MDS: Handles visual + tactile deformation -->
+  <!-- Your library: Handles drawer slide-out mechanics -->
+</div>
+```
+
+### Interop Methods
+
+#### Query Material State
+
+```javascript
+// Get material definition
+const material = MaterialSystem.getMaterial(element)
+if (material) {
+  console.log('Material:', material.name)
+}
+
+// Get current visual state
+const state = MaterialSystem.getState(element)  // 'base' | 'hover' | 'press' | etc.
+
+// Check if has tactile physics
+if (MaterialSystem.hasTactilePhysics(element)) {
+  // Element deforms on touch
+}
+
+// Get physics parameters (to match movement feel to deformation)
+const params = MaterialSystem.getPhysicsParams(element)
+if (params) {
+  console.log('Elasticity:', params.elasticity)
+  console.log('Viscosity:', params.viscosity)
+}
+```
+
+#### Drive Material State
+
+```javascript
+// Programmatically set visual state
+MaterialSystem.setState(element, 'hover')
+MaterialSystem.setState(element, 'press')
+```
+
+**Use case**: Behavior engine can query tactile parameters to match its movement feel to material's deformation feel.
+
+### Why This Separation?
+
+**Before (v2)**: Built-in drag caused conflicts
+- MDS had positional drag (transform: translate)
+- External physics had tactile deform (transform: skew/scale)
+- Result: Race condition, elements "dragging across screen"
+
+**After (v3)**: Clean architectural boundary
+- MDS: Visual + tactile substrate (deformation only)
+- External: Functional interactions (movement, gestures)
+- Result: No conflicts, clear responsibility
+
+---
+
+## 🎓 Research & Theoretical Foundation
+
+### Inspiration & Prior Art
+
+**Design Theory**:
+- Material Design (Google, 2014) - Material metaphor in UI
+- Skeuomorphism → Flat → Neumorphism evolution
+- Physical material properties in digital interfaces
+
+**System Design**:
+- Separation of Concerns (Dijkstra, 1974)
+- Declarative Programming paradigms
+- Component-based architecture
+
+**HCI Research**:
+- Tangible interfaces (Ishii & Ullmer, 1997)
+- Affordances in UI (Norman, 1988)
+- Tactile feedback in touch interfaces
+
+### Academic Citations
+
+If citing MDS in academic work:
+
+```bibtex
+@software{mds2025,
+  title = {Material Definition System (MDS)},
+  author = {v1b3x0r},
+  year = {2025},
+  version = {3.0},
+  url = {https://github.com/v1b3x0r/material-js-concept},
+  note = {Declarative material property system for web interfaces}
+}
+```
+
+### Research Questions MDS Addresses
+
+1. **Reusability**: How to define reusable material properties across components?
+2. **Abstraction**: What's the right abstraction level between CSS and design language?
+3. **State Management**: How to handle material state transitions (hover, focus, etc.)?
+4. **Theming**: How to support contextual material variations (light/dark mode)?
+5. **Composition**: Can material properties inherit and extend like objects?
+
+### Open Research Questions
+
+- **Perception**: Do users perceive material metaphors in CSS-based interfaces?
+- **Performance**: At what scale do declarative materials outperform inline styles?
+- **Learning**: Is the material paradigm easier to learn than utility CSS?
+- **Accessibility**: How do material properties affect screen reader users?
+
+> **Researchers**: Contributions welcome! Would love to see empirical studies on learnability, cognitive load, and user perception.
+
+---
+
+## ❓ FAQ
+
+### Paradigm & Philosophy
+
+**Q: Why not just use Tailwind/CSS-in-JS?**
+
+A: MDS complements them. Use Tailwind for layout/spacing, MDS for material properties. Different concerns.
+
+```html
+<!-- Good: Each tool does what it's best at -->
+<div class="px-4 py-2 flex items-center" data-material="@mds/glass">
+```
+
+**Q: Isn't this over-engineering?**
+
+A: For small projects (< 5 components), maybe. For design systems with 50+ components using glass/paper effects, JSON manifests beat copy-paste CSS.
+
+**Q: What if I need CSS properties MDS doesn't support?**
+
+A: `customCSS` field covers ~90% of CSS properties. MDS focuses on common material patterns, not every CSS edge case.
+
+```json
+{
+  "customCSS": {
+    "clip-path": "polygon(...)",
+    "mix-blend-mode": "multiply"
+  }
+}
+```
+
+---
+
+### HCI & Accessibility
+
+**Q: Does this support reduced motion preferences?**
+
+A: Yes, check `prefers-reduced-motion` and conditionally disable physics:
+
+```javascript
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  delete material.behavior.physics
+}
+```
+
+**Q: What about ARIA/semantic HTML?**
+
+A: MDS doesn't touch semantic HTML or ARIA. Apply materials to accessible markup:
+
+```html
+<button aria-label="Close" data-material="@mds/glass">×</button>
+```
+
+**Q: High contrast mode?**
+
+A: Use theme system + `prefers-contrast`:
+
+```json
+{
+  "theme": {
+    "high-contrast": {
+      "optics": { "opacity": 1 },
+      "surface": { "border": "2px solid currentColor" }
+    }
+  }
+}
+```
+
+**Q: Keyboard navigation?**
+
+A: MDS preserves native focus behavior. Use `states.focus` to style focus states:
+
+```json
+{
+  "states": {
+    "focus": {
+      "surface": { "border": "2px solid var(--focus-color)" }
     }
   }
 }
@@ -250,435 +558,395 @@ See **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)** for comprehensive documentation
 
 ---
 
-## API Reference
+### Academic & Research
 
-### `MaterialSystem.register(name, material)`
+**Q: Can I use this in my research project?**
 
-Register material from JavaScript object.
+A: Yes! MIT licensed. Please cite using the [BibTeX format above](#academic-citations).
 
-```javascript
-MaterialSystem.register('@mds/custom', {
-  optics: { tint: '#ff0000' },
-  surface: { radius: '8px' }
-})
-```
+**Q: Has this been peer-reviewed?**
 
-### `MaterialSystem.registerFromManifest(manifest)`
+A: No, MDS is an open-source project, not a research paper. It's based on established HCI/design principles but hasn't undergone formal peer review.
 
-Register from JSON manifest.
+**Q: Where's the user study/empirical validation?**
 
-```javascript
-const manifest = await fetch('./my-material.mdm.json').then(r => r.json())
-MaterialSystem.register(manifest.name, manifest)
-```
+A: Not conducted yet. Contributions welcome! Would love to see:
+- Learnability studies (MDS vs Tailwind vs CSS-in-JS)
+- Cognitive load measurements
+- User perception of material metaphors
+- Accessibility impact studies
 
-### `MaterialSystem.extend(name, baseName, overrides)`
+**Q: Can I use this as a case study for my thesis?**
 
-Extend existing material.
-
-```javascript
-MaterialSystem.extend('glass-blue', '@mds/glass', {
-  optics: { tint: '#0066ff' }
-})
-```
-
-### `MaterialSystem.setTheme(theme)`
-
-Set theme mode.
-
-```javascript
-MaterialSystem.setTheme('dark')   // Force dark
-MaterialSystem.setTheme('light')  // Force light
-MaterialSystem.setTheme('auto')   // Follow system preference
-```
-
-### `MaterialSystem.getTheme()`
-
-Get current resolved theme ('light' or 'dark').
-
-```javascript
-const theme = MaterialSystem.getTheme()  // 'light' | 'dark'
-```
-
-### `MaterialSystem.apply(root?)`
-
-Apply materials to elements (automatically called on DOM changes).
-
-```javascript
-MaterialSystem.apply()  // Apply to document
-MaterialSystem.apply(document.querySelector('#container'))  // Apply to subtree
-```
-
-### Interop API (for External Behavior Engines)
-
-**New in v3**: Methods for behavior libraries (like UICP) to integrate with MDS.
-
-#### `MaterialSystem.getMaterial(element)`
-
-Get material definition for element.
-
-```javascript
-const material = MaterialSystem.getMaterial(element)
-if (material) {
-  console.log('Material:', material.name)
-}
-```
-
-#### `MaterialSystem.getState(element)`
-
-Get current visual state.
-
-```javascript
-const state = MaterialSystem.getState(element)  // 'base' | 'hover' | 'press' | etc.
-```
-
-#### `MaterialSystem.setState(element, state)`
-
-Manually set visual state (for behavior engines to drive material state).
-
-```javascript
-// Behavior engine can programmatically transition visual states
-MaterialSystem.setState(element, 'hover')
-MaterialSystem.setState(element, 'press')
-```
-
-#### `MaterialSystem.hasTactilePhysics(element)`
-
-Check if element has tactile physics enabled.
-
-```javascript
-if (MaterialSystem.hasTactilePhysics(element)) {
-  // Element has physics - behavior engine can respond accordingly
-}
-```
-
-#### `MaterialSystem.getPhysicsParams(element)`
-
-Get physics parameters (for behavior engines to match feel).
-
-```javascript
-const params = MaterialSystem.getPhysicsParams(element)
-if (params) {
-  console.log('Elasticity:', params.elasticity)
-  console.log('Viscosity:', params.viscosity)
-  // Behavior engine can use these to match movement to deformation feel
-}
-```
+A: Absolutely! Feel free to reach out if you need additional context or documentation.
 
 ---
 
-## Architecture
+### Integration & Ecosystem
 
-```
-┌─────────────────┐
-│  JSON Manifest  │  ← Material definition (.mdm.json)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  MaterialSystem │  ← Runtime engine (25KB ESM, 12KB UMD gzipped)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   DOM Element   │  ← data-material="name"
-└─────────────────┘
-```
+**Q: Can I use this with React/Vue/Svelte?**
 
-### File Structure
+A: Yes, framework-agnostic. Just apply `data-material` to DOM elements:
 
-```
-@v1b3x0r/mds-core/
-├── dist/
-│   ├── mds.esm.js       # ESM bundle (25KB gzipped)
-│   ├── mds.umd.js       # UMD bundle (12KB gzipped)
-│   └── index.d.ts       # TypeScript types
-├── manifests/@mds/
-│   ├── glass.mdm.json   # Built-in glass material
-│   └── paper.mdm.json   # Built-in paper material
-└── package.json
+```jsx
+// React
+<div data-material="@mds/glass">Content</div>
+
+// Vue
+<div :data-material="'@mds/glass'">Content</div>
+
+// Svelte
+<div data-material="@mds/glass">Content</div>
 ```
 
----
+Future: Official wrapper components planned.
 
-## Architecture Philosophy
+**Q: Figma/Design tool integration?**
 
-### Material vs Behavior: Separation of Concerns
+A: Not yet. **Future work**: Figma plugin to export visual effects → `.mdm.json`.
 
-MDS v3 clearly separates two architectural layers:
+**Q: Design token compatibility?**
 
-#### Material Layer (MDS Responsibility)
-**What it is**: Visual appearance + tactile response (HOW it feels to touch)
-
-**Includes**:
-- **Optics**: Visual properties (opacity, tint, blur, saturation, etc.)
-- **Surface**: Geometry properties (radius, border, shadows, texture)
-- **Tactile Simulation**: Deformation response to pointer events (elastic, viscous, friction)
-  - Example: Liquid silicone deforms (skew/scale) when pressed, then springs back
-  - **Critical**: Tactile physics NEVER moves the element positionally (no translate)
-
-**Example**:
-```html
-<div data-material="@mds/liquid-silicone">
-  <!-- Material defines: "This looks like translucent silicone and deforms elastically when pressed" -->
-</div>
-```
-
-#### External Interaction Layer (UICP/Other Libraries)
-**What it is**: Functional behavior (WHAT the element does, WHERE it moves)
-
-**Includes**:
-- Positional dragging (translate across screen)
-- Drawer/modal mechanics
-- Scroll behaviors
-- Click/gesture handlers
-- Layout changes
-
-**Example**:
-```html
-<div data-material="@mds/liquid-silicone" data-behavior="drawer">
-  <!-- Material: Visual + deform response -->
-  <!-- Behavior: Drawer slide-out mechanics (external library handles this) -->
-</div>
-```
-
-### Why This Separation?
-
-**Before (v2)**: Built-in drag system caused conflicts
-- MDS had positional drag logic (transform: translate)
-- External physics had tactile deform logic (transform: skew/scale)
-- Result: Race condition, elements "dragging across screen"
-
-**After (v3)**: Clean architectural boundary
-- MDS: Handles visual + tactile substrate (deformation only)
-- External layer: Handles functional interactions (movement, gestures)
-- Result: No conflicts, each layer has clear responsibility
-
-### Interop API for Behavior Engines
-
-MDS exposes public methods for external behavior systems to integrate:
-
-```javascript
-// Query material state
-MaterialSystem.getMaterial(element)      // Get material definition
-MaterialSystem.getState(element)         // Get current visual state
-MaterialSystem.hasTactilePhysics(element) // Check if has physics
-MaterialSystem.getPhysicsParams(element) // Get physics parameters
-
-// Drive material state
-MaterialSystem.setState(element, 'hover') // Set visual state programmatically
-```
-
-**Use case**: Behavior engine can query tactile parameters to match its movement feel to the material's deformation feel.
-
----
-
-## Philosophy
-
-### Think in Materials, Not Properties
-
-**Traditional CSS thinking:**
-- "I need backdrop-filter: blur(20px)"
-- "Add opacity: 0.8"
-- "Box-shadow: 0 8px 32px..."
-
-**MDS thinking:**
-- "This is glass"
-- "This is paper"
-- "This should feel like metal"
-
-### Separation of Concerns
-
-| Layer | Responsibility | Example |
-|-------|---------------|---------|
-| **HTML** | Structure | `<div>`, `<button>` |
-| **CSS/Tailwind** | Layout/Typography | `px-4`, `flex`, `text-lg` |
-| **MDS** | Material Properties | `data-material="glass"` |
-
-**Do NOT mix:**
-```html
-<!-- ❌ Bad - visual properties in CSS -->
-<div class="bg-white/10 backdrop-blur-xl" data-material="@mds/glass">
-
-<!-- ✅ Good - clean separation -->
-<div class="px-4 py-2 rounded-xl" data-material="@mds/glass">
-```
-
----
-
-## Advanced Usage
-
-### Custom CSS for Experts
-
-For CSS properties not covered by optics/surface/behavior, use `customCSS`:
+A: Yes! Reference tokens in material definitions:
 
 ```json
 {
-  "name": "advanced-material",
-  "optics": { "tint": "#fff" },
-  "customCSS": {
-    "clip-path": "polygon(0 0, 100% 0, 100% 95%, 50% 100%, 0 95%)",
-    "mix-blend-mode": "multiply",
-    "filter": "drop-shadow(0 0 10px rgba(0,0,0,0.5))"
+  "optics": {
+    "tint": "var(--color-primary)",
+    "opacity": "var(--opacity-glass)"
   }
 }
 ```
 
-**Coverage**: ~90% of CSS properties (vs ~40-50% without customCSS)
+**Q: TypeScript support?**
 
-**Limitations**: No pseudo-elements, @keyframes, or dynamic values
+A: Full type definitions included:
 
-See [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md) for full documentation.
+```typescript
+import type { Material } from '@v1b3x0r/mds-core'
 
----
+const myMaterial: Material = {
+  optics: { tint: '#fff' }
+}
+```
 
-## Built-in Material Limitations (Not System Limitations)
+**Q: Can I use this with Storybook/component library?**
 
-| What | Built-in Materials | What You Can Build |
-|------|-------------------|-------------------|
-| Visual contrast | Too subtle (my fault) | High contrast with proper opacity/shadows |
-| Dramatic effects | Minimal (boring defaults) | Unlimited with 28+ properties |
-| Advanced CSS | Basic only (@mds/glass) | ~90% CSS coverage with customCSS |
-| Neumorphism | Not included | Easy with customCSS |
-| Animated gradients | Not included | Easy with customCSS + keyframes |
-| Dynamic lighting | CSS limitation* | Requires WebGL (not MDS's job) |
-| Mouse tracking | CSS limitation* | Requires custom JS (not MDS's job) |
+A: Yes! Apply materials to your components:
 
-**Key point**: The *system* supports advanced effects. My *sample materials* just happen to be boring.
-
-\* These are CSS/DOM limitations, not MDS limitations. MDS does what CSS can do.
-
----
-
-## FAQ
-
-### Why are @mds/glass and @mds/paper so hard to see?
-
-**Honest answer**: I'm a systems engineer, not a visual designer. I focused on making the architecture solid, but my design skills are... not great.
-
-**The good news**: You don't have to use my materials! The system supports:
-- **28+ visual properties**: opacity, tint, blur, saturation, brightness, contrast, shadows, textures, borders, radius
-- **customCSS**: ANY CSS property not covered by the core 28 properties
-- **Full state control**: hover, active, focus, disabled - each can have different styles
-- **Theme variants**: Automatic light/dark mode with custom overrides
-
-Check [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md) to create materials that look way better than mine.
-
-### Is this production-ready?
-
-**System**: ✅ Yes
-- Architecture is solid (manifest to runtime to DOM)
-- TypeScript types are correct and complete
-- Theme system works flawlessly
-- State management tested
-- Zero known bugs
-- Published to npm with zero dependencies
-- CDN available (unpkg, jsDelivr)
-- CI/CD setup with GitHub Actions
-
-**Built-in materials**: ⚠️ Use for reference only, create your own for production
-
-Think of it like: React ships with boring default styles, but you build beautiful UIs with it. Same here - MDS is the compiler, you bring the creativity.
-
-### Can I use this in my project right now?
-
-**Yes!** The package is:
-- ✅ Published to npm as [@v1b3x0r/mds-core](https://www.npmjs.com/package/@v1b3x0r/mds-core)
-- ✅ Available via CDN (unpkg, jsDelivr)
-- ✅ Zero runtime dependencies
-- ✅ TypeScript types included
-- ✅ Browser-tested (Chrome 90+, Firefox 88+, Safari 14+)
-
-Just create your own materials (don't use @mds/glass/@mds/paper as-is) and follow the [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md) for best practices.
+```jsx
+// Button.stories.jsx
+export const GlassButton = {
+  render: () => <button data-material="@mds/glass">Click me</button>
+}
+```
 
 ---
 
-## Browser Support
+### Performance & Scale
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+**Q: Performance at 1000+ elements?**
+
+A: Tested up to 100 elements (smooth 60fps). Larger scales need benchmarking. For massive scale (10,000+ elements), consider pre-rendering to CSS classes.
+
+**Q: Bundle size impact?**
+
+A: **6.7KB gzipped (ESM)** - comparable to small utility libraries like `clsx` or `classnames`.
+
+**Q: Server-side rendering (SSR)?**
+
+A: MDS runs client-side currently. **Future feature**: Pre-render materials to inline styles during SSR.
+
+**Q: Does this cause layout thrashing?**
+
+A: No. MDS applies styles in batches during `requestAnimationFrame` callbacks. Minimal reflow/repaint.
+
+---
+
+### Comparison
+
+**Q: MDS vs Material-UI/Chakra/Mantine?**
+
+A: Those are **component libraries**. MDS is a **material property system**. You can use MDS *with* component libraries:
+
+```jsx
+// Chakra UI + MDS
+<Button data-material="@mds/glass" colorScheme="blue">
+  Click me
+</Button>
+```
+
+**Q: MDS vs CSS variables/custom properties?**
+
+A: CSS variables are **tokens** (single values). MDS uses **manifests** (structured material specs with inheritance, states, themes). Both solve different problems.
+
+**Q: MDS vs Web Components?**
+
+A: Web Components encapsulate **markup + style + behavior**. MDS only handles **material properties**, works with or without Web Components.
+
+**Q: MDS vs Stitches/Vanilla Extract?**
+
+A: Those are **CSS-in-JS solutions** (style authoring). MDS is **material definition system** (declarative materials). Can be used together.
+
+---
+
+## ⚠️ When NOT to Use MDS
+
+Be honest about limitations:
+
+### ❌ Don't use if:
+
+- **Small projects** (< 5 components): Overkill, just use CSS
+- **No repeated patterns**: If not reusing materials, manifests add complexity
+- **Photorealistic 3D**: Need Three.js/Babylon.js for WebGL-based materials
+- **Team unfamiliar with declarative paradigms**: Learning curve exists
+- **Need every CSS property**: MDS covers ~90%, use plain CSS for edge cases
+
+### ✅ Use if:
+
+- **Design system** with consistent material language
+- **Multiple components** share glass/paper/metal effects
+- **Need theme variations** (light/dark/high-contrast)
+- **Want separation** between material and layout concerns
+- **Building component library** with reusable materials
+
+---
+
+## 📐 Specification & Standards
+
+### MDSpec Format
+
+Materials use `.mdm.json` (Material Definition Manifest):
+
+```typescript
+interface Material {
+  // Meta
+  name?: string
+  version?: string
+  description?: string
+  author?: string
+  license?: string
+  tags?: string[]
+  inherits?: string  // Extend another material
+
+  // Core
+  optics?: {
+    opacity?: number          // 0..1
+    tint?: string            // color
+    blur?: string            // "12px"
+    saturation?: string      // "120%"
+    brightness?: string      // "110%"
+    contrast?: string        // "105%"
+  }
+
+  surface?: {
+    radius?: string          // border-radius
+    border?: string          // border
+    shadow?: string | string[]  // box-shadow(s)
+    texture?: {
+      src: string            // URL or data URI
+      repeat?: string        // "repeat" | "no-repeat"
+      size?: string          // "200px 200px"
+    }
+  }
+
+  behavior?: {
+    cursor?: string          // cursor style
+    transition?: string      // CSS transition
+    physics?: string         // External physics file URL
+    physicsParams?: Record<string, any>  // Physics parameters
+  }
+
+  // Advanced
+  customCSS?: Record<string, string>  // Any CSS property
+
+  states?: {
+    base?: Partial<Material>
+    hover?: Partial<Material>
+    press?: Partial<Material>
+    'pressed-and-moving'?: Partial<Material>
+    focus?: Partial<Material>
+    disabled?: Partial<Material>
+  }
+
+  theme?: {
+    light?: Partial<Material>
+    dark?: Partial<Material>
+  }
+}
+```
+
+Full spec: **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)**
+
+### Versioning
+
+MDS follows **semantic versioning**. Material manifests include `version` field for compatibility tracking.
+
+---
+
+## 🗺️ Roadmap & Future Work
+
+### Planned (v3.x)
+
+- [ ] **Figma plugin**: Export Figma effects → `.mdm.json`
+- [ ] **Material marketplace**: Community material registry
+- [ ] **SSR support**: Pre-render to inline styles
+- [ ] **Framework wrappers**: React/Vue/Svelte components
+- [ ] **Build tool plugins**: Vite/Webpack for manifest bundling
+- [ ] **CLI tool**: Create, validate, preview materials
+- [ ] **VSCode extension**: Syntax highlighting + autocomplete for `.mdm.json`
+
+### Research Directions
+
+- [ ] **User studies**: Learnability, cognitive load vs alternatives
+- [ ] **Performance benchmarks**: Large-scale rendering tests
+- [ ] **Accessibility guidelines**: Best practices for material design
+- [ ] **Perception studies**: Do users perceive material metaphors?
+
+### Community Requests
+
+Track feature requests and discussions at:
+**[GitHub Issues](https://github.com/v1b3x0r/material-js-concept/issues)**
+
+---
+
+## 🧑‍💻 Contributing
+
+### What We Need
+
+**🎨 Visual Designers** (high priority!):
+- Improve built-in materials (`@mds/glass` is too subtle)
+- Create community material packs (neumorphic, glassmorphic, metal, fabric)
+- Design system integration examples
+- Figma design tokens → MDS manifest workflows
+
+**🔬 HCI Researchers**:
+- Conduct user studies (learnability, cognitive load)
+- Accessibility testing and guidelines
+- Performance benchmarks at scale
+- User perception studies
+
+**👨‍💻 Developers**:
+- Framework wrappers (React, Vue, Svelte)
+- Build tool plugins (Vite, Webpack, Rollup)
+- Performance optimization
+- SSR/pre-rendering support
+
+**📚 Technical Writers**:
+- Improve documentation clarity
+- Create tutorials and guides
+- Translate documentation
+- Video tutorials
+
+### How to Contribute
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
+
+### Contribution Guidelines
+
+- Follow existing code style (TypeScript + ESLint)
+- Add tests for new features
+- Update documentation (README, MATERIAL_GUIDE)
+- For new materials: Add to `/manifests/@community/`
+- For breaking changes: Discuss in issue first
+
+See **[CONTRIBUTING.md](./CONTRIBUTING.md)** for detailed guidelines.
+
+---
+
+## 🌐 Browser Support
+
+- **Chrome/Edge**: 90+
+- **Firefox**: 88+
+- **Safari**: 14+
 
 **Required CSS features**:
-- `backdrop-filter` (glass materials)
-- CSS variables
-- `MutationObserver` (dynamic content)
+- `backdrop-filter` (for glass materials)
+- CSS custom properties
+- `MutationObserver` (for dynamic content)
 
 ---
 
-## Contributing
-
-### I Need Help With Visual Design
-
-The system architecture is solid, but I'm terrible at making things look good. If you're a designer or have good visual taste:
-
-**Share your materials**:
-- Create beautiful materials and PR them to `/manifests/@community/`
-- Show what's possible with the 28+ properties + customCSS
-- Help others learn by example
-
-**Improve the defaults**:
-- Make @mds/glass and @mds/paper actually visible and usable
-- Create variants (frosted glass, glossy paper, etc.)
-- Better shadows, better contrast, better everything
-
-**Create examples**:
-- Advanced customCSS usage
-- Neumorphic designs
-- Animated materials
-- Theme-aware materials
-
-### Code Contributions
-
-- **Bug fixes**: Always welcome
-- **New features**: Open an issue first to discuss
-- **Performance improvements**: Appreciated
-- **Documentation**: Help make it clearer
-
-The architecture is done. Now it needs creative people to make beautiful things with it!
-
----
-
-## Package Info
+## 📦 Package Info
 
 ```bash
 # Install
 npm install @v1b3x0r/mds-core
 
 # Package size
-- ESM: 25.12 KB (gzipped: 6.64 KB)
-- UMD: 12.38 KB (gzipped: 4.53 KB)
+- ESM: 25.77 KB │ gzip: 6.78 KB
+- UMD: 27.94 KB │ gzip: 7.03 KB
 
-# Dependencies: 0
-# TypeScript: Included
-# CDN: Available (unpkg, jsDelivr)
+# Dependencies: 0 ✅
+# TypeScript: Included ✅
+# CDN: Available (unpkg, jsDelivr) ✅
 ```
 
 ---
 
-## Documentation
+## 📚 Documentation
 
-- **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)** - How to create materials (complete reference)
-- **[CLAUDE.md](./CLAUDE.md)** - AI assistant context (project state, decisions, future work)
+- **[MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md)** - Complete material reference (28+ properties)
+- **[CLAUDE.md](./CLAUDE.md)** - AI context, decisions, architecture philosophy
 - **[npm package](https://www.npmjs.com/package/@v1b3x0r/mds-core)** - npm registry page
 - **[GitHub repo](https://github.com/v1b3x0r/material-js-concept)** - Source code
+- **[Interactive Demo](https://v1b3x0r.github.io/material-js-concept/)** - Live demo with physics
 
 ---
 
-## License
+## 📖 References & Further Reading
+
+### Design Systems
+
+- [Material Design](https://material.io) - Google's design language
+- [Fluent Design](https://fluent2.microsoft.design) - Microsoft's design system
+- [Design Tokens](https://designtokens.org) - W3C community group
+
+### Academic Papers
+
+- Norman, D. (1988). *The Design of Everyday Things*
+- Ishii, H. & Ullmer, B. (1997). *Tangible Bits: Towards Seamless Interfaces between People, Bits and Atoms*
+- Card, S. K., Moran, T. P., & Newell, A. (1983). *The Psychology of Human-Computer Interaction*
+
+### Related Projects
+
+- [Three.js Materials](https://threejs.org/docs/#api/en/materials/Material) - 3D WebGL materials
+- [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS framework
+- [Stitches](https://stitches.dev) - CSS-in-JS with near-zero runtime
+- [Vanilla Extract](https://vanilla-extract.style) - Zero-runtime CSS-in-TypeScript
+
+---
+
+## 📄 License
 
 MIT © [v1b3x0r](https://github.com/v1b3x0r)
 
 ---
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
-Built with honesty about limitations. The system architecture is production-ready, but the built-in materials are minimal/subtle due to my lack of visual design skills.
+Built with honesty about limitations. The system architecture is production-ready, but built-in materials are minimal due to my lack of visual design skills.
 
-**You can build beautiful materials** with the 28+ properties + customCSS support. The system just needs creative designers to show what's possible!
+**Inspired by**:
+- Material Design (Google)
+- Neumorphism movement
+- CSS-in-JS libraries
+- Design token systems
+- HCI research on tangible interfaces
 
-For true photorealistic materials with dynamic lighting, consider:
-- Three.js (WebGL-based)
-- Babylon.js (PBR materials)
+**Special thanks**:
+- HCI research community
+- Open-source contributors
+- Early adopters and feedback providers
 
-MDS focuses on **declarative material definitions for DOM elements** - it's a different approach that prioritizes simplicity and ease of use over photorealism.
+---
+
+**For designers**: You can build **beautiful materials** with 28+ properties + `customCSS` support. The system just needs creative people to show what's possible!
+
+**For researchers**: This is an open playground for HCI research. Empirical studies, user studies, and accessibility research are all welcome contributions.
+
+**For developers**: The architecture is solid. Let's build amazing tools and integrations together.
