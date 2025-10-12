@@ -8,7 +8,7 @@
 
   "optics": {
     "opacity": 1,
-    "blur": "4px",
+    "blur": "22px",
     "saturation": "180%",
     "tint": "rgba(255, 255, 255, 0.25)"
   },
@@ -25,9 +25,9 @@
   "behavior": {
     "physics": "./manifests/@mds/liquid-silicone.physics.js",
     "physicsParams": {
-      "tension": 22,
-      "damping": 18,
-      "maxStretchX": 0.18,
+      "tension": 44,
+      "damping": 2,
+      "maxStretchX": 0.12,
       "maxStretchY": 0.12,
       "parallax": 14
     },
@@ -38,9 +38,6 @@
   "customCSS": {
     "background": "radial-gradient(at 35% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05))",
     "background-blend-mode": "overlay",
-    "color": "#fff",
-    "font-weight": "600",
-    "letter-spacing": "0.2px",
     "user-select": "none",
     "-webkit-tap-highlight-color": "transparent",
     "will-change": "transform, background-position, filter"
