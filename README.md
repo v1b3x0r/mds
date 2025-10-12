@@ -21,14 +21,19 @@
   </a>
 </p>
 
+ 
 ---
+ 
 
 > “short, real, and written for humans — not for search engines.”
 
+ 
 ---
+ 
 
-<pre align="center">
+<div align="center">
 
+```
             ┌────────────────────┐
             │  MaterialSystem    │
             │   (Core Runtime)   │
@@ -46,8 +51,9 @@
    │  Optics     │          │  Behavior   │
    │  Surface    │          │  Physics.js │
    └─────────────┘          └─────────────┘
+```
 
-</pre>
+</div>
 
 <p align="center">
   <img src="./assets/mds-demo.gif" width="640" alt="MDS interactive demo"/>
@@ -55,7 +61,9 @@
   <i>Interactive sample — drag the silicone element to feel the tactile response.</i>
 </p>
 
+ 
 ---
+ 
 
 ## 🧱 What is MDS
 A **language for digital materials.**  
@@ -137,11 +145,13 @@ I never typed a line manually — just talked.
 
 Core designed with GPT‑5 (Cognitive‑Focused Instruct + Narrative Prompting)  
 Implementation & refined docs with Sonnet 4.5 on Claude Code
-Bugs fixed by Codex  
+Bugs fixed by Codex  <br>
 
 > “It's start from Northern Thailand ☕”
 
+ 
 ---
+ 
 
 <p align="center">
   <sub>2025 © MIT License — Made for humans who still believe in feel.</sub>
