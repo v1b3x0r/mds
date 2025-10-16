@@ -4,6 +4,40 @@
 
 ⸻
 
+## [4.2.1] - 2025-10-17 — "World-Class Organization"
+
+### Added
+- **Comprehensive documentation** (7 files in `/docs/`)
+  - `guides/` → MDSPEC_GUIDE.md (learn schema in 3 min), COOKBOOK.md (12 recipes)
+  - `technical/` → ARCHITECTURE.md (engine deep-dive), TECH_SPEC.md, V4-UPGRADE.md
+  - `meta/` → CHANGELOG.md, CONTRIBUTING.md, LICENSE.md
+  - `demos/` → LOVEFIELD.md (flagship demo walkthrough)
+  - `README.md` → Documentation hub with role-based navigation
+- **GitHub Pages workflow** (`pages.yml`) → auto-deploy demos on push
+
+### Changed
+- **Folder structure reorganization** (world-class level):
+  - `/materials/entities/` → Entity definitions (paper.shy, paper.curious, emotion.trust)
+  - `/materials/fields/` → Field definitions (field.trust.core)
+  - `/examples/01-basics/` → Basic demos (emoji-field.html)
+  - `/examples/02-advanced/` → Advanced demos (cluster.html)
+  - `/examples/03-showcase/` → Flagship demos (lovefield.html, ghost-town.html)
+- **package.json** → Added `materials/` and `docs/` to published files
+- **CLAUDE.md** → Updated all paths, bundle sizes, and version references for coherence
+
+### Removed
+- `MATERIAL_GUIDE.md` (v3 legacy, incompatible)
+- `deploy.yml` workflow (duplicate of pages.yml)
+
+### Why It Matters
+v4.2.1 is **documentation complete** and **production-ready**. Clear organization makes it easy to:
+- Find what you need (role-based docs structure)
+- Learn by example (12 cookbook recipes)
+- Understand the engine (architecture deep-dive)
+- Contribute confidently (contribution guidelines)
+
+⸻
+
 ## [4.2.0] - 2025-10-17 — "Finally Walks Straight"
 
 ### Added

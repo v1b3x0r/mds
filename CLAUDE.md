@@ -4,15 +4,16 @@
 
 ---
 
-## CURRENT VERSION: v4.2 (Info-Physics Engine - Stable)
+## CURRENT VERSION: v4.2.1 (Info-Physics Engine - Production Ready)
 
 ---
 
-## Task Log (v4.2)
+## Task Log (v4.2.1)
 
 | Date | Update | Details |
 |------|--------|---------|
-| 2025-10-17 | v4.2 Stable Release | เพิ่ม lifecycle hooks (onSpawn/onUpdate/onDestroy), serialization (snapshot/restore), deterministic mode (seeded random), bump schema 4.1, ready for production use |
+| 2025-10-17 | v4.2.1 Documentation Complete | จัดโครงสร้างโฟลเดอร์แบบ world-class (/materials, /docs, /examples hierarchy), เพิ่มเอกสารครบ 7 ไฟล์ (guides/technical/meta), อัปเดต package.json + CLAUDE.md ให้ coherent, ลบไฟล์ซ้ำซ้อน (deploy.yml), เพิ่ม GitHub Pages workflow |
+| 2025-10-17 | v4.2.0 Stable Release | เพิ่ม lifecycle hooks (onSpawn/onUpdate/onDestroy), serialization (snapshot/restore), deterministic mode (seeded random), bump schema 4.1, ready for production use |
 | 2025-10-16 | Lovefield map redesign | รีดีไซน์หน้าเดโม่เป็น 2D DOM map แบบเกม (ถนน/หมู่บ้าน/สิ่งปลูกสร้าง emoji), ย้าย entity/field ลงเลเยอร์, เพิ่ม liquid glass HUD/hud-feed ที่สื่อสารได้, ปรับตัวละครวัยรุ่น + MBTI dialogues ให้เข้ากับธีม, field ตามจุด spark, UI ไม่บังแผนที่ |
 | 2025-10-16 | LLM bridge & creator context | เพิ่ม llmAdapter (enableLLM/setCreatorContext/clearCreatorContext) พร้อม OpenRouter adapter แบบเลือกใช้, inject creator context สู่ prompt, caching เบาๆ และ fallback DummyBridge |
 | 2025-10-16 | Engine world bounds | เพิ่ม EngineOptions (worldBounds, boundaryBehavior, damping), ฟังก์ชัน configure/getOptions และ bounding logic (clamp/bounce) เพื่อให้ world-ready โดยไม่เพิ่มน้ำหนักเอนจิน |
@@ -22,9 +23,9 @@
 
 ---
 
-## 1. PROJECT REALITY v4.2 (ความจริง - ไม่โม้)
+## 1. PROJECT REALITY v4.2.1 (ความจริง - ไม่โม้)
 
-นี่คือ **MDS v4.2** - info-physics engine for living materials with autonomous behavior (production-ready)
+นี่คือ **MDS v4.2.1** - info-physics engine for living materials with autonomous behavior (production-ready with comprehensive docs)
 
 **What we ship:**
 - `/dist/mds-core.esm.js` - **18.42 KB** minified (5.48 KB gzipped) ESM-only bundle
@@ -633,12 +634,13 @@ for all entity pairs:
 
 **สรุปแบบตรงๆ:**
 
-MDS v4.2 = Production-ready info-physics engine ที่พิสูจน์ว่า **"Materials can be alive"** ด้วย info-physics (proximity + similarity forces) โดยไม่ต้อง LLM หรือ hardcoded rules
+MDS v4.2.1 = Production-ready info-physics engine ที่พิสูจน์ว่า **"Materials can be alive"** ด้วย info-physics (proximity + similarity forces) โดยไม่ต้อง LLM หรือ hardcoded rules
 
 - Bundle: **18.42 KB** (-26% กว่า v3, ยังอยู่ใน target ≤20 KB)
-- Demos: **4 demos** (emoji-field, cluster, lovefield, ghost-town)
+- Demos: **4 demos** ใน examples/ แบ่งตามความยาก (basics, advanced, showcase)
 - Features: **Lifecycle hooks + Serialization + Deterministic mode + World bounds**
-- Docs: **7 comprehensive docs** ใน /docs/ (guides, technical, meta)
+- Docs: **7 comprehensive docs** ใน /docs/ (guides, technical, meta) + documentation hub
+- Structure: **World-class organization** (/materials, /docs, /examples hierarchy)
 - Philosophy: **Essence-first, emergence over control**
 - Goal: **พิสูจน์ฟิสิกส์แห่งความเข้าใจ** ✅
 

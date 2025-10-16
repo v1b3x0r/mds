@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 const isGhPages = !!process.env.GITHUB_PAGES
-const base = isGhPages ? '/material-js-concept/' : '/'
+const base = isGhPages ? '/mds/' : '/'
 
 export default defineConfig({
   base,

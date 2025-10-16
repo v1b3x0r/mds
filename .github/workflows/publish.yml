@@ -1,57 +1,56 @@
-name: Publish to npm
+name: Publish
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+  release:
+    types: [created]
 
 jobs:
   publish:
+    name: publish package
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Use Node.js 20.x
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Install dependencies
+      - name: Configure npm to use npm registry
+        if: secrets.NPM_TOKEN != ''
+        run: |
+          npm config set //registry.npmjs.org/:_authToken=${NPM_TOKEN}
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install deps
         run: npm ci
-
-      - name: Type check
-        run: npm run type-check
 
       - name: Build
         run: npm run build
 
       - name: Publish to npm
+        if: secrets.NPM_TOKEN != ''
         run: npm publish --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
+      - name: Configure npm to use GitHub Packages
+        run: |
+          echo "@v1b3x0r:registry=https://npm.pkg.github.com" >> ~/.npmrc
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            ## Changes
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            ## Installation
-            ```bash
-            npm install @v1b3x0r/mds-core@${{ github.ref_name }}
-            ```
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            ## CDN
-            ```html
-            <script src="https://unpkg.com/@v1b3x0r/mds-core@${{ github.ref_name }}/dist/mds.umd.js"></script>
-            ```
-          draft: false
-          prerelease: false

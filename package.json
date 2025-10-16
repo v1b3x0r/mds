@@ -1,7 +1,7 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "4.2.0",
-  "description": "MDS v4.2 - Info-physics engine with lifecycle hooks, serialization, and deterministic mode",
+  "version": "4.2.1",
+  "description": "MDS v4.2.1 - Info-physics engine with lifecycle hooks, serialization, and deterministic mode",
   "sideEffects": false,
   "type": "module",
   "main": "./dist/mds-core.esm.js",
@@ -15,7 +15,9 @@
   },
   "files": [
     "dist",
+    "materials",
     "examples",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -40,13 +42,13 @@
   ],
   "author": "v1b3x0r",
   "license": "MIT",
-  "homepage": "https://github.com/v1b3x0r/material-js-concept#readme",
+  "homepage": "https://github.com/v1b3x0r/mds#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/v1b3x0r/material-js-concept.git"
+  "url": "git+https://github.com/v1b3x0r/mds.git"
   },
   "bugs": {
-    "url": "https://github.com/v1b3x0r/material-js-concept/issues"
+  "url": "https://github.com/v1b3x0r/mds/issues"
   },
   "devDependencies": {
     "terser": "^5.44.0",

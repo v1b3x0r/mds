@@ -6,11 +6,11 @@
 ![bundle size](https://img.shields.io/badge/min-18.42KB-blue)
 ![gzip size](https://img.shields.io/badge/gzip-5.48KB-blueviolet)
 ![types](https://img.shields.io/badge/types-TypeScript-3178C6)
-![build](https://img.shields.io/github/actions/workflow/status/v1b3x0r/material-js-concept/pages.yml?branch=main&label=pages)
-![release](https://img.shields.io/github/v/release/v1b3x0r/material-js-concept?display_name=tag)
-![commit](https://img.shields.io/github/last-commit/v1b3x0r/material-js-concept)
-![issues](https://img.shields.io/github/issues/v1b3x0r/material-js-concept)
-![stars](https://img.shields.io/github/stars/v1b3x0r/material-js-concept)
+![build](https://img.shields.io/github/actions/workflow/status/v1b3x0r/mds/pages.yml?branch=main&label=pages)
+![release](https://img.shields.io/github/v/release/v1b3x0r/mds?display_name=tag)
+![commit](https://img.shields.io/github/last-commit/v1b3x0r/mds)
+![issues](https://img.shields.io/github/issues/v1b3x0r/mds)
+![stars](https://img.shields.io/github/stars/v1b3x0r/mds)
 ![downloads](https://img.shields.io/npm/dm/%40v1b3x0r%2Fmds-core)
 
 > built by two idiots in Chiang Mai who accidentally made a universe engine.  
