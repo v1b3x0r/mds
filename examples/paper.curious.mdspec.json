@@ -12,20 +12,20 @@
       "emoji": "🐥"
     },
     "onProximity": {
-      "condition": "distance<80",
+      "condition": "distance<100",
       "spawn": "field.trust.core"
     }
   },
   "physics": {
-    "mass": 0.12,
-    "friction": 0.03,
-    "bounce": 0
+  "mass": 0.02,
+  "friction": 0.001,
+  "bounce": 0.3
   },
   "manifestation": {
     "emoji": "🐥",
     "aging": {
       "start_opacity": 1,
-      "decay_rate": 0.005
+      "decay_rate": 0.004
     }
   }
 }

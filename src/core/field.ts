@@ -109,4 +109,27 @@ export class Field {
     this.expired = true
     this.el?.remove()
   }
+
+  /**
+   * Serialize field to JSON (v4.2)
+   */
+  toJSON() {
+    return {
+      material: this.f.material,
+      x: this.x,
+      y: this.y,
+      t: this.t,
+      expired: this.expired
+    }
+  }
+
+  /**
+   * Restore field from serialized data (v4.2)
+   */
+  static fromJSON(data: ReturnType<Field['toJSON']>, fieldSpec: MdsField): Field {
+    const field = new Field(fieldSpec, data.x, data.y)
+    field.t = data.t
+    field.expired = data.expired
+    return field
+  }
 }

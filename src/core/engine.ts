@@ -7,20 +7,66 @@ import type { MdsMaterial } from '../schema/mdspec'
 import type { MdsField as MdsFieldSpec } from '../schema/fieldspec'
 import { Entity } from './entity'
 import { Field } from './field'
+import { seededRandom } from '../utils/random'
+
+export type BoundaryBehavior = 'none' | 'clamp' | 'bounce'
+
+export interface WorldBounds {
+  minX: number
+  maxX: number
+  minY: number
+  maxY: number
+}
+
+export interface EngineOptions {
+  worldBounds?: WorldBounds
+  boundaryBehavior?: BoundaryBehavior
+  boundaryBounceDamping?: number
+  seed?: number  // Deterministic mode (v4.2)
+}
 
 export class Engine {
   private entities: Entity[] = []
   private fields: Field[] = []
   private running = false
   private last = 0
+  private options: EngineOptions
+  private rng: () => number  // Deterministic RNG (v4.2)
+
+  constructor(options: EngineOptions = {}) {
+    this.options = {
+      boundaryBehavior: options.boundaryBehavior ?? 'none',
+      boundaryBounceDamping: options.boundaryBounceDamping ?? 0.85,
+      worldBounds: options.worldBounds,
+      seed: options.seed
+    }
+
+    // Initialize RNG (v4.2)
+    if (options.seed !== undefined) {
+      // Deterministic mode
+      this.rng = seededRandom(options.seed)
+    } else {
+      // Non-deterministic mode (default)
+      this.rng = Math.random
+    }
+  }
 
   /**
    * Spawn a new material entity
    */
   spawn(material: MdsMaterial, x?: number, y?: number): Entity {
-    const e = new Entity(material, x, y)
+    const e = new Entity(material, x, y, this.rng)
     this.entities.push(e)
+    // Call lifecycle hook (v4.1)
+    e.onSpawn?.(this, e)
     return e
+  }
+
+  /**
+   * Get RNG function (v4.2)
+   */
+  getRng(): () => number {
+    return this.rng
   }
 
   /**
@@ -120,9 +166,11 @@ export class Engine {
     // Remove expired fields
     this.fields = this.fields.filter(f => !f.expired)
 
-    // 4. Integrate motion and render all entities
+    // 4. Integrate motion, apply bounds, and render all entities
     for (const e of this.entities) {
-      e.integrateAndRender(dt)
+      e.integrate(dt)
+      this.applyBounds(e)
+      e.render()
     }
   }
 
@@ -165,11 +213,114 @@ export class Engine {
     this.fields = []
   }
 
+  configure(options: Partial<EngineOptions>): void {
+    this.options = {
+      ...this.options,
+      ...options,
+      boundaryBehavior: options.boundaryBehavior ?? this.options.boundaryBehavior,
+      boundaryBounceDamping: options.boundaryBounceDamping ?? this.options.boundaryBounceDamping
+    }
+  }
+
+  getOptions(): EngineOptions {
+    return { ...this.options }
+  }
+
   /**
    * Cleanup and destroy engine
    */
   destroy(): void {
     this.stop()
     this.clear()
+  }
+
+  /**
+   * Create a snapshot of engine state (v4.2)
+   */
+  snapshot() {
+    return {
+      entities: this.entities.map(e => e.toJSON()),
+      fields: this.fields.map(f => f.toJSON()),
+      timestamp: performance.now()
+    }
+  }
+
+  /**
+   * Restore engine state from snapshot (v4.2)
+   * Note: Requires material definitions to be loaded separately
+   */
+  restore(
+    snapshot: ReturnType<Engine['snapshot']>,
+    materialMap: Map<string, MdsMaterial>,
+    fieldMap: Map<string, MdsFieldSpec>
+  ): void {
+    // Clear current state
+    this.clear()
+
+    // Restore entities
+    for (const data of snapshot.entities) {
+      const material = materialMap.get(data.material)
+      if (material) {
+        const entity = Entity.fromJSON(data, material, this.rng)
+        this.entities.push(entity)
+      }
+    }
+
+    // Restore fields
+    for (const data of snapshot.fields) {
+      const fieldSpec = fieldMap.get(data.material)
+      if (fieldSpec) {
+        const field = Field.fromJSON(data, fieldSpec)
+        this.fields.push(field)
+      }
+    }
+  }
+
+  private applyBounds(entity: Entity): void {
+    const bounds = this.options.worldBounds
+    const behavior = this.options.boundaryBehavior ?? 'none'
+
+    if (!bounds || behavior === 'none') {
+      return
+    }
+
+    if (behavior === 'clamp') {
+      if (entity.x < bounds.minX) {
+        entity.x = bounds.minX
+        entity.vx = 0
+      } else if (entity.x > bounds.maxX) {
+        entity.x = bounds.maxX
+        entity.vx = 0
+      }
+
+      if (entity.y < bounds.minY) {
+        entity.y = bounds.minY
+        entity.vy = 0
+      } else if (entity.y > bounds.maxY) {
+        entity.y = bounds.maxY
+        entity.vy = 0
+      }
+      return
+    }
+
+    if (behavior === 'bounce') {
+      const damping = this.options.boundaryBounceDamping ?? 0.85
+
+      if (entity.x < bounds.minX) {
+        entity.x = bounds.minX
+        entity.vx = Math.abs(entity.vx) * damping
+      } else if (entity.x > bounds.maxX) {
+        entity.x = bounds.maxX
+        entity.vx = -Math.abs(entity.vx) * damping
+      }
+
+      if (entity.y < bounds.minY) {
+        entity.y = bounds.minY
+        entity.vy = Math.abs(entity.vy) * damping
+      } else if (entity.y > bounds.maxY) {
+        entity.y = bounds.maxY
+        entity.vy = -Math.abs(entity.vy) * damping
+      }
+    }
   }
 }

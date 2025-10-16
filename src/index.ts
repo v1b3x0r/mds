@@ -17,6 +17,7 @@
 
 // Core engine
 export { Engine } from './core/engine'
+export type { EngineOptions, WorldBounds, BoundaryBehavior } from './core/engine'
 export { Entity } from './core/entity'
 export { Field } from './core/field'
 
@@ -24,6 +25,14 @@ export { Field } from './core/field'
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
 export type { LlmBridge } from './io/bridge-llm'
+export {
+  enableLLM,
+  setCreatorContext,
+  clearCreatorContext,
+  getCreatorContext,
+  isLlmEnabled,
+  resetLlmAdapter
+} from './io/llmAdapter'
 
 // Utils
 export { clamp, distance, similarity, lerp, randRange, randInt } from './utils/math'
@@ -44,3 +53,5 @@ export type {
   MdsField,
   MdsFieldVisual
 } from './schema/fieldspec'
+
+export type { CreatorContext } from './types'

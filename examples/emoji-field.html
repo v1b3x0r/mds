@@ -70,6 +70,76 @@
       border-radius: 3px;
       font-size: 12px;
     }
+
+    .debug-panel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      min-width: 180px;
+      backdrop-filter: blur(8px);
+    }
+
+    .debug-panel h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #ffdc78;
+    }
+
+    .debug-stat {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+      color: #ccc;
+    }
+
+    .debug-stat .label {
+      color: #999;
+    }
+
+    .debug-stat .value {
+      color: #6cf;
+      font-weight: 600;
+    }
+
+    .emoji-bubble {
+      position: absolute;
+      pointer-events: none;
+      animation: bubble-float 3s ease-out forwards;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      max-width: 200px;
+      text-align: center;
+    }
+
+    @keyframes bubble-float {
+      0% {
+        opacity: 0;
+        transform: translateY(0) translateX(-50%) scale(0.8);
+      }
+      10% {
+        opacity: 1;
+        transform: translateY(-8px) translateX(-50%) scale(1.02);
+      }
+      80% {
+        opacity: 1;
+        transform: translateY(-35px) translateX(-50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-50px) translateX(-50%) scale(0.9);
+      }
+    }
   </style>
 </head>
 <body>
@@ -80,6 +150,30 @@
     <p>🐥 Curious paper - Leans in when hovered</p>
     <p>✨ When they get close (&lt;80px), a trust field spawns</p>
     <p>⏱️ Papers fade naturally over time (decay rate)</p>
+  </div>
+
+  <div class="debug-panel">
+    <h3>🔬 Debug</h3>
+    <div class="debug-stat">
+      <span class="label">Entities:</span>
+      <span class="value" id="debug-entities">0</span>
+    </div>
+    <div class="debug-stat">
+      <span class="label">Fields:</span>
+      <span class="value" id="debug-fields">0</span>
+    </div>
+    <div class="debug-stat">
+      <span class="label">Distance:</span>
+      <span class="value" id="debug-dist">-</span>
+    </div>
+    <div class="debug-stat">
+      <span class="label">Mood:</span>
+      <span class="value" id="debug-mood">-</span>
+    </div>
+    <div class="debug-stat">
+      <span class="label">FPS:</span>
+      <span class="value" id="debug-fps">60</span>
+    </div>
   </div>
 
   <script type="module">
@@ -93,9 +187,15 @@
     const curious = await loadMaterial('./paper.curious.mdspec.json')
     const ftrust = await fetch('./field.trust.core.mdspec.json').then(r => r.json())
 
-    // Spawn entities
-    const a = engine.spawn(shy, 120, 180)
-    const b = engine.spawn(curious, 360, 220)
+    // Spawn entities closer together so they feel attraction forces
+    const a = engine.spawn(shy, 180, 200)
+    const b = engine.spawn(curious, 300, 240)
+
+    // Give them initial velocity for more dynamic movement
+    a.vx = 0.5
+    a.vy = 0.3
+    b.vx = -0.4
+    b.vy = -0.2
 
     // Setup proximity trigger for field spawning
     let fieldSpawned = false
@@ -113,6 +213,194 @@
 
     // Start simulation
     engine.start()
+
+    // === DEBUG PANEL UPDATE ===
+    const debugEntities = document.getElementById('debug-entities')
+    const debugFields = document.getElementById('debug-fields')
+    const debugDist = document.getElementById('debug-dist')
+    const debugMood = document.getElementById('debug-mood')
+    const debugFps = document.getElementById('debug-fps')
+
+    let frameCount = 0
+    let lastFpsUpdate = performance.now()
+
+    function updateDebugPanel() {
+      debugEntities.textContent = engine.entities.length
+      debugFields.textContent = engine.fields.length
+
+      // Calculate distance between entities
+      if (engine.entities.length >= 2) {
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        debugDist.textContent = Math.round(dist) + 'px'
+
+        // Determine mood based on distance and entropy
+        let mood = '😐 neutral'
+        if (dist < 80) mood = '🥰 intimate'
+        else if (dist < 120) mood = '😊 close'
+        else if (dist < 200) mood = '🙂 aware'
+        debugMood.textContent = mood
+      }
+
+      // FPS counter
+      frameCount++
+      const now = performance.now()
+      if (now - lastFpsUpdate >= 1000) {
+        debugFps.textContent = frameCount
+        frameCount = 0
+        lastFpsUpdate = now
+      }
+
+      requestAnimationFrame(updateDebugPanel)
+    }
+    updateDebugPanel()
+
+    // === TEXT BUBBLE SYSTEM ===
+    const selfAwareTexts = {
+      intro: [
+        'ฉันเพิ่งเกิดมา...',
+        'นี่คือโลกใบใหม่เหรอ?',
+        'ฉันคือใคร?'
+      ],
+      young: [
+        'ฉันยังเด็กอยู่นะ อายุ {age}s',
+        'รู้สึกแข็งแรงดี!',
+        'พลังชีวิตเต็มร้อย!'
+      ],
+      aging: [
+        'อายุ {age}s แล้ว เริ่มรู้สึกเหนื่อย',
+        'ฉันกำลังจางหายไป... ({opacity}%)',
+        'พลังชีวิตเหลือ {opacity}%'
+      ],
+      dying: [
+        'ฉันใกล้ตายแล้ว...',
+        'ไม่อยากจากไปเลย',
+        'อีกไม่นานฉันก็หายไป'
+      ],
+      curious: [
+        'เธอเป็นใคร?',
+        'มาเล่นกันไหม?',
+        'ระยะห่างเรา {dist}px'
+      ],
+      close: [
+        'ใกล้กันแบบนี้... รู้สึกอบอุ่น',
+        'ฉันชอบอยู่ใกล้เธอ',
+        'เราใกล้กันมาก {dist}px'
+      ],
+      intimate: [
+        'เราเป็นเพื่อนกันใช่ไหม?',
+        'รู้สึกเหมือนเข้าใจกัน',
+        'พลังของเธอทำให้ฉันแข็งแรงขึ้น'
+      ],
+      lonely: [
+        'อยู่คนเดียวเหงาจัง',
+        'มีใครอยู่ไหม?',
+        'ระยะห่าง {dist}px ไกลเกินไป'
+      ]
+    }
+
+    let lastDist = 999
+    let bubbleTimeout = null
+    let lastBubbleTime = 0
+
+    function spawnBubble(entity, textType) {
+      // Throttle bubbles (max 1 per 2 seconds)
+      const now = performance.now()
+      if (now - lastBubbleTime < 2000) return
+      lastBubbleTime = now
+
+      const texts = selfAwareTexts[textType] || selfAwareTexts.intro
+      let text = texts[Math.floor(Math.random() * texts.length)]
+
+      // Replace placeholders
+      const age = Math.round(entity.age)
+      const opacity = Math.round(entity.opacity * 100)
+      const dist = Math.round(lastDist)
+
+      text = text
+        .replace('{age}', age)
+        .replace('{opacity}', opacity)
+        .replace('{dist}', dist)
+
+      const bubble = document.createElement('div')
+      bubble.className = 'emoji-bubble'
+      bubble.textContent = text
+      bubble.style.left = entity.x + 'px'
+      bubble.style.top = (entity.y - 20) + 'px'
+      document.body.appendChild(bubble)
+
+      setTimeout(() => bubble.remove(), 3000)
+    }
+
+    // Monitor distance changes for emotion triggers
+    function monitorEmotions() {
+      if (engine.entities.length >= 2) {
+        const dx = a.x - b.x
+        const dy = a.y - b.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+
+        // Approaching
+        if (dist < lastDist && dist < 150 && lastDist > 150) {
+          spawnBubble(b, 'curious')
+        }
+
+        // Getting close
+        if (dist < 100 && lastDist >= 100) {
+          setTimeout(() => spawnBubble(a, 'close'), 500)
+        }
+
+        // Very close (intimate)
+        if (dist < 80 && lastDist >= 80) {
+          setTimeout(() => spawnBubble(b, 'intimate'), 800)
+        }
+
+        // Moving apart
+        if (dist > lastDist && dist > 150 && lastDist <= 150) {
+          spawnBubble(a, 'lonely')
+        }
+
+        lastDist = dist
+      }
+
+      setTimeout(monitorEmotions, 500)
+    }
+    monitorEmotions()
+
+    // Monitor entity lifecycle for self-aware messages
+    function monitorLifecycle() {
+      for (const entity of engine.entities) {
+        const age = entity.age
+        const opacity = entity.opacity
+
+        // Intro (first 2 seconds)
+        if (age < 2 && !entity._spokenIntro) {
+          setTimeout(() => spawnBubble(entity, 'intro'), 1000)
+          entity._spokenIntro = true
+        }
+
+        // Young (2-10 seconds)
+        if (age >= 3 && age < 10 && !entity._spokenYoung) {
+          setTimeout(() => spawnBubble(entity, 'young'), Math.random() * 2000)
+          entity._spokenYoung = true
+        }
+
+        // Aging (opacity < 70%)
+        if (opacity < 0.7 && opacity > 0.4 && !entity._spokenAging) {
+          setTimeout(() => spawnBubble(entity, 'aging'), Math.random() * 1000)
+          entity._spokenAging = true
+        }
+
+        // Dying (opacity < 40%)
+        if (opacity < 0.4 && !entity._spokenDying) {
+          setTimeout(() => spawnBubble(entity, 'dying'), 500)
+          entity._spokenDying = true
+        }
+      }
+
+      setTimeout(monitorLifecycle, 1000)
+    }
+    monitorLifecycle()
 
     console.log('🌌 MDS v4.0 - Info-Physics Engine Started')
     console.log('Materials are alive. Watch them age, interact, and spawn fields.')

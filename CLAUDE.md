@@ -4,16 +4,30 @@
 
 ---
 
-## CURRENT VERSION: v4.0 (Info-Physics Engine)
+## CURRENT VERSION: v4.2 (Info-Physics Engine - Stable)
 
 ---
 
-## 1. PROJECT REALITY v4.0 (ความจริง - ไม่โม้)
+## Task Log (v4.2)
 
-นี่คือ **MDS v4.0** - info-physics engine for living materials with autonomous behavior (research experiment)
+| Date | Update | Details |
+|------|--------|---------|
+| 2025-10-17 | v4.2 Stable Release | เพิ่ม lifecycle hooks (onSpawn/onUpdate/onDestroy), serialization (snapshot/restore), deterministic mode (seeded random), bump schema 4.1, ready for production use |
+| 2025-10-16 | Lovefield map redesign | รีดีไซน์หน้าเดโม่เป็น 2D DOM map แบบเกม (ถนน/หมู่บ้าน/สิ่งปลูกสร้าง emoji), ย้าย entity/field ลงเลเยอร์, เพิ่ม liquid glass HUD/hud-feed ที่สื่อสารได้, ปรับตัวละครวัยรุ่น + MBTI dialogues ให้เข้ากับธีม, field ตามจุด spark, UI ไม่บังแผนที่ |
+| 2025-10-16 | LLM bridge & creator context | เพิ่ม llmAdapter (enableLLM/setCreatorContext/clearCreatorContext) พร้อม OpenRouter adapter แบบเลือกใช้, inject creator context สู่ prompt, caching เบาๆ และ fallback DummyBridge |
+| 2025-10-16 | Engine world bounds | เพิ่ม EngineOptions (worldBounds, boundaryBehavior, damping), ฟังก์ชัน configure/getOptions และ bounding logic (clamp/bounce) เพื่อให้ world-ready โดยไม่เพิ่มน้ำหนักเอนจิน |
+| 2025-10-16 | Tailwind world demo | สร้าง `examples/lovefield-tailwind.html` ใช้ Tailwind CDN แทน CSS เดิม, ทดสอบ world bounds, ฟีด HUD, สนับสนุนการ spawn teens/fields ด้วยยูทิลิตี้แบบ lean |
+| 2025-10-16 | Lovefield emergence upgrade | รีแบรนด์ Ghost Town → Lovefield, เพิ่มระบบความสัมพันธ์ (MBTI traits, bond/conflict/breakup/reunion/dream), สนาม bond/tension/memory ใหม่, dream pulse อ้างถึงแฟนเก่า, live metrics, copy อังกฤษสำหรับ dev/HCI, legacy skin + live editor แมตช์ฟีเจอร์เดิม |
+| 2025-10-16 | Ghost Town presentation refactor | รีแพ็คเกจเดโม Ghost Town เป็น UI เชลล์แบบ 2025, ย้าย entity/field เข้าสู่ stage container, ปรับสนามพลัง/บทสนทนาอัตโนมัติให้กลับมาชัด, เติมเนื้อหา/บทพูดภาษาอังกฤษสาย dev, ใส่ love-field + legacy skin toggle และ live material editor สำหรับ deploy ทันที |
+
+---
+
+## 1. PROJECT REALITY v4.2 (ความจริง - ไม่โม้)
+
+นี่คือ **MDS v4.2** - info-physics engine for living materials with autonomous behavior (production-ready)
 
 **What we ship:**
-- `/dist/mds-core.esm.js` - **9.15 KB** minified (2.99 KB gzipped) ESM-only bundle
+- `/dist/mds-core.esm.js` - **~16 KB** minified (4.8 KB gzipped) ESM-only bundle
 - `/examples/*.mdspec.json` - Material definitions (paper.shy, paper.curious, field.trust.core)
 - `/examples/emoji-field.html` - Demo A: 2 papers + trust field interaction
 - `/examples/cluster.html` - Demo B: 5 entities self-organizing clustering
@@ -25,7 +39,7 @@
 - **Emergence**: Complex behaviors arise from simple rules (clustering without hardcoded logic)
 - **Essence-first**: A material with only `essence` field still works
 
-**v4 Key Changes from v3:**
+**v4.0 Key Changes from v3:**
 - ❌ Removed: optics/surface/behavior mappers (no CSS-based materials)
 - ❌ Removed: Theme system (light/dark)
 - ❌ Removed: State machine (hover/press/focus)
@@ -34,6 +48,13 @@
 - ✅ Added: Field system (emergent relationship fields)
 - ✅ Added: Aging/decay system (autonomous lifecycle)
 - ✅ Added: LLM bridge interface (typed stub only)
+
+**v4.1 → v4.2 Additions:**
+- ✅ Lifecycle hooks (onSpawn, onUpdate, onDestroy)
+- ✅ Serialization system (snapshot/restore with toJSON/fromJSON)
+- ✅ Deterministic mode (seeded random for reproducible simulations)
+- ✅ Boundary system (clamp/bounce behaviors)
+- ✅ World bounds configuration
 
 ---
 
@@ -208,7 +229,83 @@ class Engine {
 
 ---
 
-## 3. DECISION LOG v4.0
+## 2.5 NEW FEATURES v4.2 API
+
+### Lifecycle Hooks
+
+```typescript
+const entity = engine.spawn(material, x, y)
+
+// Hook: called immediately after spawn
+entity.onSpawn = (engine, entity) => {
+  console.log('Entity spawned!', entity.m.material)
+}
+
+// Hook: called every frame during update
+entity.onUpdate = (dt, entity) => {
+  if (entity.age > 10) {
+    console.log('Entity is 10 seconds old')
+  }
+}
+
+// Hook: called before DOM removal
+entity.onDestroy = (entity) => {
+  console.log('Entity destroyed', entity.age)
+}
+```
+
+### Serialization
+
+```typescript
+// Save state
+const snapshot = engine.snapshot()
+localStorage.setItem('world', JSON.stringify(snapshot))
+
+// Load state
+const data = JSON.parse(localStorage.getItem('world'))
+const materialMap = new Map([
+  ['paper.shy', shyMaterial],
+  ['paper.curious', curiousMaterial]
+])
+const fieldMap = new Map([
+  ['field.trust.core', trustField]
+])
+engine.restore(data, materialMap, fieldMap)
+```
+
+### Deterministic Mode
+
+```typescript
+// Reproducible simulation with seed
+const engine = new Engine({ seed: 12345 })
+
+// Same seed = same random values = same behavior
+const e1 = engine.spawn(material) // entropy: 0.42...
+const e2 = engine.spawn(material) // entropy: 0.73...
+
+// New engine with same seed = identical results
+const engine2 = new Engine({ seed: 12345 })
+const e3 = engine2.spawn(material) // entropy: 0.42... (same!)
+```
+
+### World Bounds
+
+```typescript
+const engine = new Engine({
+  worldBounds: {
+    minX: 0,
+    maxX: 800,
+    minY: 0,
+    maxY: 600
+  },
+  boundaryBehavior: 'bounce',  // 'none' | 'clamp' | 'bounce'
+  boundaryBounceDamping: 0.85  // energy loss on bounce
+})
+```
+
+---
+
+## 3. DECISION LOG v4.0-4.2
 
 ### Why Hard Fork from v3?
 

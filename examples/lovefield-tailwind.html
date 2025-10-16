@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lovefield // Tailwind Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-950 text-slate-100">
+    <main class="relative h-screen w-screen overflow-hidden" id="stage">
+      <div class="absolute inset-0 bg-gradient-to-br from-fuchsia-900/60 via-slate-900 to-sky-900/70">
+        <div class="pointer-events-none absolute inset-0">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(250,250,255,0.08),_transparent_60%)]"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(98,158,255,0.12),_transparent_65%)]"></div>
+        </div>
+
+        <div class="absolute inset-x-10 top-1/2 h-[64px] -translate-y-1/2 rounded-full bg-slate-200/20 blur-sm"></div>
+        <div class="absolute inset-y-16 left-1/2 w-[60px] -translate-x-1/2 rounded-full bg-slate-200/25 blur-sm"></div>
+
+        <div class="absolute left-[14%] top-[22%] text-5xl drop-shadow-[0_15px_18px_rgba(3,7,18,0.55)]">🏙️</div>
+        <div class="absolute left-[72%] top-[18%] text-5xl drop-shadow-[0_15px_18px_rgba(3,7,18,0.55)]">🎡</div>
+        <div class="absolute left-[28%] top-[68%] text-5xl drop-shadow-[0_15px_18px_rgba(3,7,18,0.55)]">🛹</div>
+        <div class="absolute left-[62%] top-[62%] text-5xl drop-shadow-[0_15px_18px_rgba(3,7,18,0.55)]">🕹️</div>
+
+        <div class="pointer-events-none absolute inset-0" id="field-layer"></div>
+        <div class="pointer-events-none absolute inset-0" id="entity-layer"></div>
+      </div>
+
+      <section class="pointer-events-none absolute left-6 top-6 flex w-64 flex-col gap-4">
+        <article class="rounded-2xl border border-slate-200/15 bg-slate-900/70 p-4 shadow-xl">
+          <header class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-300/80">Lovefield HUD</header>
+          <dl class="mt-3 space-y-2 text-sm text-slate-200/80">
+            <div class="flex justify-between"><dt>Population</dt><dd id="hud-pop">0</dd></div>
+            <div class="flex justify-between"><dt>Bonds</dt><dd id="hud-bonds">0</dd></div>
+            <div class="flex justify-between"><dt>Breakups</dt><dd id="hud-breakups">0</dd></div>
+            <div class="flex justify-between"><dt>Dream pulses</dt><dd id="hud-dreams">0</dd></div>
+            <div class="flex justify-between"><dt>Fields</dt><dd id="hud-fields">0</dd></div>
+          </dl>
+        </article>
+
+        <article class="pointer-events-auto rounded-2xl border border-slate-200/10 bg-slate-900/60 p-4 shadow-xl" id="feed">
+          <header class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-300/70">Liquid glass relay</header>
+          <div class="mt-3 flex flex-col gap-2 text-xs text-slate-200/70" id="feed-body">
+            <p>👁️ &ldquo;Spin up some teens. We cache every heartbeat.&rdquo;</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-3">
+        <button class="rounded-full bg-fuchsia-500/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-fuchsia-500/30 transition hover:bg-fuchsia-500" id="btn-spawn">Spawn Teen</button>
+        <button class="rounded-full bg-slate-800/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-slate-200 transition hover:bg-slate-700" id="btn-pause">Pause</button>
+        <button class="rounded-full bg-slate-800/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-slate-200 transition hover:bg-slate-700" id="btn-reset">Reset</button>
+        <button class="rounded-full bg-sky-600/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-sky-600/40 transition hover:bg-sky-600" id="btn-info">About</button>
+      </section>
+    </main>
+
+    <script type="module">
+      import { Engine } from '../dist/mds-core.esm.js'
+
+      const entityLayer = document.getElementById('entity-layer')
+      const fieldLayer = document.getElementById('field-layer')
+      const feedBody = document.getElementById('feed-body')
+
+      const stats = {
+        pop: document.getElementById('hud-pop'),
+        bonds: document.getElementById('hud-bonds'),
+        breakups: document.getElementById('hud-breakups'),
+        dreams: document.getElementById('hud-dreams'),
+        fields: document.getElementById('hud-fields')
+      }
+
+      const bounds = () => ({
+        minX: 40,
+        maxX: window.innerWidth - 40,
+        minY: 40,
+        maxY: window.innerHeight - 160
+      })
+
+      const engine = new Engine({
+        worldBounds: bounds(),
+        boundaryBehavior: 'bounce',
+        boundaryBounceDamping: 0.82
+      })
+
+      window.addEventListener('resize', () => {
+        engine.configure({ worldBounds: bounds() })
+      })
+
+      const characters = [
+        {
+          emoji: '🎧',
+          name: 'Holo',
+          mbti: 'ENTP',
+          essence: 'Neon DJ sampling rumors from the liquid glass.',
+          dialogues: {
+            intro: ['Beat synced. I feel the creator watching.'],
+            bond: ['This drop hits different with you around.'],
+            conflict: ['Static on the line. Give me a bar.'],
+            dream: ['Sometimes I still mix with our last duet.'],
+            click: ['Age {age}s, opacity {opacity}%. Keep nodding, {you}.']
+          }
+        },
+        {
+          emoji: '🛹',
+          name: 'Sparks',
+          mbti: 'ENFP',
+          essence: 'Rooftop skater tracing entropy half-pipes.',
+          dialogues: {
+            intro: ['Deck ready. The map hums in neon.'],
+            bond: ['We just locked a perfect line together.'],
+            conflict: ['Grinding too close. Let’s reset stance.'],
+            dream: ['I still carve the old skyline in my sleep.'],
+            click: ['Balance check: {age}s old, opacity {opacity}%.']
+          }
+        },
+        {
+          emoji: '📝',
+          name: 'Zephyr',
+          mbti: 'INFP',
+          essence: 'Poet scribbling constellations on motel notepads.',
+          dialogues: {
+            intro: ['New stanza. Lines align with the creator.'],
+            bond: ['We just drafted a canon line.'],
+            conflict: ['Metaphors clash. Pause?'],
+            dream: ['Your name still rewrites my margins.'],
+            click: ['Opacity {opacity}%. Ready for annotation, {you}.']
+          }
+        },
+        {
+          emoji: '💉',
+          name: 'Pulse',
+          mbti: 'INFJ',
+          essence: 'Street medic patching neon bruises.',
+          dialogues: {
+            intro: ['Vitals steady. The creator feels present.'],
+            bond: ['Heartbeat sync logged.'],
+            conflict: ['Stress spike detected. Microbreak.'],
+            dream: ['I still prep saline for the ones I lost.'],
+            click: ['Age {age}s. Let me check your pulse, {you}.']
+          }
+        }
+      ]
+
+      const state = {
+        interactions: 0,
+        bonds: 0,
+        breakups: 0,
+        dreams: 0
+      }
+
+      const pushFeed = (message, icon = '👁️') => {
+        const p = document.createElement('p')
+        p.textContent = `${icon} ${message}`
+        feedBody.prepend(p)
+        while (feedBody.children.length > 6) feedBody.removeChild(feedBody.lastChild)
+      }
+
+      const format = (template, entity, other, extras = {}) => {
+        if (!template) return ''
+        const replace = {
+          name: entity?._profile?.name ?? 'ghost',
+          you: other?._profile?.name ?? 'you',
+          age: Math.round(entity?.age ?? 0),
+          opacity: Math.round((entity?.opacity ?? 0) * 100)
+        }
+        return template.replace(/\{([^}]+)\}/g, (_, key) => replace[key] ?? extras[key] ?? '')
+      }
+
+      const speak = (entity, category, other, extras = {}) => {
+        const lines = entity._persona.dialogues[category]
+        if (!lines || !lines.length) return
+        const sentence = format(lines[Math.floor(Math.random() * lines.length)], entity, other, extras)
+        if (!sentence) return
+        const bubble = document.createElement('div')
+        bubble.className = 'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-xl bg-slate-900/80 px-4 py-2 text-xs text-slate-100 shadow-lg shadow-slate-900/60'
+        bubble.textContent = sentence
+        bubble.style.left = `${entity.x}px`
+        bubble.style.top = `${entity.y - 36}px`
+        entityLayer.appendChild(bubble)
+        setTimeout(() => bubble.remove(), 4200)
+        pushFeed(`${entity._profile.name}: ${sentence}`, '🔮')
+      }
+
+      const ensureEntityStyling = entity => {
+        entity.el.classList.add(
+          'pointer-events-auto',
+          'absolute',
+          'text-5xl',
+          'transition',
+          'duration-200',
+          'drop-shadow-[0_20px_25px_rgba(15,23,42,0.65)]',
+          'hover:scale-110',
+          'hover:drop-shadow-[0_28px_30px_rgba(192,132,252,0.45)]'
+        )
+      }
+
+      const ensureFieldStyling = field => {
+        if (!field.el) return
+        fieldLayer.appendChild(field.el)
+        field.el.classList.add(
+          'absolute',
+          'rounded-full',
+          'bg-fuchsia-400/15',
+          'border',
+          'border-fuchsia-200/30',
+          'shadow-[0_0_90px_rgba(167,139,250,0.45)]'
+        )
+      }
+
+      const entityById = id => engine.getEntities().find(e => e._profile?.id === id)
+
+      const statsRefresh = () => {
+        stats.pop.textContent = engine.getEntities().length
+        stats.bonds.textContent = state.bonds
+        stats.breakups.textContent = state.breakups
+        stats.dreams.textContent = state.dreams
+        stats.fields.textContent = engine.getFields().length
+      }
+
+      const ensureRelationship = (source, target) => {
+        if (!source._relations) source._relations = new Map()
+        if (!source._relations.has(target._profile.id)) {
+          source._relations.set(target._profile.id, { state: 'strangers', fondness: 0, tension: 0 })
+        }
+        return source._relations.get(target._profile.id)
+      }
+
+      const onMeet = (a, b, dist) => {
+        const relA = ensureRelationship(a, b)
+        const relB = ensureRelationship(b, a)
+        relA.fondness = Math.min(1, relA.fondness + 0.004 * (1 - dist / 160))
+        relB.fondness = Math.min(1, relB.fondness + 0.004 * (1 - dist / 160))
+
+        if (relA.fondness > 0.35 && relA.state !== 'bonded') {
+          relA.state = relB.state = 'bonded'
+          state.bonds++
+          speak(a, 'bond', b)
+          speak(b, 'bond', a)
+        const field = engine.spawnField({
+          material: `field.bond.${a._profile.id}.${b._profile.id}`,
+          type: 'field',
+          origin: '$bind',
+          radius: 190,
+          duration: 9500,
+          visual: true,
+          effect_on_others: { opacity: 0.78 }
+        }, (a.x + b.x) / 2, (a.y + b.y) / 2)
+        ensureFieldStyling(field)
+      }
+
+      if (relA.fondness < 0.15 && relA.state === 'bonded') {
+        relA.state = relB.state = 'ex'
+        state.breakups++
+        speak(a, 'conflict', b)
+        const field = engine.spawnField({
+          material: `field.tension.${a._profile.id}.${b._profile.id}`,
+          type: 'field',
+          origin: '$bind',
+          radius: 150,
+          duration: 7200,
+          visual: true,
+          effect_on_others: { opacity: 0.6 }
+        }, (a.x + b.x) / 2, (a.y + b.y) / 2)
+        if (field.el) {
+          fieldLayer.appendChild(field.el)
+          field.el.classList.add('border-rose-200/40', 'bg-rose-400/10', 'shadow-[0_0_70px_rgba(248,113,113,0.45)]')
+        }
+      }
+
+        if (Math.random() < 0.002 && relA.state === 'ex') {
+          speak(a, 'dream', b)
+          state.dreams++
+        }
+        statsRefresh()
+      }
+
+      const spawnTeen = () => {
+        const persona = characters[Math.floor(Math.random() * characters.length)]
+        const margin = 180
+        const x = margin + Math.random() * (window.innerWidth - margin * 2)
+        const y = margin + Math.random() * (window.innerHeight - margin * 2)
+        const entity = engine.spawn({
+          material: `teen.${persona.name.toLowerCase()}`,
+          essence: persona.essence,
+          manifestation: { emoji: persona.emoji, aging: { start_opacity: 1, decay_rate: 0.006 } },
+          physics: { mass: 1, friction: 0.035 }
+        }, x, y)
+
+        entityLayer.appendChild(entity.el)
+        entity._profile = {
+          id: `teen-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          name: persona.name,
+          mbti: persona.mbti
+        }
+        entity._persona = persona
+        entity._farewell = false
+        ensureEntityStyling(entity)
+        entity.el.addEventListener('click', () => speak(entity, 'click'))
+        entity.onProximity = (eng, other, dist) => {
+          onMeet(entity, other, dist)
+        }
+        speak(entity, 'intro')
+        statsRefresh()
+      }
+
+      const monitorLife = () => {
+        for (const entity of engine.getEntities()) {
+          if (entity.opacity < 0.18 && !entity._farewell) {
+            entity._farewell = true
+            speak(entity, 'dream')
+          }
+        }
+        setTimeout(monitorLife, 1400)
+      }
+
+      document.getElementById('btn-spawn').addEventListener('click', () => spawnTeen())
+
+      let paused = false
+      document.getElementById('btn-pause').addEventListener('click', (ev) => {
+        paused = !paused
+        if (paused) {
+          engine.stop()
+          ev.currentTarget.textContent = 'Resume'
+        } else {
+          engine.start()
+          ev.currentTarget.textContent = 'Pause'
+        }
+      })
+
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        engine.clear()
+        entityLayer.querySelectorAll('*').forEach(el => el.remove())
+        fieldLayer.querySelectorAll('*').forEach(el => el.remove())
+        feedBody.innerHTML = ''
+        state.bonds = state.breakups = state.dreams = 0
+        pushFeed('World reset. The glass forgets softly.')
+        statsRefresh()
+      })
+
+      document.getElementById('btn-info').addEventListener('click', () => {
+        alert(`Lovefield Tailwind Demo\n\n- Engine bounds: bounce ${JSON.stringify(engine.getOptions().worldBounds)}\n- Teens inherit MBTI-based dialog\n- HUD + feed implemented with Tailwind utilities`)
+      })
+
+      engine.start()
+      monitorLife()
+      pushFeed('Engine online. Teens will bounce inside the neon grid.')
+      spawnTeen()
+      spawnTeen()
+    </script>
+  </body>
+</html>

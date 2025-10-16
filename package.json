@@ -1,7 +1,7 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "4.0.0",
-  "description": "MDS v4.0 - Info-physics engine for living materials with autonomous behavior",
+  "version": "4.2.0",
+  "description": "MDS v4.2 - Info-physics engine with lifecycle hooks, serialization, and deterministic mode",
   "sideEffects": false,
   "type": "module",
   "main": "./dist/mds-core.esm.js",

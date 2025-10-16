@@ -1,6 +1,14 @@
 /**
- * MDS v4.0 - Material Definition Specification
+ * MDS v4.1 - Material Definition Specification
  * Schema for living material descriptions (not configs)
+ *
+ * v4.1 Changes:
+ * - Added lifecycle hooks support
+ * - Added serialization support
+ *
+ * v4.2 Changes:
+ * - Added deterministic mode (seeded random)
+ * - Added snapshot/restore functionality
  */
 
 /**
@@ -50,10 +58,10 @@ export interface MdsAiBinding {
 }
 
 /**
- * Complete material definition (v4.0)
+ * Complete material definition (v4.1+)
  */
 export interface MdsMaterial {
-  $schema?: string            // schema version
+  $schema?: string            // schema version (default: "4.1")
   material: string            // unique ID (e.g., "paper.shy", "emotion.trust")
   intent?: string             // short verb/noun (e.g., "observe", "resonate")
   essence?: LangText          // semantic description (essence-first design)

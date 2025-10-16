@@ -37,14 +37,24 @@ export class Entity {
   // Proximity callback (set by engine)
   onProximity?: (engine: Engine, other: Entity, dist: number) => void
 
-  constructor(m: MdsMaterial, x = Math.random() * 480, y = Math.random() * 320) {
-    this.m = m
-    this.x = x
-    this.y = y
+  // Lifecycle hooks (v4.1)
+  onSpawn?: (engine: Engine, entity: Entity) => void
+  onUpdate?: (dt: number, entity: Entity) => void
+  onDestroy?: (entity: Entity) => void
 
-    // Initialize info-physics properties
-    this.entropy = Math.random()
-    this.energy = Math.random()
+  constructor(
+    m: MdsMaterial,
+    x?: number,
+    y?: number,
+    rng: () => number = Math.random
+  ) {
+    this.m = m
+    this.x = x ?? rng() * 480
+    this.y = y ?? rng() * 320
+
+    // Initialize info-physics properties (v4.2: use provided RNG)
+    this.entropy = rng()
+    this.energy = rng()
 
     // Override opacity if specified
     if (m.manifestation?.aging?.start_opacity !== undefined) {
@@ -116,17 +126,21 @@ export class Entity {
     const fr = this.m.physics?.friction ?? 0.02
     this.vx *= (1 - fr)
     this.vy *= (1 - fr)
+
+    // Call lifecycle hook (v4.1)
+    this.onUpdate?.(dt, this)
   }
 
   /**
    * Integrate velocity and update DOM position
    */
-  integrateAndRender(_dt: number): void {
-    // Update position
+  integrate(_dt: number): void {
     this.x += this.vx
     this.y += this.vy
+  }
 
-    // Render to DOM
+  integrateAndRender(dt: number): void {
+    this.integrate(dt)
     this.render()
   }
 
@@ -142,6 +156,48 @@ export class Entity {
    * Cleanup DOM element
    */
   destroy(): void {
+    // Call lifecycle hook (v4.1)
+    this.onDestroy?.(this)
     this.el.remove()
+  }
+
+  /**
+   * Serialize entity to JSON (v4.2)
+   */
+  toJSON() {
+    return {
+      material: this.m.material,
+      x: this.x,
+      y: this.y,
+      vx: this.vx,
+      vy: this.vy,
+      age: this.age,
+      opacity: this.opacity,
+      entropy: this.entropy,
+      energy: this.energy,
+      hoverCount: this.hoverCount,
+      lastHoverTime: this.lastHoverTime
+    }
+  }
+
+  /**
+   * Restore entity from serialized data (v4.2)
+   */
+  static fromJSON(
+    data: ReturnType<Entity['toJSON']>,
+    material: MdsMaterial,
+    rng: () => number = Math.random
+  ): Entity {
+    const entity = new Entity(material, data.x, data.y, rng)
+    entity.vx = data.vx
+    entity.vy = data.vy
+    entity.age = data.age
+    entity.opacity = data.opacity
+    entity.entropy = data.entropy
+    entity.energy = data.energy
+    entity.hoverCount = data.hoverCount
+    entity.lastHoverTime = data.lastHoverTime
+    entity.render()
+    return entity
   }
 }
