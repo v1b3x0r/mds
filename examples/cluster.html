@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MDS v4.0 - Clustering Demo</title>
+  <title>MDS v4.2 - Clustering Demo (with Replay)</title>
   <style>
     body {
       margin: 0;
@@ -27,128 +27,570 @@
       position: fixed;
       top: 20px;
       left: 20px;
-      font-size: 14px;
-      line-height: 1.6;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 14px;
       border-radius: 8px;
-      max-width: 380px;
+      max-width: 340px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
     }
 
     .info h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
-      color: #ffdc78;
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #64ffda;
     }
 
     .info p {
-      margin: 8px 0;
+      margin: 6px 0;
       color: #ccc;
+      font-size: 12px;
     }
 
     .info strong {
       color: #fff;
     }
 
+    .info code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
     .legend {
       position: fixed;
-      bottom: 20px;
+      top: 20px;
       right: 20px;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 16px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 14px;
       border-radius: 8px;
       font-size: 12px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
+    }
+
+    .legend h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      color: #64ffda;
     }
 
     .legend div {
-      margin: 4px 0;
+      margin: 6px 0;
+      font-family: 'Courier New', monospace;
     }
 
     .legend span {
       display: inline-block;
-      width: 60px;
+      width: 70px;
       text-align: right;
       margin-right: 8px;
-      color: #ffdc78;
+      color: #999;
+    }
+
+    /* NEW: Metrics Panel */
+    .metrics {
+      position: fixed;
+      bottom: 100px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      min-width: 180px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
+    }
+
+    .metrics h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #64ffda;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+      color: #ccc;
+    }
+
+    .metric-row .label {
+      color: #999;
+    }
+
+    .metric-row .value {
+      color: #64ffda;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* NEW: Timeline Scrubber */
+    .timeline {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
+    }
+
+    .timeline h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: #64ffda;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .timeline-btn {
+      background: rgba(100, 255, 218, 0.15);
+      border: 1px solid rgba(100, 255, 218, 0.4);
+      color: #64ffda;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    .timeline-btn:hover {
+      background: rgba(100, 255, 218, 0.25);
+      border-color: #64ffda;
+      transform: translateY(-2px);
+    }
+
+    .timeline-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .timeline-scrubber {
+      position: relative;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .timeline-progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(100, 255, 218, 0.3), rgba(100, 255, 218, 0.5));
+      border-radius: 4px;
+      transition: width 0.1s ease;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      width: 2px;
+      height: 100%;
+      background: rgba(255, 200, 100, 0.6);
+      pointer-events: none;
+    }
+
+    .timeline-playhead {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 16px;
+      height: 16px;
+      background: #64ffda;
+      border-radius: 50%;
+      border: 2px solid #0e0f12;
+      cursor: grab;
+      box-shadow: 0 2px 8px rgba(100, 255, 218, 0.5);
+    }
+
+    .timeline-playhead:active {
+      cursor: grabbing;
+    }
+
+    .timeline-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #666;
+      font-family: 'Courier New', monospace;
     }
   </style>
 </head>
 <body>
   <div class="info">
-    <h2>🌌 MDS v4.0 Demo B</h2>
-    <p><strong>Self-Organizing Clustering</strong></p>
-    <p>📊 5 entities with random entropy values (0..1)</p>
-    <p>🧲 <strong>Info-physics rule:</strong> Similar entropy → Attract</p>
-    <p>🎯 <strong>Formula:</strong> <code>similarity = 1 - |a.entropy - b.entropy|</code></p>
-    <p>⚡ <strong>Force:</strong> <code>F = 0.05 × similarity</code></p>
-    <p>📏 <strong>Threshold:</strong> 160px proximity</p>
-    <p>⏱️ Watch them cluster within ~10 seconds</p>
+    <h2>🌌 MDS v4.2 Demo B</h2>
+    <p><strong>Self-Organizing Clustering + Replay</strong></p>
+    <p>📊 5 entities with random entropy</p>
+    <p>🧲 <code>similarity = 1 - |a - b|</code></p>
+    <p>⚡ <code>F = 0.05 × similarity</code></p>
+    <p>📏 Threshold: 160px</p>
+    <p>💾 <strong>NEW:</strong> Snapshots every 2s</p>
+    <p>⏱️ <strong>NEW:</strong> Timeline scrubber</p>
+    <p>🎲 <strong>NEW:</strong> Deterministic seed</p>
   </div>
 
-  <div class="legend" id="legend"></div>
+  <div class="legend">
+    <h3>🎯 Entropy Values</h3>
+    <div id="legend-content"></div>
+  </div>
+
+  <div class="metrics">
+    <h3>📊 Metrics</h3>
+    <div class="metric-row">
+      <span class="label">Avg Distance:</span>
+      <span class="value" id="metric-dist">-</span>
+    </div>
+    <div class="metric-row">
+      <span class="label">Snapshots:</span>
+      <span class="value" id="metric-snapshots">0</span>
+    </div>
+    <div class="metric-row">
+      <span class="label">Time:</span>
+      <span class="value" id="metric-time">0.0s</span>
+    </div>
+    <div class="metric-row">
+      <span class="label">Status:</span>
+      <span class="value" id="metric-status">Recording</span>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <h3>
+      <span>⏯️ Timeline (v4.2 Replay)</span>
+      <span style="font-size: 11px; color: #999">Seed: 12345</span>
+    </h3>
+    <div class="timeline-controls">
+      <button class="timeline-btn" onclick="window.restartSim()">⏮️ Restart</button>
+      <button class="timeline-btn" onclick="window.togglePause()" id="pause-btn">⏸️ Pause</button>
+      <button class="timeline-btn" onclick="window.jumpToEnd()">⏭️ End</button>
+    </div>
+    <div class="timeline-scrubber" id="scrubber">
+      <div class="timeline-progress" id="progress"></div>
+      <div class="timeline-playhead" id="playhead"></div>
+    </div>
+    <div class="timeline-labels">
+      <span>0s</span>
+      <span>5s</span>
+      <span>10s</span>
+      <span>15s</span>
+      <span>20s</span>
+      <span>25s</span>
+      <span>30s</span>
+    </div>
+  </div>
 
   <script type="module">
     import { Engine } from '../dist/mds-core.esm.js'
 
-    // Initialize engine
-    const engine = new Engine()
+    // === STATE ===
+    const SEED = 12345
+    const MAX_TIME = 30  // 30 seconds
+    const SNAPSHOT_INTERVAL = 2  // every 2 seconds
 
-    // Define emojis for visual distinction
+    let engine = null
+    let entities = []
+    let snapshots = []
+    let currentTime = 0
+    let isPaused = false
+    let materials = []
+    let lastSnapshotTime = 0
+
+    // === INITIALIZATION ===
     const emojis = ['🔴', '🟠', '🟡', '🟢', '🔵']
+    const legendContent = document.getElementById('legend-content')
 
-    // Spawn 5 entities with random entropy
-    const entities = []
-    const legend = document.getElementById('legend')
-
-    for (let i = 0; i < 5; i++) {
-      const entropy = Math.random()
-      const material = {
-        material: `test.${i}`,
-        essence: `Entity ${i}`,
-        manifestation: {
-          emoji: emojis[i],
-          aging: {
-            start_opacity: 1,
-            decay_rate: 0  // No decay for clustering demo
-          }
+    function init() {
+      // Create engine with deterministic seed (v4.2)
+      engine = new Engine({
+        seed: SEED,
+        worldBounds: {
+          minX: 50,
+          maxX: window.innerWidth - 50,
+          minY: 100,
+          maxY: window.innerHeight - 200
         },
-        physics: {
-          mass: 0.1,
-          friction: 0.02
+        boundaryBehavior: 'clamp'
+      })
+
+      entities = []
+      materials = []
+      legendContent.innerHTML = ''
+
+      // Spawn 5 entities with deterministic entropy (via seed)
+      for (let i = 0; i < 5; i++) {
+        const material = {
+          material: `test.${i}`,
+          essence: `Entity ${i}`,
+          manifestation: {
+            emoji: emojis[i],
+            aging: { start_opacity: 1, decay_rate: 0 }
+          },
+          physics: { mass: 0.1, friction: 0.02 }
+        }
+        materials.push(material)
+
+        // Deterministic positions (via seeded RNG)
+        const x = 150 + i * 150
+        const y = 200 + Math.sin(i) * 100
+
+        const entity = engine.spawn(material, x, y)
+
+        // Entropy is now deterministic (set by engine's seeded RNG)
+        entities.push(entity)
+
+        // Add to legend
+        const div = document.createElement('div')
+        div.innerHTML = `<span>entropy:</span>${entity.entropy.toFixed(3)} ${emojis[i]}`
+        legendContent.appendChild(div)
+      }
+
+      // Reset state
+      snapshots = []
+      currentTime = 0
+      lastSnapshotTime = 0
+      isPaused = false
+
+      // Start simulation
+      engine.start()
+      updateMetrics()
+      captureSnapshots()
+
+      console.log('🌌 MDS v4.2 - Clustering with Replay Started')
+      console.log('Entities:', entities.map(e => ({ emoji: e.m.manifestation.emoji, entropy: e.entropy.toFixed(3) })))
+    }
+
+    // === SNAPSHOT SYSTEM (v4.2) ===
+    function captureSnapshots() {
+      if (isPaused) {
+        setTimeout(captureSnapshots, 100)
+        return
+      }
+
+      currentTime += 0.1
+
+      // Capture snapshot every SNAPSHOT_INTERVAL seconds
+      if (currentTime - lastSnapshotTime >= SNAPSHOT_INTERVAL) {
+        const snapshot = engine.snapshot()
+        snapshots.push({
+          time: currentTime,
+          data: snapshot
+        })
+        lastSnapshotTime = currentTime
+        console.log(`📸 Snapshot ${snapshots.length} at ${currentTime.toFixed(1)}s`)
+      }
+
+      // Stop after MAX_TIME
+      if (currentTime >= MAX_TIME) {
+        engine.stop()
+        document.getElementById('metric-status').textContent = 'Finished'
+        console.log('✅ Simulation finished. Replay available.')
+        return
+      }
+
+      setTimeout(captureSnapshots, 100)
+    }
+
+    // === METRICS UPDATE ===
+    function updateMetrics() {
+      if (!engine) return
+
+      // Calculate average distance
+      let totalDist = 0
+      let count = 0
+      for (let i = 0; i < entities.length; i++) {
+        for (let j = i + 1; j < entities.length; j++) {
+          const dx = entities[i].x - entities[j].x
+          const dy = entities[i].y - entities[j].y
+          totalDist += Math.sqrt(dx * dx + dy * dy)
+          count++
+        }
+      }
+      const avgDist = count > 0 ? totalDist / count : 0
+
+      document.getElementById('metric-dist').textContent = avgDist.toFixed(1) + 'px'
+      document.getElementById('metric-snapshots').textContent = snapshots.length
+      document.getElementById('metric-time').textContent = currentTime.toFixed(1) + 's'
+
+      // Update timeline progress
+      const progress = (currentTime / MAX_TIME) * 100
+      document.getElementById('progress').style.width = progress + '%'
+      document.getElementById('playhead').style.left = progress + '%'
+
+      if (!isPaused && currentTime < MAX_TIME) {
+        requestAnimationFrame(updateMetrics)
+      }
+    }
+
+    // === TIMELINE CONTROLS (v4.2) ===
+    window.restartSim = () => {
+      if (engine) {
+        engine.stop()
+        engine.clear()
+      }
+      init()
+    }
+
+    window.togglePause = () => {
+      isPaused = !isPaused
+      const btn = document.getElementById('pause-btn')
+
+      if (isPaused) {
+        engine.stop()
+        btn.textContent = '▶️ Play'
+        document.getElementById('metric-status').textContent = 'Paused'
+      } else {
+        engine.start()
+        btn.textContent = '⏸️ Pause'
+        document.getElementById('metric-status').textContent = 'Recording'
+        captureSnapshots()
+        updateMetrics()
+      }
+    }
+
+    window.jumpToEnd = () => {
+      if (snapshots.length === 0) {
+        alert('⚠️ No snapshots yet')
+        return
+      }
+
+      const lastSnapshot = snapshots[snapshots.length - 1]
+
+      // Restore from last snapshot (v4.2)
+      const materialMap = new Map(materials.map(m => [m.material, m]))
+      const fieldMap = new Map()
+
+      engine.stop()
+      engine.clear()
+      engine.restore(lastSnapshot.data, materialMap, fieldMap)
+
+      // Update references
+      entities = engine.getEntities()
+      currentTime = lastSnapshot.time
+
+      document.getElementById('metric-status').textContent = 'At End'
+      updateMetrics()
+
+      console.log(`⏭️ Jumped to end (${lastSnapshot.time.toFixed(1)}s)`)
+    }
+
+    // === SCRUBBER INTERACTION ===
+    const scrubber = document.getElementById('scrubber')
+    const playhead = document.getElementById('playhead')
+    let isDragging = false
+
+    playhead.addEventListener('mousedown', (e) => {
+      isDragging = true
+      e.preventDefault()
+    })
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return
+
+      const rect = scrubber.getBoundingClientRect()
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
+      const percent = x / rect.width
+      const targetTime = percent * MAX_TIME
+
+      // Find closest snapshot
+      let closestSnapshot = snapshots[0]
+      let minDiff = Math.abs(closestSnapshot.time - targetTime)
+
+      for (const snap of snapshots) {
+        const diff = Math.abs(snap.time - targetTime)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestSnapshot = snap
         }
       }
 
-      // Random spawn position
-      const x = Math.random() * 600 + 100
-      const y = Math.random() * 400 + 100
+      if (closestSnapshot) {
+        // Restore snapshot (v4.2)
+        const materialMap = new Map(materials.map(m => [m.material, m]))
+        const fieldMap = new Map()
 
-      const entity = engine.spawn(material, x, y)
-      entity.entropy = entropy  // Override entropy
-      entities.push(entity)
+        const wasPaused = isPaused
+        if (!wasPaused) {
+          engine.stop()
+          isPaused = true
+        }
 
-      // Add to legend
-      const div = document.createElement('div')
-      div.innerHTML = `<span>entropy:</span>${entropy.toFixed(3)} ${emojis[i]}`
-      legend.appendChild(div)
-    }
+        engine.clear()
+        engine.restore(closestSnapshot.data, materialMap, fieldMap)
 
-    // Start simulation
-    engine.start()
+        entities = engine.getEntities()
+        currentTime = closestSnapshot.time
 
-    // Debug: Log clustering progress
-    setInterval(() => {
-      const positions = entities.map(e => ({
-        emoji: e.m.manifestation.emoji,
-        entropy: e.entropy.toFixed(3),
-        x: e.x.toFixed(0),
-        y: e.y.toFixed(0)
-      }))
-      console.log('Entities:', positions)
-    }, 3000)
+        updateMetrics()
+        console.log(`🎬 Scrubbed to ${closestSnapshot.time.toFixed(1)}s`)
+      }
+    })
 
-    console.log('🌌 MDS v4.0 - Clustering Demo Started')
-    console.log('Watch entities with similar entropy cluster together')
-    console.log('Similar values = stronger attraction force')
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false
+        document.getElementById('metric-status').textContent = 'Paused (scrubbed)'
+      }
+    })
+
+    scrubber.addEventListener('click', (e) => {
+      if (isDragging) return
+
+      const rect = scrubber.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const percent = x / rect.width
+      const targetTime = percent * MAX_TIME
+
+      // Find closest snapshot and jump
+      let closestSnapshot = snapshots[0]
+      let minDiff = Math.abs(closestSnapshot?.time - targetTime)
+
+      for (const snap of snapshots) {
+        const diff = Math.abs(snap.time - targetTime)
+        if (diff < minDiff) {
+          minDiff = diff
+          closestSnapshot = snap
+        }
+      }
+
+      if (closestSnapshot) {
+        const materialMap = new Map(materials.map(m => [m.material, m]))
+        const fieldMap = new Map()
+
+        engine.stop()
+        engine.clear()
+        engine.restore(closestSnapshot.data, materialMap, fieldMap)
+
+        entities = engine.getEntities()
+        currentTime = closestSnapshot.time
+        isPaused = true
+
+        document.getElementById('pause-btn').textContent = '▶️ Play'
+        document.getElementById('metric-status').textContent = 'Paused'
+
+        updateMetrics()
+        console.log(`⏯️ Jumped to ${closestSnapshot.time.toFixed(1)}s`)
+      }
+    })
+
+    // Start
+    init()
   </script>
 </body>
 </html>

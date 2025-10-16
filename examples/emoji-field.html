@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MDS v4.0 - Emoji Field Demo</title>
+  <title>MDS v4.2 - Emoji Field Demo (with Save/Load)</title>
   <style>
     body {
       margin: 0;
@@ -45,48 +45,52 @@
       position: fixed;
       top: 20px;
       left: 20px;
-      font-size: 14px;
-      line-height: 1.6;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 14px;
       border-radius: 8px;
-      max-width: 320px;
+      max-width: 280px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
     }
 
     .info h2 {
-      margin: 0 0 12px;
-      font-size: 18px;
-      color: #ffdc78;
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #64ffda;
     }
 
     .info p {
-      margin: 8px 0;
+      margin: 6px 0;
       color: #ccc;
+      font-size: 12px;
     }
 
     .info code {
       background: rgba(255, 255, 255, 0.1);
       padding: 2px 6px;
       border-radius: 3px;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     .debug-panel {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 16px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 14px;
       border-radius: 8px;
       font-size: 12px;
       min-width: 180px;
       backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
     }
 
     .debug-panel h3 {
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       font-size: 14px;
-      color: #ffdc78;
+      color: #64ffda;
     }
 
     .debug-stat {
@@ -101,7 +105,7 @@
     }
 
     .debug-stat .value {
-      color: #6cf;
+      color: #64ffda;
       font-weight: 600;
     }
 
@@ -120,6 +124,7 @@
       backdrop-filter: blur(8px);
       max-width: 200px;
       text-align: center;
+      z-index: 100;
     }
 
     @keyframes bubble-float {
@@ -140,16 +145,90 @@
         transform: translateY(-50px) translateX(-50%) scale(0.9);
       }
     }
+
+    /* NEW: Lifecycle Log Panel */
+    .lifecycle-log {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 12px;
+      border-radius: 8px;
+      max-width: 350px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(100, 255, 218, 0.2);
+    }
+
+    .lifecycle-log h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #64ffda;
+    }
+
+    .lifecycle-log .log-entry {
+      font-size: 11px;
+      color: #aaa;
+      margin: 4px 0;
+      font-family: 'Courier New', monospace;
+      line-height: 1.4;
+    }
+
+    .lifecycle-log .log-entry.spawn { color: #4ade80; }
+    .lifecycle-log .log-entry.update { color: #60a5fa; }
+    .lifecycle-log .log-entry.destroy { color: #f87171; }
+
+    /* NEW: Control Buttons */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      max-width: 200px;
+    }
+
+    .btn {
+      background: rgba(100, 255, 218, 0.15);
+      border: 1px solid rgba(100, 255, 218, 0.4);
+      color: #64ffda;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(8px);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: rgba(100, 255, 218, 0.25);
+      border-color: #64ffda;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(100, 255, 218, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.active {
+      background: rgba(100, 255, 218, 0.3);
+      border-color: #64ffda;
+    }
   </style>
 </head>
 <body>
   <div class="info">
-    <h2>🌌 MDS v4.0 Demo A</h2>
-    <p><strong>Emoji Field Interaction</strong></p>
-    <p>💌 Shy paper - Hover 3 times to make it slide away</p>
-    <p>🐥 Curious paper - Leans in when hovered</p>
-    <p>✨ When they get close (&lt;80px), a trust field spawns</p>
-    <p>⏱️ Papers fade naturally over time (decay rate)</p>
+    <h2>🌌 MDS v4.2 Demo A</h2>
+    <p><strong>Emoji Field + Lifecycle</strong></p>
+    <p>💌 Shy paper - Hover 3x to hide</p>
+    <p>🐥 Curious paper - Leans in</p>
+    <p>✨ Trust field spawns when close</p>
+    <p>💾 <strong>NEW:</strong> Save/Load state</p>
+    <p>🎲 <strong>NEW:</strong> Seed mode (deterministic)</p>
+    <p>🔒 <strong>NEW:</strong> World bounds (bounce)</p>
   </div>
 
   <div class="debug-panel">
@@ -171,71 +250,271 @@
       <span class="value" id="debug-mood">-</span>
     </div>
     <div class="debug-stat">
+      <span class="label">Spawned:</span>
+      <span class="value" id="debug-spawned">0</span>
+    </div>
+    <div class="debug-stat">
+      <span class="label">Destroyed:</span>
+      <span class="value" id="debug-destroyed">0</span>
+    </div>
+    <div class="debug-stat">
       <span class="label">FPS:</span>
       <span class="value" id="debug-fps">60</span>
     </div>
   </div>
 
+  <div class="lifecycle-log">
+    <h3>📜 Lifecycle Log (v4.2)</h3>
+    <div id="log-container"></div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="window.saveState()">💾 Save</button>
+    <button class="btn" onclick="window.loadState()">📂 Load</button>
+    <button class="btn" id="seed-btn" onclick="window.toggleSeed()">🎲 Seed: Off</button>
+    <button class="btn" onclick="window.clearLog()">🗑️ Clear Log</button>
+  </div>
+
   <script type="module">
     import { Engine, loadMaterial } from '../dist/mds-core.esm.js'
 
-    // Initialize engine
-    const engine = new Engine()
+    // === STATE ===
+    let engine = null
+    let shy = null
+    let curious = null
+    let ftrust = null
+    let a = null
+    let b = null
+    let useSeed = false
+    let spawnCount = 0
+    let destroyCount = 0
+    const logEntries = []
+    const MAX_LOG = 8
 
-    // Load materials
-    const shy = await loadMaterial('./paper.shy.mdspec.json')
-    const curious = await loadMaterial('./paper.curious.mdspec.json')
-    const ftrust = await fetch('./field.trust.core.mdspec.json').then(r => r.json())
+    // === LIFECYCLE LOG ===
+    function addLog(type, message) {
+      const timestamp = new Date().toLocaleTimeString()
+      logEntries.unshift({ type, message, timestamp })
+      if (logEntries.length > MAX_LOG) logEntries.pop()
 
-    // Spawn entities closer together so they feel attraction forces
-    const a = engine.spawn(shy, 180, 200)
-    const b = engine.spawn(curious, 300, 240)
-
-    // Give them initial velocity for more dynamic movement
-    a.vx = 0.5
-    a.vy = 0.3
-    b.vx = -0.4
-    b.vy = -0.2
-
-    // Setup proximity trigger for field spawning
-    let fieldSpawned = false
-    a.onProximity = (eng, other, dist) => {
-      if (dist < 80 && !fieldSpawned) {
-        const midX = (a.x + other.x) / 2
-        const midY = (a.y + other.y) / 2
-        eng.spawnField(ftrust, midX, midY)
-        fieldSpawned = true
-        // Allow spawning again after 10 seconds
-        setTimeout(() => fieldSpawned = false, 10000)
-      }
+      const container = document.getElementById('log-container')
+      container.innerHTML = logEntries
+        .map(e => `<div class="log-entry ${e.type}">[${e.timestamp}] ${e.message}</div>`)
+        .join('')
     }
-    b.onProximity = a.onProximity
 
-    // Start simulation
-    engine.start()
+    // === INITIALIZATION ===
+    async function init() {
+      // Load materials
+      shy = await loadMaterial('./paper.shy.mdspec.json')
+      curious = await loadMaterial('./paper.curious.mdspec.json')
+      ftrust = await fetch('./field.trust.core.mdspec.json').then(r => r.json())
+
+      // Create engine with world bounds (v4.2)
+      engine = new Engine({
+        worldBounds: {
+          minX: 50,
+          maxX: window.innerWidth - 50,
+          minY: 100,
+          maxY: window.innerHeight - 150
+        },
+        boundaryBehavior: 'bounce',
+        boundaryBounceDamping: 0.8,
+        seed: useSeed ? 42 : undefined
+      })
+
+      spawnEntities()
+      engine.start()
+      updateDebugPanel()
+      monitorEmotions()
+      monitorLifecycle()
+
+      addLog('spawn', '🌌 Engine initialized with world bounds')
+    }
+
+    function spawnEntities() {
+      // Spawn entities closer together
+      a = engine.spawn(shy, 180, 200)
+      b = engine.spawn(curious, 300, 240)
+
+      // Give initial velocity
+      a.vx = 0.5
+      a.vy = 0.3
+      b.vx = -0.4
+      b.vy = -0.2
+
+      // === v4.2 LIFECYCLE HOOKS ===
+      a.onSpawn = (eng, entity) => {
+        spawnCount++
+        addLog('spawn', `💌 Shy spawned at (${Math.round(entity.x)}, ${Math.round(entity.y)})`)
+      }
+
+      a.onUpdate = (dt, entity) => {
+        // Log every 5 seconds
+        if (Math.floor(entity.age) % 5 === 0 && entity.age > 0.1 && !entity._lastLogAge) {
+          entity._lastLogAge = Math.floor(entity.age)
+          addLog('update', `💌 Shy age: ${Math.round(entity.age)}s, opacity: ${Math.round(entity.opacity * 100)}%`)
+        }
+        if (Math.floor(entity.age) !== entity._lastLogAge) {
+          entity._lastLogAge = null
+        }
+      }
+
+      a.onDestroy = (entity) => {
+        destroyCount++
+        addLog('destroy', `💌 Shy destroyed after ${Math.round(entity.age)}s`)
+      }
+
+      b.onSpawn = (eng, entity) => {
+        spawnCount++
+        addLog('spawn', `🐥 Curious spawned at (${Math.round(entity.x)}, ${Math.round(entity.y)})`)
+      }
+
+      b.onUpdate = (dt, entity) => {
+        if (Math.floor(entity.age) % 5 === 0 && entity.age > 0.1 && !entity._lastLogAge) {
+          entity._lastLogAge = Math.floor(entity.age)
+          addLog('update', `🐥 Curious age: ${Math.round(entity.age)}s, opacity: ${Math.round(entity.opacity * 100)}%`)
+        }
+        if (Math.floor(entity.age) !== entity._lastLogAge) {
+          entity._lastLogAge = null
+        }
+      }
+
+      b.onDestroy = (entity) => {
+        destroyCount++
+        addLog('destroy', `🐥 Curious destroyed after ${Math.round(entity.age)}s`)
+      }
+
+      // Trigger onSpawn manually (already spawned)
+      a.onSpawn(engine, a)
+      b.onSpawn(engine, b)
+
+      // Setup proximity trigger
+      let fieldSpawned = false
+      a.onProximity = (eng, other, dist) => {
+        if (dist < 80 && !fieldSpawned) {
+          const midX = (a.x + other.x) / 2
+          const midY = (a.y + other.y) / 2
+          eng.spawnField(ftrust, midX, midY)
+          fieldSpawned = true
+          addLog('spawn', `✨ Trust field spawned at (${Math.round(midX)}, ${Math.round(midY)})`)
+          setTimeout(() => fieldSpawned = false, 10000)
+        }
+      }
+      b.onProximity = a.onProximity
+    }
+
+    // === v4.2 SAVE/LOAD ===
+    window.saveState = () => {
+      const snapshot = engine.snapshot()
+      localStorage.setItem('mds-emoji-field-state', JSON.stringify(snapshot))
+      addLog('spawn', '💾 State saved to localStorage')
+      alert('✅ State saved!')
+    }
+
+    window.loadState = () => {
+      const data = localStorage.getItem('mds-emoji-field-state')
+      if (!data) {
+        alert('❌ No saved state found')
+        return
+      }
+
+      const snapshot = JSON.parse(data)
+      const materialMap = new Map([
+        ['paper.shy', shy],
+        ['paper.curious', curious]
+      ])
+      const fieldMap = new Map([
+        ['field.trust.core', ftrust]
+      ])
+
+      engine.stop()
+      engine.clear()
+      engine.restore(snapshot, materialMap, fieldMap)
+      engine.start()
+
+      // Re-assign references
+      a = engine.getEntities()[0]
+      b = engine.getEntities()[1]
+
+      // Re-attach hooks
+      if (a) {
+        a.onSpawn = (eng, entity) => {
+          spawnCount++
+          addLog('spawn', `💌 Shy restored`)
+        }
+        a.onDestroy = (entity) => {
+          destroyCount++
+          addLog('destroy', `💌 Shy destroyed after ${Math.round(entity.age)}s`)
+        }
+      }
+      if (b) {
+        b.onSpawn = (eng, entity) => {
+          spawnCount++
+          addLog('spawn', `🐥 Curious restored`)
+        }
+        b.onDestroy = (entity) => {
+          destroyCount++
+          addLog('destroy', `🐥 Curious destroyed after ${Math.round(entity.age)}s`)
+        }
+      }
+
+      addLog('spawn', '📂 State loaded from localStorage')
+    }
+
+    // === v4.2 SEED TOGGLE ===
+    window.toggleSeed = () => {
+      useSeed = !useSeed
+      const btn = document.getElementById('seed-btn')
+      btn.textContent = useSeed ? '🎲 Seed: On' : '🎲 Seed: Off'
+      btn.classList.toggle('active', useSeed)
+
+      // Restart engine with new seed
+      engine.stop()
+      engine.clear()
+      logEntries.length = 0
+      spawnCount = 0
+      destroyCount = 0
+
+      init()
+
+      addLog('spawn', useSeed ? '🎲 Seed mode ON (seed=42)' : '🎲 Seed mode OFF (random)')
+    }
+
+    window.clearLog = () => {
+      logEntries.length = 0
+      document.getElementById('log-container').innerHTML = ''
+    }
 
     // === DEBUG PANEL UPDATE ===
     const debugEntities = document.getElementById('debug-entities')
     const debugFields = document.getElementById('debug-fields')
     const debugDist = document.getElementById('debug-dist')
     const debugMood = document.getElementById('debug-mood')
+    const debugSpawned = document.getElementById('debug-spawned')
+    const debugDestroyed = document.getElementById('debug-destroyed')
     const debugFps = document.getElementById('debug-fps')
 
     let frameCount = 0
     let lastFpsUpdate = performance.now()
 
     function updateDebugPanel() {
-      debugEntities.textContent = engine.entities.length
-      debugFields.textContent = engine.fields.length
+      if (!engine) return
 
-      // Calculate distance between entities
-      if (engine.entities.length >= 2) {
-        const dx = a.x - b.x
-        const dy = a.y - b.y
+      debugEntities.textContent = engine.getEntities().length
+      debugFields.textContent = engine.getFields().length
+      debugSpawned.textContent = spawnCount
+      debugDestroyed.textContent = destroyCount
+
+      const entities = engine.getEntities()
+      if (entities.length >= 2) {
+        const e1 = entities[0]
+        const e2 = entities[1]
+        const dx = e1.x - e2.x
+        const dy = e1.y - e2.y
         const dist = Math.sqrt(dx * dx + dy * dy)
         debugDist.textContent = Math.round(dist) + 'px'
 
-        // Determine mood based on distance and entropy
         let mood = '😐 neutral'
         if (dist < 80) mood = '🥰 intimate'
         else if (dist < 120) mood = '😊 close'
@@ -243,7 +522,6 @@
         debugMood.textContent = mood
       }
 
-      // FPS counter
       frameCount++
       const now = performance.now()
       if (now - lastFpsUpdate >= 1000) {
@@ -254,58 +532,23 @@
 
       requestAnimationFrame(updateDebugPanel)
     }
-    updateDebugPanel()
 
     // === TEXT BUBBLE SYSTEM ===
     const selfAwareTexts = {
-      intro: [
-        'ฉันเพิ่งเกิดมา...',
-        'นี่คือโลกใบใหม่เหรอ?',
-        'ฉันคือใคร?'
-      ],
-      young: [
-        'ฉันยังเด็กอยู่นะ อายุ {age}s',
-        'รู้สึกแข็งแรงดี!',
-        'พลังชีวิตเต็มร้อย!'
-      ],
-      aging: [
-        'อายุ {age}s แล้ว เริ่มรู้สึกเหนื่อย',
-        'ฉันกำลังจางหายไป... ({opacity}%)',
-        'พลังชีวิตเหลือ {opacity}%'
-      ],
-      dying: [
-        'ฉันใกล้ตายแล้ว...',
-        'ไม่อยากจากไปเลย',
-        'อีกไม่นานฉันก็หายไป'
-      ],
-      curious: [
-        'เธอเป็นใคร?',
-        'มาเล่นกันไหม?',
-        'ระยะห่างเรา {dist}px'
-      ],
-      close: [
-        'ใกล้กันแบบนี้... รู้สึกอบอุ่น',
-        'ฉันชอบอยู่ใกล้เธอ',
-        'เราใกล้กันมาก {dist}px'
-      ],
-      intimate: [
-        'เราเป็นเพื่อนกันใช่ไหม?',
-        'รู้สึกเหมือนเข้าใจกัน',
-        'พลังของเธอทำให้ฉันแข็งแรงขึ้น'
-      ],
-      lonely: [
-        'อยู่คนเดียวเหงาจัง',
-        'มีใครอยู่ไหม?',
-        'ระยะห่าง {dist}px ไกลเกินไป'
-      ]
+      intro: ['ฉันเพิ่งเกิดมา...', 'นี่คือโลกใบใหม่เหรอ?', 'ฉันคือใคร?'],
+      young: ['ฉันยังเด็กอยู่นะ อายุ {age}s', 'รู้สึกแข็งแรงดี!', 'พลังชีวิตเต็มร้อย!'],
+      aging: ['อายุ {age}s แล้ว เริ่มรู้สึกเหนื่อย', 'ฉันกำลังจางหายไป... ({opacity}%)', 'พลังชีวิตเหลือ {opacity}%'],
+      dying: ['ฉันใกล้ตายแล้ว...', 'ไม่อยากจากไปเลย', 'อีกไม่นานฉันก็หายไป'],
+      curious: ['เธอเป็นใคร?', 'มาเล่นกันไหม?', 'ระยะห่างเรา {dist}px'],
+      close: ['ใกล้กันแบบนี้... รู้สึกอบอุ่น', 'ฉันชอบอยู่ใกล้เธอ', 'เราใกล้กันมาก {dist}px'],
+      intimate: ['เราเป็นเพื่อนกันใช่ไหม?', 'รู้สึกเหมือนเข้าใจกัน', 'พลังของเธอทำให้ฉันแข็งแรงขึ้น'],
+      lonely: ['อยู่คนเดียวเหงาจัง', 'มีใครอยู่ไหม?', 'ระยะห่าง {dist}px ไกลเกินไป']
     }
 
     let lastDist = 999
-    let bubbleTimeout = null
     let lastBubbleTime = 0
 
     function spawnBubble(entity, textType) {
-      // Throttle bubbles (max 1 per 2 seconds)
       const now = performance.now()
       if (now - lastBubbleTime < 2000) return
       lastBubbleTime = now
@@ -313,15 +556,11 @@
       const texts = selfAwareTexts[textType] || selfAwareTexts.intro
       let text = texts[Math.floor(Math.random() * texts.length)]
 
-      // Replace placeholders
       const age = Math.round(entity.age)
       const opacity = Math.round(entity.opacity * 100)
       const dist = Math.round(lastDist)
 
-      text = text
-        .replace('{age}', age)
-        .replace('{opacity}', opacity)
-        .replace('{dist}', dist)
+      text = text.replace('{age}', age).replace('{opacity}', opacity).replace('{dist}', dist)
 
       const bubble = document.createElement('div')
       bubble.className = 'emoji-bubble'
@@ -333,31 +572,28 @@
       setTimeout(() => bubble.remove(), 3000)
     }
 
-    // Monitor distance changes for emotion triggers
     function monitorEmotions() {
-      if (engine.entities.length >= 2) {
-        const dx = a.x - b.x
-        const dy = a.y - b.y
+      if (!engine) return
+
+      const entities = engine.getEntities()
+      if (entities.length >= 2) {
+        const e1 = entities[0]
+        const e2 = entities[1]
+        const dx = e1.x - e2.x
+        const dy = e1.y - e2.y
         const dist = Math.sqrt(dx * dx + dy * dy)
 
-        // Approaching
         if (dist < lastDist && dist < 150 && lastDist > 150) {
-          spawnBubble(b, 'curious')
+          spawnBubble(e2, 'curious')
         }
-
-        // Getting close
         if (dist < 100 && lastDist >= 100) {
-          setTimeout(() => spawnBubble(a, 'close'), 500)
+          setTimeout(() => spawnBubble(e1, 'close'), 500)
         }
-
-        // Very close (intimate)
         if (dist < 80 && lastDist >= 80) {
-          setTimeout(() => spawnBubble(b, 'intimate'), 800)
+          setTimeout(() => spawnBubble(e2, 'intimate'), 800)
         }
-
-        // Moving apart
         if (dist > lastDist && dist > 150 && lastDist <= 150) {
-          spawnBubble(a, 'lonely')
+          spawnBubble(e1, 'lonely')
         }
 
         lastDist = dist
@@ -365,33 +601,26 @@
 
       setTimeout(monitorEmotions, 500)
     }
-    monitorEmotions()
 
-    // Monitor entity lifecycle for self-aware messages
     function monitorLifecycle() {
-      for (const entity of engine.entities) {
+      if (!engine) return
+
+      for (const entity of engine.getEntities()) {
         const age = entity.age
         const opacity = entity.opacity
 
-        // Intro (first 2 seconds)
         if (age < 2 && !entity._spokenIntro) {
           setTimeout(() => spawnBubble(entity, 'intro'), 1000)
           entity._spokenIntro = true
         }
-
-        // Young (2-10 seconds)
         if (age >= 3 && age < 10 && !entity._spokenYoung) {
           setTimeout(() => spawnBubble(entity, 'young'), Math.random() * 2000)
           entity._spokenYoung = true
         }
-
-        // Aging (opacity < 70%)
         if (opacity < 0.7 && opacity > 0.4 && !entity._spokenAging) {
           setTimeout(() => spawnBubble(entity, 'aging'), Math.random() * 1000)
           entity._spokenAging = true
         }
-
-        // Dying (opacity < 40%)
         if (opacity < 0.4 && !entity._spokenDying) {
           setTimeout(() => spawnBubble(entity, 'dying'), 500)
           entity._spokenDying = true
@@ -400,10 +629,12 @@
 
       setTimeout(monitorLifecycle, 1000)
     }
-    monitorLifecycle()
 
-    console.log('🌌 MDS v4.0 - Info-Physics Engine Started')
-    console.log('Materials are alive. Watch them age, interact, and spawn fields.')
+    // Start
+    init()
+
+    console.log('🌌 MDS v4.2 - Info-Physics Engine with Lifecycle Hooks Started')
+    console.log('Try: window.saveState(), window.loadState(), window.toggleSeed()')
   </script>
 </body>
 </html>
