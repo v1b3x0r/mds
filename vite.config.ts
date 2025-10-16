@@ -5,24 +5,35 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'MaterialSystem',
-      formats: ['es', 'umd'],
-      fileName: (format) => `mds.${format === 'es' ? 'esm' : 'umd'}.js`
+      name: 'MDS',
+      formats: ['es'],
+      fileName: () => 'mds-core.esm.js'
     },
     rollupOptions: {
       output: {
         exports: 'named'
       }
     },
-    minify: false, // Disabled for UMD compatibility
-    sourcemap: true
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        drop_debugger: true,
+        pure_funcs: ['console.debug']
+      },
+      mangle: {
+        properties: false
+      }
+    },
+    sourcemap: true,
+    target: 'es2020'
   },
   server: {
-    open: '/index.html',
+    open: '/examples/cluster.html',
     port: 3000
   },
   preview: {
     port: 3000,
-    open: '/index.html'
+    open: '/examples/cluster.html'
   }
 })

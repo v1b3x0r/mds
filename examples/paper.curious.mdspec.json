@@ -1,0 +1,31 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v4",
+  "material": "paper.curious",
+  "intent": "wander",
+  "essence": {
+    "th": "แอบสนใจทุกอย่าง เลยขยับเข้าไปใกล้",
+    "en": "Keeps leaning in to see more."
+  },
+  "behavior": {
+    "onHover": {
+      "effect": "glow.soft",
+      "emoji": "🐥"
+    },
+    "onProximity": {
+      "condition": "distance<80",
+      "spawn": "field.trust.core"
+    }
+  },
+  "physics": {
+    "mass": 0.12,
+    "friction": 0.03,
+    "bounce": 0
+  },
+  "manifestation": {
+    "emoji": "🐥",
+    "aging": {
+      "start_opacity": 1,
+      "decay_rate": 0.005
+    }
+  }
+}

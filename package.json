@@ -1,24 +1,23 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "3.0.2",
-  "description": "Material Definition System - Think in materials, not CSS properties",
+  "version": "4.0.0",
+  "description": "MDS v4.0 - Info-physics engine for living materials with autonomous behavior",
   "sideEffects": false,
-  "main": "./dist/mds.umd.js",
-  "module": "./dist/mds.esm.js",
+  "type": "module",
+  "main": "./dist/mds-core.esm.js",
+  "module": "./dist/mds-core.esm.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/mds.esm.js",
-      "require": "./dist/mds.umd.js"
+      "import": "./dist/mds-core.esm.js"
     }
   },
   "files": [
     "dist",
-    "manifests",
+    "examples",
     "README.md",
-    "LICENSE",
-     "manifests/**/*.physics.js"
+    "LICENSE"
   ],
   "scripts": {
     "dev": "vite",
@@ -27,18 +26,17 @@
     "type-check": "tsc --noEmit"
   },
   "keywords": [
-    "ui",
-    "design-system",
-    "material",
-    "animation",
-    "interface",
-    "glassmorphism",
-    "interactive",
-    "motion",
-    "physics",
-    "soft-ui",
+    "info-physics",
+    "autonomous-behavior",
+    "living-materials",
+    "emergent-systems",
+    "simulation",
+    "entity-component",
+    "semantic-computing",
+    "hci",
     "mds",
-    "hci"
+    "game-engine",
+    "physics-engine"
   ],
   "author": "v1b3x0r",
   "license": "MIT",

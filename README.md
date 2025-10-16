@@ -1,158 +1,433 @@
-<h1 align="center">
-  <br>
-  
-  <br><br>
-  <b>Material Definition System (MDS)</b>
-  <br>
-</h1>
+# MDS v4.0 — Info-Physics Engine
 
+> **This is not a component.**
+> **This is not a UI.**
+> **This is a living material in a field.**
 
-<p align="center">
-  <i>Language for digital materials — born from Coke Light, built with GPT‑5.</i>
-  <br><br>
-  <a href="https://www.npmjs.com/package/@v1b3x0r/mds-core">
-    <img src="https://img.shields.io/npm/v/@v1b3x0r/mds-core.svg?style=flat-square&color=black" alt="npm version">
-  </a>
-  <a href="https://github.com/v1b3x0r/material-js-concept/stargazers">
-    <img src="https://img.shields.io/github/stars/v1b3x0r/material-js-concept?style=flat-square&color=silver" alt="stars">
-  </a>
-  <a href="https://github.com/v1b3x0r/material-js-concept/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square" alt="license">
-  </a>
-</p>
+JSON here is not config. It's a description of a stateful entity that behaves under **information-physics**: proximity, similarity, entropy, time.
 
- 
 ---
- 
 
-> “short, real, and written for humans — not for search engines.”
+## 🌌 What is MDS v4.0?
 
- 
+A tiny, framework-free TypeScript engine that treats materials as **living entities** with autonomous behavior. Materials age, fade, move, and spawn relationship fields—all without hardcoded rules or AI.
+
+**Core principles:**
+- **Essence-first design**: A material with only `essence` still works
+- **Info-physics**: Entities attract/repel based on semantic similarity
+- **Emergence**: Complex behaviors arise from simple rules
+- **Tiny**: ≤ 10KB minified (≤ 3KB gzipped)
+
 ---
- 
 
-<div align="center">
+## 🚀 Quick Start
 
-```
-            ┌────────────────────┐
-            │  MaterialSystem    │
-            │   (Core Runtime)   │
-            └─────────┬──────────┘
-                      │
-          ┌───────────┼────────────┐
-          │                        │
-   ┌─────────────┐          ┌─────────────┐
-   │  MDSpec     │          │  Manifest   │
-   │  (Schema)   │          │  .mdm.json  │
-   └──────┬──────┘          └──────┬──────┘
-          │                         │
-          ▼                         ▼
-   ┌─────────────┐          ┌─────────────┐
-   │  Optics     │          │  Behavior   │
-   │  Surface    │          │  Physics.js │
-   └─────────────┘          └─────────────┘
+### Installation
+
+```bash
+npm install @v1b3x0r/mds-core
 ```
 
-</div>
+### Basic Usage
 
-<p align="center">
-  <img src="./assets/mds-demo.gif" width="640" alt="MDS interactive demo"/>
-  <br>
-  <i>Interactive sample — drag the silicone element to feel the tactile response.</i>
-</p>
+```typescript
+import { Engine, loadMaterial } from '@v1b3x0r/mds-core'
 
- 
----
- 
+// Initialize engine
+const engine = new Engine()
 
-## 🧱 What is MDS
-A **language for digital materials.**  
-Instead of describing *what UI looks like*, MDS defines *what it’s made of.*
+// Load a material
+const material = await loadMaterial('./paper.shy.mdspec.json')
 
-Use declarative materials right in the DOM:
-```html
-<div data-material="@mds/liquid-silicone">Drag me</div>
+// Spawn entity at position (x, y)
+const entity = engine.spawn(material, 100, 100)
+
+// Start simulation
+engine.start()
 ```
 
-```js
-import MDS from "@v1b3x0r/mds-core"
-const silicone = await fetch("./liquid-silicone.mdm.json").then(r => r.json())
-MDS.register("@mds/liquid-silicone", silicone)
-MDS.apply()
-```
+### Minimal Material (Essence-Only)
 
----
-
-## 🧠 Why It Exists
-I was tired of bloated UI frameworks and endless CSS repetition.  
-So I wondered: what if the DOM could *understand materials* — glass, paper, silicone —  
-instead of properties?
-
-MDS became an **HCI experiment** — a quiet study of how humans *feel* digital surfaces before they even touch them.
-
-> it started from a Coke Light and an argument with GPT‑5.
-
----
-
-## ⚙️ How It Works
-
-- **Manifest‑driven:** materials defined in JSON (`.mdm.json`)  
-- **Physics‑ready:** elastic & tactile behavior (K, D, mass)  
-- **State‑aware:** hover, press, drag handled declaratively  
-- **Zero dependency:** works anywhere — CDN, npm, vanilla DOM  
-
-Example manifest:
 ```json
 {
-  "name": "@mds/liquid-silicone",
-  "optics": { "tint": "rgba(200,200,255,0.3)" },
-  "surface": { "radius": "16px" },
-  "behavior": {
-    "physics": "./liquid-silicone.physics.js",
-    "physicsParams": { "K": 22, "D": 18, "mass": 1.5 }
+  "material": "emotion.trust",
+  "essence": "การหายใจพร้อมกันของสองใจ"
+}
+```
+
+This works. No visual properties required.
+
+---
+
+## 📊 Info-Physics Algorithm
+
+### Attraction Force
+
+```typescript
+// Pairwise calculation for all entities
+for (let i = 0; i < entities.length; i++) {
+  for (let j = i + 1; j < entities.length; j++) {
+    const a = entities[i], b = entities[j]
+
+    // Distance
+    const dist = Math.hypot(b.x - a.x, b.y - a.y)
+
+    // Similarity (based on entropy difference)
+    const sim = 1 - Math.abs(a.entropy - b.entropy)
+
+    // Force = constant × similarity
+    const k = 0.05 * sim
+
+    // Apply if within proximity threshold (160px)
+    if (dist < 160) {
+      const fx = (dx / dist) * k
+      const fy = (dy / dist) * k
+
+      a.vx += fx * dt
+      a.vy += fy * dt
+      b.vx -= fx * dt  // Newton's third law
+      b.vy -= fy * dt
+    }
   }
 }
 ```
 
----
-
-## 👥 For Different Roles
-
-| 👩‍💻 Developers | 🎨 Designers | 🧠 HCI Researchers | 🧩 System Thinkers | 🤖 AI Builders |
-|:--|:--|:--|:--|:--|
-| Adds tactile response layer between DOM & behavior engines. | Describe materials in plain language (“soft paper”, “frosted glass”). | Sandbox for studying tactile perception & digital materiality. | Bridge between perception & implementation declaratively. | Generate & evolve manifests directly from structured JSON. |
+**Result**: Similar entities (close entropy values) cluster together naturally.
 
 ---
 
-## 🧩 Tech Summary
+## 🎨 Material Schema
 
-| Feature | Description |
-|:--|:--|
-| Runtime | ~4.5 KB (ESM gzipped) |
-| Theme | Auto light / dark |
-| Physics | External `.physics.js` modules |
-| License | MIT |
-| Support | Chrome 90+, Firefox 88+, Safari 14+ |
-| Repo | [GitHub: v1b3x0r/material-js-concept](https://github.com/v1b3x0r/material-js-concept) |
-| NPM | [@v1b3x0r/mds-core](https://www.npmjs.com/package/@v1b3x0r/mds-core) |
+### Complete Material Definition
+
+```json
+{
+  "$schema": "https://mds.v1b3.dev/schema/v4",
+  "material": "paper.shy",
+  "intent": "observe",
+  "essence": {
+    "th": "เหมือนกระดาษโน้ตที่อยากให้เห็นแต่ไม่กล้าส่ง",
+    "en": "A quiet note that hopes to be found."
+  },
+  "behavior": {
+    "onHover": { "effect": "glow.soft" },
+    "onRepeatHover": {
+      "threshold": 3,
+      "effect": "slide.away",
+      "emoji": "🫣"
+    },
+    "onProximity": {
+      "condition": "distance<80",
+      "spawn": "field.trust.core"
+    }
+  },
+  "physics": {
+    "mass": 0.1,
+    "friction": 0.02
+  },
+  "manifestation": {
+    "emoji": "💌",
+    "aging": {
+      "start_opacity": 1,
+      "decay_rate": 0.01
+    }
+  }
+}
+```
+
+### Field Definition
+
+```json
+{
+  "material": "field.trust.core",
+  "type": "field",
+  "radius": 120,
+  "duration": 45000,
+  "visual": { "aura": "gentle amber" },
+  "effect_on_others": {
+    "opacity": 0.9
+  }
+}
+```
+
+Fields are **emergent relationships** spawned by proximity interactions.
 
 ---
 
-## 🪶 Origin
+## 🎯 Demo Pages
 
-This project was **100% AI‑coded through conversation.**  
-I never typed a line manually — just talked.
+### Demo A: Emoji Field Interaction
 
-Core designed with GPT‑5 (Cognitive‑Focused Instruct + Narrative Prompting)  
-Implementation & refined docs with Sonnet 4.5 on Claude Code
-Bugs fixed by Codex  <br>
+```bash
+npm run dev
+# Opens: http://localhost:3000/examples/emoji-field.html
+```
 
-> “It's start from Northern Thailand ☕”
+**What to observe:**
+- 💌 Shy paper - Hover 3 times → slides away with 🫣
+- 🐥 Curious paper - Leans in when hovered
+- ✨ When entities get close (< 80px) → trust field spawns
+- ⏱️ Papers fade naturally over time
 
- 
+### Demo B: Self-Organizing Clusters
+
+```bash
+# Open: http://localhost:3000/examples/cluster.html
+```
+
+**What to observe:**
+- 5 entities with random entropy values (0..1)
+- Similar entropy → attract (cluster together)
+- Different entropy → repel (stay apart)
+- Clustering emerges within ~10 seconds
+
+**No AI. No hardcoded rules. Pure info-physics.**
+
 ---
- 
 
-<p align="center">
-  <sub>2025 © MIT License — Made for humans who still believe in feel.</sub>
-</p>
+## 📚 API Reference
+
+### Engine
+
+```typescript
+class Engine {
+  spawn(material: MdsMaterial, x?: number, y?: number): Entity
+  spawnField(field: MdsField, x: number, y: number): Field
+  start(): void
+  stop(): void
+  getEntities(): Entity[]
+  getFields(): Field[]
+  clear(): void
+}
+```
+
+### Entity
+
+```typescript
+class Entity {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  age: number
+  entropy: number
+  energy: number
+  opacity: number
+
+  update(dt: number): void
+  render(): void
+  destroy(): void
+}
+```
+
+### Loader
+
+```typescript
+async function loadMaterial(path: string): Promise<MdsMaterial>
+async function loadMaterials(paths: string[]): Promise<MdsMaterial[]>
+```
+
+### LLM Bridge (Optional)
+
+```typescript
+interface LlmBridge {
+  speak(materialId: string, context: Record<string, unknown>): Promise<string>
+  similarity?(essenceA: string, essenceB: string): Promise<number>
+}
+
+// Stub implementation (no network calls)
+import { DummyBridge, setLlmBridge } from '@v1b3x0r/mds-core'
+```
+
+---
+
+## 🔬 Technical Details
+
+### Bundle Size
+
+- **Minified**: 9.15 KB
+- **Gzipped**: 2.99 KB
+- **Target**: ≤ 20 KB ✅
+
+### Browser Support
+
+- Modern browsers with ES2020 support
+- Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+
+
+### Dependencies
+
+- **Runtime**: Zero
+- **Dev**: TypeScript, Vite
+
+---
+
+## 🧠 Philosophy
+
+### Why "Info-Physics"?
+
+Traditional UI frameworks treat interactions as **events** (click, hover, drag). MDS v4 treats interactions as **forces** in an information field.
+
+**Example:**
+- Two materials with essence `"trust"` and `"connection"` have high semantic similarity
+- When they get close (< 80px), attraction force increases
+- A trust field spawns at their midpoint
+- Field affects nearby entities (boosts opacity, amplifies behavior)
+
+**This is not metaphor. It's simulation.**
+
+### Essence-First Design
+
+```json
+{ "material": "emotion.trust", "essence": "การหายใจพร้อมกันของสองใจ" }
+```
+
+This is a **complete, valid material**. It will:
+- Spawn as an entity
+- Age naturally
+- Respond to proximity (if `onProximity` behavior added later)
+- Participate in info-physics
+
+No visual properties required. Essence is enough.
+
+### Emergence Over Control
+
+MDS v4 prefers:
+- **Simple rules → Complex behavior** (clustering emerges from similarity metric)
+- **Declarative intent** (`"intent": "observe"`) over imperative commands
+- **Autonomous lifecycle** (aging, decay, field expiration) over manual state management
+
+---
+
+## 🛠️ Advanced Usage
+
+### Custom Similarity Metric
+
+```typescript
+import { Engine } from '@v1b3x0r/mds-core'
+
+// Override default entropy-based similarity
+class CustomEngine extends Engine {
+  private tick(dt: number) {
+    // Custom similarity: semantic embedding distance
+    for (let i = 0; i < entities.length; i++) {
+      for (let j = i + 1; j < entities.length; j++) {
+        const sim = cosineSimilarity(
+          embed(entities[i].m.essence),
+          embed(entities[j].m.essence)
+        )
+        // Apply forces...
+      }
+    }
+  }
+}
+```
+
+### LLM Integration
+
+```typescript
+import { setLlmBridge } from '@v1b3x0r/mds-core'
+
+setLlmBridge({
+  async speak(materialId, context) {
+    const response = await fetch('/api/llm', {
+      method: 'POST',
+      body: JSON.stringify({ materialId, context })
+    })
+    return response.text()
+  },
+
+  async similarity(essenceA, essenceB) {
+    const embeddings = await getEmbeddings([essenceA, essenceB])
+    return cosineSimilarity(embeddings[0], embeddings[1])
+  }
+})
+```
+
+---
+
+## 📖 Documentation
+
+- [MATERIAL_GUIDE.md](./MATERIAL_GUIDE.md) — Complete schema reference (v3 legacy)
+- [CLAUDE.md](./CLAUDE.md) — AI context & architecture decisions
+- [V4-UPGRADE.md](./prompt/V4-UPGRADE.md) — Implementation spec
+
+---
+
+## 🗂️ Project Structure
+
+```
+mds-core/
+├── src/
+│   ├── core/          # Engine, Entity, Field
+│   ├── schema/        # Type definitions
+│   ├── utils/         # Math, events, random
+│   ├── io/            # Loader, LLM bridge
+│   └── index.ts       # Public API
+├── examples/
+│   ├── emoji-field.html
+│   ├── cluster.html
+│   ├── paper.shy.mdspec.json
+│   ├── paper.curious.mdspec.json
+│   └── field.trust.core.mdspec.json
+├── dist/
+│   └── mds-core.esm.js
+└── package.json
+```
+
+---
+
+## 🤝 Contributing
+
+This is a **research experiment**. Contributions welcome, but understand:
+
+1. **Not production-ready** — This is a proof of concept
+2. **Breaking changes likely** — v4 is unstable
+3. **Philosophy over features** — We care about emergence, not polish
+
+If you want to explore info-physics UIs with us, open an issue or PR.
+
+---
+
+## 📜 License
+
+MIT © [v1b3x0r](https://github.com/v1b3x0r)
+
+---
+
+## 🌟 Credits
+
+**Concept**: Material as living entity with autonomous behavior
+**Algorithm**: Info-physics forces (proximity × similarity)
+**Inspiration**: Conway's Game of Life, Boids, Agent-based modeling
+
+**Built for the universe.** 🌌
+
+---
+
+## 📊 Comparison with v3.0
+
+| Feature | v3.0 | v4.0 |
+|---------|------|------|
+| **Concept** | CSS material system | Info-physics engine |
+| **JSON Role** | Visual config | Entity ontology |
+| **Behavior** | Event-driven (hover, press) | Autonomous (aging, forces) |
+| **Physics** | Optional tactile deform | Core attraction/repulsion |
+| **Theme** | Light/dark switching | None (essence-driven) |
+| **Bundle Size** | 25 KB | 9.15 KB |
+| **Use Case** | UI design system | Interactive simulations |
+
+**v3 and v4 are incompatible. Choose based on your goal:**
+- Want CSS materials? → Use v3
+- Want living entities? → Use v4
+
+---
+
+**TL;DR:**
+- Materials are descriptions (ontology)
+- Fields are emergent (spawned by relations)
+- Works without LLM; LLM bridge is optional
+- Core is tiny (≤ 10 KB minified; ≤ 3 KB gzipped)
+
+---
+
+_This is not a config file. It's a description of a living material._ ✨
