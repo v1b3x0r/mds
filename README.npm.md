@@ -5,7 +5,15 @@
 [![TypeScript](https://img.shields.io/badge/types-TypeScript-3178C6)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 
-**MDS (Material Definition System)** is a lightweight TypeScript engine for creating autonomous, interactive entities through declarative JSON definitions. Think of it as a physics engine, but for information and behavior.
+> **MDS is not a physics engine — it's an intention engine.**
+>
+> Traditional engines simulate motion.
+> MDS simulates meaning.
+>
+> In this world, gravity comes from similarity,
+> and motion emerges from intent.
+
+**MDS (Material Definition System)** is a lightweight TypeScript engine for creating autonomous, interactive entities through declarative JSON definitions. Every material has an essence, and behavior emerges from the relationships between them.
 
 ## Features
 
@@ -69,14 +77,17 @@ Create a `paper.curious.mdspec.json` file:
 
 ## Core Concepts
 
-### Info-Physics Engine
+### Intention Engine
 
-Entities attract or repel each other based on a **similarity metric** (currently entropy-based, designed for semantic embeddings in the future):
+MDS doesn't simulate physical forces — it simulates **intent**. Entities attract or repel each other based on a **similarity metric** (currently entropy-based, designed for semantic embeddings in the future):
 
 ```typescript
 // Similarity = 1 - |entropyA - entropyB|
-// Similar entities attract, different entities repel
+// In this world, gravity comes from similarity
+// Similar essences attract, different essences repel
 ```
+
+When entities share similar intent (essence), they're drawn together. When they differ, they naturally drift apart. No hardcoded rules — just emergent behavior from meaning.
 
 ### Lifecycle Hooks
 
@@ -339,11 +350,17 @@ For larger simulations (>50 entities), consider spatial partitioning (quadtree) 
 
 ## Philosophy
 
+> **MDS is not a physics engine — it's an intention engine.**
+>
+> Traditional engines simulate motion. MDS simulates meaning.
+
 MDS is built on three principles:
 
 1. **Essence-first**: A material with just an `essence` field is valid and meaningful
 2. **Emergence over control**: Complex behaviors arise from simple rules
-3. **Information is physical**: Similarity and proximity create forces
+3. **Meaning is physical**: Similarity creates gravity, intent creates motion
+
+In this world, forces aren't mass × acceleration — they're **intent × proximity**. Entities don't collide with momentum; they connect through resonance.
 
 Read more: [README on GitHub](https://github.com/v1b3x0r/mds#readme)
 

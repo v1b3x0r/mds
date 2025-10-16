@@ -1,7 +1,7 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "4.2.1",
-  "description": "MDS v4.2.1 - Info-physics engine with lifecycle hooks, serialization, and deterministic mode",
+  "version": "4.2.3",
+  "description": "An intention engine for living materials. Traditional engines simulate motion. MDS simulates meaning.",
   "sideEffects": false,
   "type": "module",
   "main": "./dist/mds-core.esm.js",
@@ -31,17 +31,19 @@
     "postpublish": "test -f README.github.md && mv README.github.md README.md || true"
   },
   "keywords": [
-    "info-physics",
-    "autonomous-behavior",
+    "intention-engine",
+    "meaning-simulation",
     "living-materials",
+    "autonomous-behavior",
     "emergent-systems",
-    "simulation",
-    "entity-component",
+    "essence-first",
     "semantic-computing",
+    "entity-component",
+    "simulation",
+    "info-physics",
     "hci",
     "mds",
-    "game-engine",
-    "physics-engine"
+    "game-engine"
   ],
   "author": "v1b3x0r",
   "license": "MIT",
