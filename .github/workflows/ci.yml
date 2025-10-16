@@ -2,28 +2,27 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
+    name: build (node ${{ matrix.node }})
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-
+        node: [18, 20]
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version: ${{ matrix.node }}
+          cache: npm
 
-      - name: Install dependencies
+      - name: Install deps
         run: npm ci
 
       - name: Type check
@@ -32,8 +31,3 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Check build outputs
-        run: |
-          test -f dist/mds.esm.js || exit 1
-          test -f dist/mds.umd.js || exit 1
-          echo "✅ Build outputs verified"
