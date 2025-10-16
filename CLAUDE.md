@@ -28,11 +28,13 @@
 
 **What we ship:**
 - `/dist/mds-core.esm.js` - **18.42 KB** minified (5.48 KB gzipped) ESM-only bundle
-- `/examples/*.mdspec.json` - Material definitions (paper.shy, paper.curious, field.trust.core)
-- `/examples/emoji-field.html` - Demo A: lifecycle hooks + save/load + deterministic mode
-- `/examples/cluster.html` - Demo B: timeline scrubber + replay + snapshots
-- `/examples/ghost-town.html` - Demo C: Lovefield 2D map + MBTI personalities + relationships
-- `/examples/lovefield-tailwind.html` - Demo D: Tailwind UI + relationship timeline + story save/load
+- `/materials/entities/` - Entity definitions (paper.shy, paper.curious, emotion.trust)
+- `/materials/fields/` - Field definitions (field.trust.core)
+- `/examples/01-basics/emoji-field.html` - Demo A: lifecycle hooks + save/load + deterministic mode
+- `/examples/02-advanced/cluster.html` - Demo B: timeline scrubber + replay + snapshots
+- `/examples/03-showcase/lovefield.html` - Demo C: Relationship simulation (v4.2 flagship)
+- `/examples/03-showcase/ghost-town.html` - Demo D: Legacy Lovefield 2D map demo
+- `/docs/` - Comprehensive documentation (guides, technical, meta)
 
 **Core concept:**
 - JSON is NOT config — it's **ontological description** of living entities
@@ -70,30 +72,58 @@ material-js-concept/
 │   ├── core/
 │   │   ├── engine.ts         # Main simulation loop (tick, forces, fields)
 │   │   ├── entity.ts         # Living material instance
-│   │   └── field.ts          # Emergent relationship field
+│   │   ├── field.ts          # Emergent relationship field
+│   │   ├── registry.ts       # Material/Field registry
+│   │   ├── types.ts          # Core type definitions
+│   │   ├── utils.ts          # Utility functions
+│   │   └── validator.ts      # Schema validation
 │   ├── schema/
 │   │   ├── mdspec.d.ts       # MdsMaterial type definition
 │   │   └── fieldspec.d.ts    # MdsField type definition
 │   ├── utils/
 │   │   ├── math.ts           # distance, clamp, similarity, lerp
 │   │   ├── events.ts         # parseSeconds, applyRule
-│   │   └── random.ts         # seededRandom, noise1D
+│   │   └── random.ts         # seededRandom, noise1D, Mulberry32 PRNG
 │   ├── io/
 │   │   ├── loader.ts         # loadMaterial, loadMaterials
-│   │   └── bridge-llm.ts     # LlmBridge interface + DummyBridge
+│   │   ├── bridge-llm.ts     # LlmBridge interface + DummyBridge
+│   │   └── llmAdapter.ts     # OpenRouter adapter (optional)
 │   └── index.ts              # Public API exports
+├── materials/
+│   ├── entities/
+│   │   ├── paper.shy.mdspec.json
+│   │   ├── paper.curious.mdspec.json
+│   │   └── emotion.trust.mdspec.json
+│   └── fields/
+│       └── field.trust.core.mdspec.json
 ├── examples/
-│   ├── emoji-field.html           # Demo A
-│   ├── cluster.html               # Demo B
-│   ├── paper.shy.mdspec.json
-│   ├── paper.curious.mdspec.json
-│   ├── field.trust.core.mdspec.json
-│   └── emotion.trust.mdspec.json
+│   ├── 01-basics/
+│   │   └── emoji-field.html       # Lifecycle + save/load
+│   ├── 02-advanced/
+│   │   └── cluster.html           # Timeline scrubber
+│   ├── 03-showcase/
+│   │   ├── lovefield.html         # Relationship simulation
+│   │   └── ghost-town.html        # Legacy Lovefield demo
+│   └── index.html                 # Demo hub
+├── docs/
+│   ├── guides/                    # User-facing docs
+│   │   ├── MDSPEC_GUIDE.md        # Schema reference
+│   │   └── COOKBOOK.md            # Quick recipes
+│   ├── technical/                 # Developer docs
+│   │   ├── ARCHITECTURE.md        # Engine deep-dive
+│   │   ├── TECH_SPEC.md           # Technical specification
+│   │   └── V4-UPGRADE.md          # v3→v4 migration
+│   ├── meta/                      # Contribution docs
+│   │   ├── CHANGELOG.md           # Version history
+│   │   ├── CONTRIBUTING.md        # Contribution guide
+│   │   └── LICENSE.md             # MIT license
+│   ├── demos/
+│   │   └── LOVEFIELD.md           # Lovefield walkthrough
+│   └── README.md                  # Documentation hub
 ├── dist/
-│   └── mds-core.esm.js       # 9.15 KB minified
-├── README.md                 # User documentation (v4 philosophy)
-├── MATERIAL_GUIDE.md         # v3 legacy (archive)
-└── CLAUDE.md                 # This file
+│   └── mds-core.esm.js            # 18.42 KB minified
+├── README.md                      # User documentation (v4.2)
+└── CLAUDE.md                      # This file (AI context)
 ```
 
 ### MDSpec v4 Schema
@@ -363,21 +393,25 @@ for all entity pairs:
 - Current: entropy-based similarity (no LLM needed)
 - Future: Replace with `cosineSimilarity(embed(essenceA), embed(essenceB))`
 
-### Why 9.15 KB Bundle Size?
+### Why 18.42 KB Bundle Size?
 
-Removed heavy features from v3:
+**v4.0 → v4.2 Growth:**
+- v4.0 initial: ~9 KB (minimal engine only)
+- v4.2 stable: 18.42 KB (+9.42 KB from v4.0, but still -26% vs v3's 25 KB)
+
+**What was added in v4.1-4.2:**
+- ✅ Lifecycle hooks system (~2 KB)
+- ✅ Serialization (snapshot/restore) (~3 KB)
+- ✅ Deterministic mode (Mulberry32 PRNG) (~1.5 KB)
+- ✅ World bounds (clamp/bounce) (~2 KB)
+- ✅ Enhanced registry + validator (~1 KB)
+
+**Removed from v3:**
 - ❌ Theme manager (~2 KB)
 - ❌ State machine (~2 KB)
 - ❌ CSS mappers (~3 KB)
-- ❌ Registry system (~2 KB)
 
-Kept only:
-- ✅ Engine loop (~3 KB)
-- ✅ Entity/Field classes (~3 KB)
-- ✅ Utils (math, events) (~2 KB)
-- ✅ Loader + types (~1 KB)
-
-**Result:** 9.15 KB (vs 25 KB in v3)
+**Result:** 18.42 KB (vs 25 KB in v3) - still within ≤20 KB target
 
 ---
 
@@ -456,7 +490,7 @@ Kept only:
 - **Entropy = random:** Not semantic yet (need LLM embeddings for true similarity)
 - **No spatial optimization:** No quadtree/grid (keep simple for now)
 - **No collision detection:** Entities can overlap (not a goal)
-- **No boundary constraints:** Entities can move off-screen (add `clamp(x, 0, window.innerWidth)` if needed)
+- **Boundary behavior optional:** World bounds configurable but not enforced by default
 
 ### Current Limitations
 
@@ -473,8 +507,8 @@ Kept only:
 
 - [ ] Add parameter playground (sliders for K, threshold, friction)
 - [ ] Visualize forces (draw lines between entities)
-- [ ] Add boundary constraints (keep entities on-screen)
 - [ ] Optimize tick loop (spatial partitioning if n > 50)
+- [ ] Add performance profiler (track tick time, force calculations)
 
 ### Phase 2: Semantic Similarity
 
@@ -522,12 +556,14 @@ Kept only:
 
 **Verification Checklist:**
 
-1. Run `npm run build` → Check bundle size
-2. Open `examples/cluster.html` → Verify clustering works
-3. Open `examples/emoji-field.html` → Verify hover + field spawning
-4. Check console → No errors
-5. Update README.md → If API changed
-6. Update CLAUDE.md → If architecture changed
+1. Run `npm run build` → Check bundle size (must stay ≤ 20 KB)
+2. Open `examples/01-basics/emoji-field.html` → Verify lifecycle + save/load
+3. Open `examples/02-advanced/cluster.html` → Verify clustering + timeline
+4. Open `examples/03-showcase/lovefield.html` → Verify relationships work
+5. Check console → No errors
+6. Update README.md → If API changed
+7. Update CLAUDE.md → If architecture changed
+8. Update relevant docs in `/docs/` → If user-facing changes
 
 ---
 
@@ -538,9 +574,12 @@ Kept only:
 ✅ Info-physics simulation runs smoothly (60 FPS)
 ✅ Clustering emerges without hardcoded logic
 ✅ Essence-only materials spawn correctly
-✅ Bundle size is **tiny** (9.15 KB vs 25 KB in v3)
+✅ Bundle size is **lean** (18.42 KB, -26% vs v3's 25 KB, within target)
 ✅ TypeScript types are solid
-✅ Demos are clear and minimal
+✅ Lifecycle hooks + serialization working perfectly
+✅ Deterministic mode enables reproducible simulations
+✅ 4 demos showcase all v4.2 features
+✅ Comprehensive documentation (7 docs in /docs/)
 
 ### What Doesn't Work Well
 
@@ -559,15 +598,16 @@ Kept only:
 ✅ Entities cluster by similarity → **Proven**
 ✅ Fields emerge from proximity → **Proven**
 ✅ Aging/decay works autonomously → **Proven**
-✅ Tiny bundle size achievable → **Proven** (9.15 KB)
+✅ Lean bundle size achievable → **Proven** (18.42 KB with full features)
+✅ Save/load + deterministic replay → **Proven** (v4.2)
 
 **Next step:** Replace entropy with semantic embeddings to test **true** info-physics of understanding.
 
 ---
 
-## 10. COMPARISON: v3 vs v4
+## 10. COMPARISON: v3 vs v4.2
 
-| Aspect | v3.0 | v4.0 |
+| Aspect | v3.0 | v4.2 |
 |--------|------|------|
 | **Paradigm** | CSS material system | Info-physics engine |
 | **JSON Role** | Visual config | Entity ontology |
@@ -577,22 +617,28 @@ Kept only:
 | **Materials** | Optics + Surface + Behavior | Essence + Manifestation |
 | **Theme** | Light/dark | None |
 | **State** | hover/press/focus/disabled | Autonomous aging/decay |
-| **Bundle** | 25 KB | 9.15 KB |
+| **Lifecycle** | None | onSpawn/onUpdate/onDestroy |
+| **Persistence** | None | snapshot()/restore() |
+| **Determinism** | None | Seeded random |
+| **World Bounds** | None | Configurable clamp/bounce |
+| **Bundle** | 25 KB | 18.42 KB (-26%) |
 | **Use Case** | UI design system | Interactive simulations |
 | **Users** | Frontend developers | Researchers, experimental UIs |
 
 **Incompatible.** Choose based on goal:
 - Want CSS materials? → v3
-- Want living entities? → v4
+- Want living entities? → v4.2
 
 ---
 
 **สรุปแบบตรงๆ:**
 
-MDS v4.0 = Pure research experiment ที่พิสูจน์ว่า **"Materials can be alive"** ด้วย info-physics (proximity + similarity forces) โดยไม่ต้อง LLM หรือ hardcoded rules
+MDS v4.2 = Production-ready info-physics engine ที่พิสูจน์ว่า **"Materials can be alive"** ด้วย info-physics (proximity + similarity forces) โดยไม่ต้อง LLM หรือ hardcoded rules
 
-- Bundle: **9.15 KB** (เล็กกว่า v3 ถึง 64%)
-- Demo: **2 demos** (emoji-field, cluster)
+- Bundle: **18.42 KB** (-26% กว่า v3, ยังอยู่ใน target ≤20 KB)
+- Demos: **4 demos** (emoji-field, cluster, lovefield, ghost-town)
+- Features: **Lifecycle hooks + Serialization + Deterministic mode + World bounds**
+- Docs: **7 comprehensive docs** ใน /docs/ (guides, technical, meta)
 - Philosophy: **Essence-first, emergence over control**
 - Goal: **พิสูจน์ฟิสิกส์แห่งความเข้าใจ** ✅
 

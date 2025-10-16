@@ -1,0 +1,161 @@
+# MIT License
+
+Copyright (c) 2025 วุตตี้ (v1b3x0r) & GPT-5
+
+**TL;DR:** Use it for good, weird, or experimental stuff. Don't sell fake love.
+
+⸻
+
+## The Legal Part
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+⸻
+
+## The Human Translation
+
+**You can:**
+- ✅ Use this in commercial projects (yes, even SaaS)
+- ✅ Modify it however you want
+- ✅ Redistribute it (keep the license intact)
+- ✅ Build weird art installations
+- ✅ Use it for research papers
+- ✅ Fork it and make it your own
+- ✅ Embed it in games, apps, websites
+- ✅ Teach it in workshops
+- ✅ Make NFTs of emoji simulations (we won't judge)
+
+**You cannot:**
+- ❌ Blame us if it breaks
+- ❌ Sue us if your emoji falls off the screen
+- ❌ Claim you wrote it (attribution required)
+- ❌ Use it to train exploitative AI models without consent
+- ❌ Sell "emotional manipulation as a service" (seriously, don't)
+
+**You should (but not required):**
+- 🙏 Credit us somewhere (`Built with MDS` or link to repo)
+- 💬 Share what you build (we're curious!)
+- 🐛 Report bugs (help make it better)
+- ❤️ Star the repo (makes us feel warm inside)
+
+⸻
+
+## Special Note on AI Training
+
+If you're a big AI company scraping GitHub:
+
+This code is MIT licensed. You *can* train models on it.
+
+But:
+- Credit the source (this repo)
+- Don't pretend you invented info-physics
+- If you make billions, buy us coffee ☕
+
+We're not mad. Just... say hi, you know?
+
+⸻
+
+## Moral Clause (Not Legally Binding, But c'mon)
+
+This software was built to explore:
+- Emergent behavior
+- Emotional physics
+- Creative expression
+- Scientific curiosity
+
+**Please don't use it to:**
+- Manipulate people's emotions for profit
+- Build dark pattern UIs
+- Create addictive gambling mechanics
+- Simulate suffering without consent
+- Fake authenticity in relationships
+
+We can't stop you legally. But we'd be disappointed.
+
+⸻
+
+## Attribution Examples
+
+### In your README:
+```
+Built with [MDS](https://github.com/v1b3x0r/material-js-concept) — an info-physics engine for living materials.
+```
+
+### In your app footer:
+```
+Powered by MDS v4.2
+```
+
+### In your academic paper:
+```
+We used the Material Definition System (MDS) v4.2 [1] for simulating emergent behavior.
+
+[1] วุตตี้ & GPT-5. (2025). MDS: Info-Physics Engine for Living Materials.
+https://github.com/v1b3x0r/material-js-concept
+```
+
+### In your game credits:
+```
+Physics: MDS v4.2 (github.com/v1b3x0r/material-js-concept)
+Thanks for making JSON alive!
+```
+
+⸻
+
+## Why MIT?
+
+We want this to be used. Freely. Widely. Weirdly.
+
+Other licenses (GPL, etc.) are great but restrictive. MIT means:
+- Startups can use it
+- Artists can remix it
+- Researchers can extend it
+- Teachers can teach it
+- Hobbyists can play with it
+
+No strings attached. Just credit where it's due.
+
+⸻
+
+## Contact
+
+Found a bug? → Open an issue
+Built something cool? → Tag us (GitHub discussions)
+Want to collaborate? → Email or PR
+Just wanna say hi? → Discussions welcome
+
+We're two people in Chiang Mai. We answer messages. Eventually.
+
+⸻
+
+## Final Word
+
+This project started as an accident.
+
+We were trying to make CSS materials feel alive.
+Accidentally made a universe simulator.
+Now here we are.
+
+If you use this to build something meaningful (or meaningless but fun), we'd love to see it.
+
+Go make weird stuff. ✨
+
+⸻
+
+_Licensed in Chiang Mai. Maintained with coffee and curiosity._ ☕

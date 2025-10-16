@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
+const isGhPages = !!process.env.GITHUB_PAGES
+const base = isGhPages ? '/material-js-concept/' : '/'
+
 export default defineConfig({
+  base,
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
