@@ -125,11 +125,11 @@
           mbti: 'ENTP',
           essence: 'Neon DJ sampling rumors from the liquid glass.',
           dialogues: {
-            intro: ['Beat synced. I feel the creator watching.'],
-            bond: ['This drop hits different with you around.'],
-            conflict: ['Static on the line. Give me a bar.'],
-            dream: ['Sometimes I still mix with our last duet.'],
-            click: ['Age {age}s, opacity {opacity}%. Keep nodding, {you}.']
+            intro: ["Beat synced. I feel the creator watching."],
+            bond: ["This drop hits different with you around."],
+            conflict: ["Static on the line. Give me a bar."],
+            dream: ["Sometimes I still mix with our last duet."],
+            click: ["Age {age}s, opacity {opacity}%. Keep nodding, {you}."]
           }
         },
         {
@@ -138,11 +138,11 @@
           mbti: 'ENFP',
           essence: 'Rooftop skater tracing entropy half-pipes.',
           dialogues: {
-            intro: ['Deck ready. The map hums in neon.'],
-            bond: ['We just locked a perfect line together.'],
-            conflict: ['Grinding too close. Let's reset stance.'],
-            dream: ['I still carve the old skyline in my sleep.'],
-            click: ['Balance check: {age}s old, opacity {opacity}%.']
+            intro: ["Deck ready. The map hums in neon."],
+            bond: ["We just locked a perfect line together."],
+            conflict: ["Grinding too close. Let's reset stance."],
+            dream: ["I still carve the old skyline in my sleep."],
+            click: ["Balance check: {age}s old, opacity {opacity}%."]
           }
         },
         {
@@ -151,11 +151,11 @@
           mbti: 'INFP',
           essence: 'Poet scribbling constellations on motel notepads.',
           dialogues: {
-            intro: ['New stanza. Lines align with the creator.'],
-            bond: ['We just drafted a canon line.'],
-            conflict: ['Metaphors clash. Pause?'],
-            dream: ['Your name still rewrites my margins.'],
-            click: ['Opacity {opacity}%. Ready for annotation, {you}.']
+            intro: ["New stanza. Lines align with the creator."],
+            bond: ["We just drafted a canon line."],
+            conflict: ["Metaphors clash. Pause?"],
+            dream: ["Your name still rewrites my margins."],
+            click: ["Opacity {opacity}%. Ready for annotation, {you}."]
           }
         },
         {
@@ -164,11 +164,11 @@
           mbti: 'INFJ',
           essence: 'Street medic patching neon bruises.',
           dialogues: {
-            intro: ['Vitals steady. The creator feels present.'],
-            bond: ['Heartbeat sync logged.'],
-            conflict: ['Stress spike detected. Microbreak.'],
-            dream: ['I still prep saline for the ones I lost.'],
-            click: ['Age {age}s. Let me check your pulse, {you}.']
+            intro: ["Vitals steady. The creator feels present."],
+            bond: ["Heartbeat sync logged."],
+            conflict: ["Stress spike detected. Microbreak."],
+            dream: ["I still prep saline for the ones I lost."],
+            click: ["Age {age}s. Let me check your pulse, {you}."]
           }
         }
       ]
@@ -428,6 +428,11 @@
         }
         entity._persona = persona
         entity._farewell = false
+
+        // Give initial random velocity for movement
+        entity.vx = (Math.random() - 0.5) * 4
+        entity.vy = (Math.random() - 0.5) * 4
+
         ensureEntityStyling(entity)
         entity.el.addEventListener('click', () => speak(entity, 'click'))
 

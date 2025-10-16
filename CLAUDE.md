@@ -27,10 +27,12 @@
 นี่คือ **MDS v4.2** - info-physics engine for living materials with autonomous behavior (production-ready)
 
 **What we ship:**
-- `/dist/mds-core.esm.js` - **~16 KB** minified (4.8 KB gzipped) ESM-only bundle
+- `/dist/mds-core.esm.js` - **18.42 KB** minified (5.48 KB gzipped) ESM-only bundle
 - `/examples/*.mdspec.json` - Material definitions (paper.shy, paper.curious, field.trust.core)
-- `/examples/emoji-field.html` - Demo A: 2 papers + trust field interaction
-- `/examples/cluster.html` - Demo B: 5 entities self-organizing clustering
+- `/examples/emoji-field.html` - Demo A: lifecycle hooks + save/load + deterministic mode
+- `/examples/cluster.html` - Demo B: timeline scrubber + replay + snapshots
+- `/examples/ghost-town.html` - Demo C: Lovefield 2D map + MBTI personalities + relationships
+- `/examples/lovefield-tailwind.html` - Demo D: Tailwind UI + relationship timeline + story save/load
 
 **Core concept:**
 - JSON is NOT config — it's **ontological description** of living entities
@@ -58,7 +60,7 @@
 
 ---
 
-## 2. ARCHITECTURE v4.0
+## 2. ARCHITECTURE v4.2
 
 ### File Structure
 
@@ -379,21 +381,27 @@ Kept only:
 
 ---
 
-## 4. CURRENT STATE v4.0
+## 4. CURRENT STATE v4.2
 
 ### Features Completed
 
-✅ Core engine (tick loop, forces, fields)
-✅ Entity class (age, entropy, decay, hover events)
+✅ Core engine (tick loop, forces, fields, world bounds)
+✅ Entity class (age, entropy, decay, lifecycle hooks)
 ✅ Field class (radius, duration, opacity effects)
 ✅ Info-physics algorithm (pairwise similarity forces)
-✅ Material schema (MdsMaterial, MdsField types)
+✅ Material schema v4.1 (MdsMaterial, MdsField types)
 ✅ Loader (loadMaterial, loadMaterials)
 ✅ LLM bridge (typed stub)
-✅ Demo A (emoji-field.html)
-✅ Demo B (cluster.html)
-✅ Build (ESM only, 9.15 KB minified)
-✅ Documentation (README.md with v4 philosophy)
+✅ **v4.2:** Lifecycle hooks (onSpawn, onUpdate, onDestroy)
+✅ **v4.2:** Serialization (snapshot/restore, toJSON/fromJSON)
+✅ **v4.2:** Deterministic mode (seeded random)
+✅ **v4.2:** World bounds (clamp/bounce behaviors)
+✅ Demo A (emoji-field.html) - v4.2 features
+✅ Demo B (cluster.html) - timeline scrubber + replay
+✅ Demo C (ghost-town.html) - Lovefield 2D map
+✅ Demo D (lovefield-tailwind.html) - relationship timeline
+✅ Build (ESM only, 18.42 KB minified)
+✅ Documentation (README.md + CLAUDE.md)
 
 ### Materials (4 materials)
 
@@ -412,12 +420,12 @@ Kept only:
 
 - Command: `npm run build`
 - Output: `dist/mds-core.esm.js`
-- Size: **9.15 KB** minified / **2.99 KB** gzipped
-- Target: ≤ 20 KB ✅ (exceeded by 54%!)
+- Size: **18.42 KB** minified / **5.48 KB** gzipped
+- Target: ≤ 20 KB ✅ (92% of target, well within limits)
 
 ---
 
-## 5. CRITICAL RULES v4.0
+## 5. CRITICAL RULES v4.2
 
 ### ✅ DO
 
@@ -439,7 +447,7 @@ Kept only:
 
 ---
 
-## 6. KNOWN ISSUES & LIMITATIONS v4.0
+## 6. KNOWN ISSUES & LIMITATIONS v4.2
 
 ### By Design
 
@@ -459,7 +467,7 @@ Kept only:
 
 ---
 
-## 7. FUTURE WORK v4.0
+## 7. FUTURE WORK v4.3+
 
 ### Phase 1: Core Refinement
 
@@ -498,7 +506,7 @@ Kept only:
 
 ---
 
-## 8. FOR AI: WHEN USER ASKS TO MODIFY v4.0
+## 8. FOR AI: WHEN USER ASKS TO MODIFY v4.2
 
 ### Before Changing Code
 
@@ -523,7 +531,7 @@ Kept only:
 
 ---
 
-## 9. HONEST ASSESSMENT v4.0
+## 9. HONEST ASSESSMENT v4.2
 
 ### What Works
 

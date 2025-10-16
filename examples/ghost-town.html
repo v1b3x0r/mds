@@ -426,6 +426,8 @@
   <div class="control-dock">
     <button class="btn" onclick="window.spawnRandomGhost()">👾 Spawn Teen</button>
     <button class="btn" id="btn-toggle-pause" onclick="window.pauseSimulation()">⏸️ Pause</button>
+    <button class="btn" onclick="window.saveTown()">💾 Save Town</button>
+    <button class="btn" onclick="window.loadTown()">📂 Load Town</button>
     <button class="btn" onclick="window.clearAll()">🧹 Reset Map</button>
     <button class="btn" onclick="window.showDOMInfo()">🌐 About</button>
   </div>
@@ -1504,8 +1506,77 @@ Try:
 4. Inspect DevTools console for narrative telemetry.`)
     }
 
+    // === v4.2 SAVE/LOAD TOWN ===
+    window.saveTown = () => {
+      const snapshot = engine.snapshot()
+      const townData = {
+        snapshot,
+        characters: allSpawnedGhosts.map(g => ({
+          charIndex: characters.indexOf(g._personality),
+          x: g.x,
+          y: g.y,
+          age: g.age,
+          opacity: g.opacity,
+          _metGhosts: g._metGhosts ? Array.from(g._metGhosts) : []
+        }))
+      }
+      localStorage.setItem('lovefield-town', JSON.stringify(townData))
+      updateMapNote('💾 Town saved to localStorage')
+      console.log('💾 Town saved:', townData)
+    }
+
+    window.loadTown = () => {
+      const data = localStorage.getItem('lovefield-town')
+      if (!data) {
+        updateMapNote('❌ No saved town found')
+        return
+      }
+
+      try {
+        const townData = JSON.parse(data)
+
+        // Create material maps (all characters)
+        const materialMap = new Map()
+        allSpawnedGhosts.forEach(g => {
+          if (g.m && g.m.material) {
+            materialMap.set(g.m.material, g.m)
+          }
+        })
+
+        // Restore engine state
+        engine.stop()
+        engine.clear()
+
+        if (townData.snapshot) {
+          const fieldMap = new Map()  // Empty for now
+          engine.restore(townData.snapshot, materialMap, fieldMap)
+        }
+
+        // Re-populate allSpawnedGhosts
+        allSpawnedGhosts.length = 0
+        engine.getEntities().forEach((entity, i) => {
+          const charData = townData.characters[i]
+          if (charData && characters[charData.charIndex]) {
+            entity._personality = characters[charData.charIndex]
+            if (charData._metGhosts) {
+              entity._metGhosts = new Set(charData._metGhosts)
+            }
+          }
+          allSpawnedGhosts.push(entity)
+        })
+
+        engine.start()
+        updateMapNote('📂 Town loaded from localStorage')
+        console.log('📂 Town loaded:', townData)
+      } catch (e) {
+        console.error('Load failed:', e)
+        updateMapNote('❌ Load failed: ' + e.message)
+      }
+    }
+
     console.log('%c❤️‍🔥 Lovefield map initialized', 'font-size: 20px; color: #ff8bd1')
     console.log('%cEmergent teen drama on a DOM game board.', 'font-size: 14px; color: #aaa')
+    console.log('%cNEW v4.2: Save/Load Town with 💾 📂 buttons', 'font-size: 12px; color: #77ffe2')
 
     engine.start()
     monitorLifecycles()

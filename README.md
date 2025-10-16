@@ -1,4 +1,4 @@
-# MDS v4.0 — Info-Physics Engine
+# MDS v4.2 — Info-Physics Engine (Stable)
 
 > **This is not a component.**
 > **This is not a UI.**
@@ -8,7 +8,7 @@ JSON here is not config. It's a description of a stateful entity that behaves un
 
 ---
 
-## 🌌 What is MDS v4.0?
+## 🌌 What is MDS v4.2?
 
 A tiny, framework-free TypeScript engine that treats materials as **living entities** with autonomous behavior. Materials age, fade, move, and spawn relationship fields—all without hardcoded rules or AI.
 
@@ -16,7 +16,8 @@ A tiny, framework-free TypeScript engine that treats materials as **living entit
 - **Essence-first design**: A material with only `essence` still works
 - **Info-physics**: Entities attract/repel based on semantic similarity
 - **Emergence**: Complex behaviors arise from simple rules
-- **Tiny**: ≤ 10KB minified (≤ 3KB gzipped)
+- **Production-ready**: Lifecycle hooks, serialization, deterministic mode
+- **Tiny**: 18.42 KB minified (5.48 KB gzipped)
 
 ---
 
@@ -406,19 +407,22 @@ MIT © [v1b3x0r](https://github.com/v1b3x0r)
 
 ## 📊 Comparison with v3.0
 
-| Feature | v3.0 | v4.0 |
+| Feature | v3.0 | v4.2 |
 |---------|------|------|
 | **Concept** | CSS material system | Info-physics engine |
 | **JSON Role** | Visual config | Entity ontology |
 | **Behavior** | Event-driven (hover, press) | Autonomous (aging, forces) |
 | **Physics** | Optional tactile deform | Core attraction/repulsion |
 | **Theme** | Light/dark switching | None (essence-driven) |
-| **Bundle Size** | 25 KB | 9.15 KB |
+| **Bundle Size** | 25 KB | 18.42 KB |
+| **Lifecycle** | None | Hooks (onSpawn/onUpdate/onDestroy) |
+| **State** | Not serializable | Full snapshot/restore |
+| **Mode** | Non-deterministic | Deterministic option |
 | **Use Case** | UI design system | Interactive simulations |
 
 **v3 and v4 are incompatible. Choose based on your goal:**
 - Want CSS materials? → Use v3
-- Want living entities? → Use v4
+- Want living entities? → Use v4.2
 
 ---
 
@@ -426,7 +430,8 @@ MIT © [v1b3x0r](https://github.com/v1b3x0r)
 - Materials are descriptions (ontology)
 - Fields are emergent (spawned by relations)
 - Works without LLM; LLM bridge is optional
-- Core is tiny (≤ 10 KB minified; ≤ 3 KB gzipped)
+- Production-ready: lifecycle hooks, serialization, deterministic mode
+- Core is tiny (18.42 KB minified; 5.48 KB gzipped)
 
 ---
 
