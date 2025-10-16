@@ -18,14 +18,17 @@
     "materials",
     "examples",
     "docs",
-    "README.md",
+    "README.npm.md",
     "LICENSE"
   ],
+  "readme": "README.npm.md",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build && test -f README.github.md || mv README.md README.github.md && cp README.npm.md README.md",
+    "postpublish": "test -f README.github.md && mv README.github.md README.md || true"
   },
   "keywords": [
     "info-physics",
