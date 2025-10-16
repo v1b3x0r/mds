@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lovefield // Tailwind Playground</title>
+    <title>Lovefield // Tailwind Playground (v4.2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-slate-950 text-slate-100">
@@ -26,15 +26,20 @@
         <div class="pointer-events-none absolute inset-0" id="entity-layer"></div>
       </div>
 
+      <!-- HUD Left Panel -->
       <section class="pointer-events-none absolute left-6 top-6 flex w-64 flex-col gap-4">
         <article class="rounded-2xl border border-slate-200/15 bg-slate-900/70 p-4 shadow-xl">
-          <header class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-300/80">Lovefield HUD</header>
+          <header class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-300/80">Lovefield HUD v4.2</header>
           <dl class="mt-3 space-y-2 text-sm text-slate-200/80">
             <div class="flex justify-between"><dt>Population</dt><dd id="hud-pop">0</dd></div>
             <div class="flex justify-between"><dt>Bonds</dt><dd id="hud-bonds">0</dd></div>
             <div class="flex justify-between"><dt>Breakups</dt><dd id="hud-breakups">0</dd></div>
             <div class="flex justify-between"><dt>Dream pulses</dt><dd id="hud-dreams">0</dd></div>
             <div class="flex justify-between"><dt>Fields</dt><dd id="hud-fields">0</dd></div>
+            <div class="flex justify-between border-t border-slate-700/50 pt-2 mt-2">
+              <dt class="text-xs">Mode</dt>
+              <dd id="hud-mode" class="text-xs font-mono text-fuchsia-300">Random</dd>
+            </div>
           </dl>
         </article>
 
@@ -46,11 +51,26 @@
         </article>
       </section>
 
+      <!-- Timeline Panel (Right) -->
+      <section class="pointer-events-auto absolute right-6 top-6 w-72 max-h-[70vh] overflow-y-auto rounded-2xl border border-amber-200/20 bg-amber-900/30 p-4 shadow-xl backdrop-blur-md">
+        <header class="sticky top-0 bg-amber-900/80 -mx-4 -mt-4 px-4 py-3 mb-3 border-b border-amber-200/20">
+          <div class="text-xs font-semibold uppercase tracking-[0.28em] text-amber-100">Relationship Timeline</div>
+          <div class="text-[10px] text-amber-200/60 mt-1">v4.2 Serialization Active</div>
+        </header>
+        <div class="space-y-2" id="timeline-events">
+          <div class="text-xs text-amber-200/50 italic">No events yet. Spawn teens to begin.</div>
+        </div>
+      </section>
+
+      <!-- Control Buttons Bottom -->
       <section class="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-3">
         <button class="rounded-full bg-fuchsia-500/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-fuchsia-500/30 transition hover:bg-fuchsia-500" id="btn-spawn">Spawn Teen</button>
         <button class="rounded-full bg-slate-800/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-slate-200 transition hover:bg-slate-700" id="btn-pause">Pause</button>
         <button class="rounded-full bg-slate-800/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-slate-200 transition hover:bg-slate-700" id="btn-reset">Reset</button>
-        <button class="rounded-full bg-sky-600/80 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-sky-600/40 transition hover:bg-sky-600" id="btn-info">About</button>
+        <button class="rounded-full bg-emerald-600/80 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-600" id="btn-save">💾 Save</button>
+        <button class="rounded-full bg-amber-600/80 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-amber-600/30 transition hover:bg-amber-600" id="btn-load">📂 Load</button>
+        <button class="rounded-full bg-violet-600/80 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-violet-600/30 transition hover:bg-violet-600" id="btn-seed">🎲 Seed</button>
+        <button class="rounded-full bg-sky-600/80 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-white shadow-lg shadow-sky-600/40 transition hover:bg-sky-600" id="btn-info">About</button>
       </section>
     </main>
 
@@ -60,6 +80,8 @@
       const entityLayer = document.getElementById('entity-layer')
       const fieldLayer = document.getElementById('field-layer')
       const feedBody = document.getElementById('feed-body')
+      const timelineEvents = document.getElementById('timeline-events')
+      const hudMode = document.getElementById('hud-mode')
 
       const stats = {
         pop: document.getElementById('hud-pop'),
@@ -76,16 +98,26 @@
         maxY: window.innerHeight - 160
       })
 
-      const engine = new Engine({
+      // ========================================
+      // v4.2 Features: Deterministic Mode
+      // ========================================
+      let useSeed = false
+      const SEED = 88888
+
+      let engine = new Engine({
         worldBounds: bounds(),
         boundaryBehavior: 'bounce',
-        boundaryBounceDamping: 0.82
+        boundaryBounceDamping: 0.82,
+        seed: useSeed ? SEED : undefined
       })
 
       window.addEventListener('resize', () => {
         engine.configure({ worldBounds: bounds() })
       })
 
+      // ========================================
+      // Characters Data
+      // ========================================
       const characters = [
         {
           emoji: '🎧',
@@ -108,7 +140,7 @@
           dialogues: {
             intro: ['Deck ready. The map hums in neon.'],
             bond: ['We just locked a perfect line together.'],
-            conflict: ['Grinding too close. Let’s reset stance.'],
+            conflict: ['Grinding too close. Let's reset stance.'],
             dream: ['I still carve the old skyline in my sleep.'],
             click: ['Balance check: {age}s old, opacity {opacity}%.']
           }
@@ -141,13 +173,96 @@
         }
       ]
 
+      // ========================================
+      // Global State
+      // ========================================
       const state = {
         interactions: 0,
         bonds: 0,
         breakups: 0,
-        dreams: 0
+        dreams: 0,
+        startTime: performance.now(),
+        timeline: []  // v4.2: Event timeline
       }
 
+      // ========================================
+      // v4.2 Timeline System
+      // ========================================
+      const addTimelineEvent = (type, actor, target, details = '') => {
+        const elapsed = Math.round((performance.now() - state.startTime) / 1000)
+        const event = {
+          time: elapsed,
+          type,
+          actor: actor?._profile?.name ?? 'Unknown',
+          actorId: actor?._profile?.id,
+          target: target?._profile?.name,
+          targetId: target?._profile?.id,
+          details
+        }
+        state.timeline.push(event)
+
+        // Update UI
+        const div = document.createElement('div')
+        div.className = 'rounded-lg border p-3 text-xs'
+
+        if (type === 'spawn') {
+          div.classList.add('border-sky-300/30', 'bg-sky-900/20')
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-sky-200">${event.actor} spawned</span>
+              <span class="text-sky-300/60 text-[10px]">${elapsed}s</span>
+            </div>
+            <div class="text-sky-200/60">${details}</div>
+          `
+        } else if (type === 'bond') {
+          div.classList.add('border-fuchsia-300/40', 'bg-fuchsia-900/20')
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-fuchsia-200">${event.actor} ↔ ${event.target}</span>
+              <span class="text-fuchsia-300/60 text-[10px]">${elapsed}s</span>
+            </div>
+            <div class="text-fuchsia-200/70">✨ Bond formed</div>
+          `
+        } else if (type === 'breakup') {
+          div.classList.add('border-rose-300/40', 'bg-rose-900/20')
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-rose-200">${event.actor} ⚡ ${event.target}</span>
+              <span class="text-rose-300/60 text-[10px]">${elapsed}s</span>
+            </div>
+            <div class="text-rose-200/70">💔 Breakup</div>
+          `
+        } else if (type === 'dream') {
+          div.classList.add('border-violet-300/30', 'bg-violet-900/15')
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-violet-200">${event.actor} → ${event.target}</span>
+              <span class="text-violet-300/60 text-[10px]">${elapsed}s</span>
+            </div>
+            <div class="text-violet-200/60">💭 Dream pulse</div>
+          `
+        } else if (type === 'destroy') {
+          div.classList.add('border-amber-300/30', 'bg-amber-900/15')
+          div.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="font-semibold text-amber-200">${event.actor} faded</span>
+              <span class="text-amber-300/60 text-[10px]">${elapsed}s</span>
+            </div>
+            <div class="text-amber-200/60">${details}</div>
+          `
+        }
+
+        timelineEvents.prepend(div)
+
+        // Keep max 20 events in DOM
+        while (timelineEvents.children.length > 20) {
+          timelineEvents.removeChild(timelineEvents.lastChild)
+        }
+      }
+
+      // ========================================
+      // Feed System
+      // ========================================
       const pushFeed = (message, icon = '👁️') => {
         const p = document.createElement('p')
         p.textContent = `${icon} ${message}`
@@ -155,6 +270,9 @@
         while (feedBody.children.length > 6) feedBody.removeChild(feedBody.lastChild)
       }
 
+      // ========================================
+      // Format & Speak
+      // ========================================
       const format = (template, entity, other, extras = {}) => {
         if (!template) return ''
         const replace = {
@@ -181,6 +299,9 @@
         pushFeed(`${entity._profile.name}: ${sentence}`, '🔮')
       }
 
+      // ========================================
+      // Entity & Field Styling
+      // ========================================
       const ensureEntityStyling = entity => {
         entity.el.classList.add(
           'pointer-events-auto',
@@ -207,8 +328,9 @@
         )
       }
 
-      const entityById = id => engine.getEntities().find(e => e._profile?.id === id)
-
+      // ========================================
+      // Stats Refresh
+      // ========================================
       const statsRefresh = () => {
         stats.pop.textContent = engine.getEntities().length
         stats.bonds.textContent = state.bonds
@@ -217,6 +339,9 @@
         stats.fields.textContent = engine.getFields().length
       }
 
+      // ========================================
+      // Relationship Management
+      // ========================================
       const ensureRelationship = (source, target) => {
         if (!source._relations) source._relations = new Map()
         if (!source._relations.has(target._profile.id)) {
@@ -231,49 +356,58 @@
         relA.fondness = Math.min(1, relA.fondness + 0.004 * (1 - dist / 160))
         relB.fondness = Math.min(1, relB.fondness + 0.004 * (1 - dist / 160))
 
+        // Bond formation
         if (relA.fondness > 0.35 && relA.state !== 'bonded') {
           relA.state = relB.state = 'bonded'
           state.bonds++
           speak(a, 'bond', b)
           speak(b, 'bond', a)
-        const field = engine.spawnField({
-          material: `field.bond.${a._profile.id}.${b._profile.id}`,
-          type: 'field',
-          origin: '$bind',
-          radius: 190,
-          duration: 9500,
-          visual: true,
-          effect_on_others: { opacity: 0.78 }
-        }, (a.x + b.x) / 2, (a.y + b.y) / 2)
-        ensureFieldStyling(field)
-      }
-
-      if (relA.fondness < 0.15 && relA.state === 'bonded') {
-        relA.state = relB.state = 'ex'
-        state.breakups++
-        speak(a, 'conflict', b)
-        const field = engine.spawnField({
-          material: `field.tension.${a._profile.id}.${b._profile.id}`,
-          type: 'field',
-          origin: '$bind',
-          radius: 150,
-          duration: 7200,
-          visual: true,
-          effect_on_others: { opacity: 0.6 }
-        }, (a.x + b.x) / 2, (a.y + b.y) / 2)
-        if (field.el) {
-          fieldLayer.appendChild(field.el)
-          field.el.classList.add('border-rose-200/40', 'bg-rose-400/10', 'shadow-[0_0_70px_rgba(248,113,113,0.45)]')
+          addTimelineEvent('bond', a, b)  // v4.2: Log to timeline
+          const field = engine.spawnField({
+            material: `field.bond.${a._profile.id}.${b._profile.id}`,
+            type: 'field',
+            origin: '$bind',
+            radius: 190,
+            duration: 9500,
+            visual: true,
+            effect_on_others: { opacity: 0.78 }
+          }, (a.x + b.x) / 2, (a.y + b.y) / 2)
+          ensureFieldStyling(field)
         }
-      }
 
+        // Breakup detection
+        if (relA.fondness < 0.15 && relA.state === 'bonded') {
+          relA.state = relB.state = 'ex'
+          state.breakups++
+          speak(a, 'conflict', b)
+          addTimelineEvent('breakup', a, b)  // v4.2: Log to timeline
+          const field = engine.spawnField({
+            material: `field.tension.${a._profile.id}.${b._profile.id}`,
+            type: 'field',
+            origin: '$bind',
+            radius: 150,
+            duration: 7200,
+            visual: true,
+            effect_on_others: { opacity: 0.6 }
+          }, (a.x + b.x) / 2, (a.y + b.y) / 2)
+          if (field.el) {
+            fieldLayer.appendChild(field.el)
+            field.el.classList.add('border-rose-200/40', 'bg-rose-400/10', 'shadow-[0_0_70px_rgba(248,113,113,0.45)]')
+          }
+        }
+
+        // Dream pulse (ex remembering ex)
         if (Math.random() < 0.002 && relA.state === 'ex') {
           speak(a, 'dream', b)
           state.dreams++
+          addTimelineEvent('dream', a, b)  // v4.2: Log to timeline
         }
         statsRefresh()
       }
 
+      // ========================================
+      // Spawn Teen with v4.2 Lifecycle Hooks
+      // ========================================
       const spawnTeen = () => {
         const persona = characters[Math.floor(Math.random() * characters.length)]
         const margin = 180
@@ -296,13 +430,27 @@
         entity._farewell = false
         ensureEntityStyling(entity)
         entity.el.addEventListener('click', () => speak(entity, 'click'))
+
+        // v4.2 Lifecycle Hooks
+        entity.onSpawn = (eng, e) => {
+          addTimelineEvent('spawn', e, null, `${e._persona.mbti} • ${e._persona.essence.slice(0, 40)}...`)
+        }
+
+        entity.onDestroy = (e) => {
+          addTimelineEvent('destroy', e, null, `Final age: ${Math.round(e.age)}s, opacity: ${Math.round(e.opacity * 100)}%`)
+        }
+
         entity.onProximity = (eng, other, dist) => {
           onMeet(entity, other, dist)
         }
+
         speak(entity, 'intro')
         statsRefresh()
       }
 
+      // ========================================
+      // Monitor Life (Farewell Trigger)
+      // ========================================
       const monitorLife = () => {
         for (const entity of engine.getEntities()) {
           if (entity.opacity < 0.18 && !entity._farewell) {
@@ -313,6 +461,190 @@
         setTimeout(monitorLife, 1400)
       }
 
+      // ========================================
+      // v4.2 Save/Load System
+      // ========================================
+      window.saveStory = () => {
+        const snapshot = engine.snapshot()
+        const storyData = {
+          snapshot,
+          state: {
+            bonds: state.bonds,
+            breakups: state.breakups,
+            dreams: state.dreams,
+            startTime: state.startTime,
+            timeline: state.timeline
+          },
+          teens: engine.getEntities().map(e => ({
+            profileId: e._profile?.id,
+            profileName: e._profile?.name,
+            profileMbti: e._profile?.mbti,
+            personaIndex: characters.findIndex(c => c.name === e._persona?.name),
+            farewell: e._farewell,
+            relations: e._relations ? Array.from(e._relations.entries()).map(([k, v]) => [k, v]) : []
+          })),
+          useSeed,
+          version: '4.2'
+        }
+        localStorage.setItem('lovefield-story-v4.2', JSON.stringify(storyData))
+        pushFeed('💾 Story saved to localStorage (v4.2)', '💾')
+        alert('✅ Story saved successfully!\n\n' +
+              `Population: ${engine.getEntities().length}\n` +
+              `Bonds: ${state.bonds}\n` +
+              `Timeline events: ${state.timeline.length}`)
+        console.log('💾 Story saved:', storyData)
+      }
+
+      window.loadStory = () => {
+        const data = localStorage.getItem('lovefield-story-v4.2')
+        if (!data) {
+          alert('❌ No saved story found')
+          return
+        }
+
+        try {
+          const storyData = JSON.parse(data)
+          console.log('📂 Loading story:', storyData)
+
+          // Stop engine
+          engine.stop()
+          engine.clear()
+          entityLayer.querySelectorAll('*').forEach(el => el.remove())
+          fieldLayer.querySelectorAll('*').forEach(el => el.remove())
+
+          // Restore state
+          state.bonds = storyData.state.bonds
+          state.breakups = storyData.state.breakups
+          state.dreams = storyData.state.dreams
+          state.startTime = storyData.state.startTime
+          state.timeline = storyData.state.timeline
+
+          // Rebuild timeline UI
+          timelineEvents.innerHTML = ''
+          for (const event of storyData.state.timeline.slice().reverse()) {
+            addTimelineEvent(event.type,
+              { _profile: { name: event.actor, id: event.actorId } },
+              event.target ? { _profile: { name: event.target, id: event.targetId } } : null,
+              event.details
+            )
+          }
+
+          // Create material maps
+          const materialMap = new Map()
+          storyData.teens.forEach((t, i) => {
+            const persona = characters[t.personaIndex]
+            if (persona) {
+              const matId = `teen.${persona.name.toLowerCase()}`
+              materialMap.set(matId, {
+                material: matId,
+                essence: persona.essence,
+                manifestation: { emoji: persona.emoji, aging: { start_opacity: 1, decay_rate: 0.006 } },
+                physics: { mass: 1, friction: 0.035 }
+              })
+            }
+          })
+
+          // Restore engine snapshot
+          const fieldMap = new Map()
+          engine.restore(storyData.snapshot, materialMap, fieldMap)
+
+          // Re-attach profiles and hooks
+          const entities = engine.getEntities()
+          entities.forEach((entity, i) => {
+            const teenData = storyData.teens[i]
+            if (!teenData) return
+
+            const persona = characters[teenData.personaIndex]
+            if (!persona) return
+
+            entity._profile = {
+              id: teenData.profileId,
+              name: teenData.profileName,
+              mbti: teenData.profileMbti
+            }
+            entity._persona = persona
+            entity._farewell = teenData.farewell
+
+            // Restore relations
+            if (teenData.relations && teenData.relations.length > 0) {
+              entity._relations = new Map(teenData.relations)
+            }
+
+            // Re-attach to layer
+            entityLayer.appendChild(entity.el)
+            ensureEntityStyling(entity)
+
+            // Re-attach event listeners
+            entity.el.addEventListener('click', () => speak(entity, 'click'))
+            entity.onProximity = (eng, other, dist) => {
+              onMeet(entity, other, dist)
+            }
+
+            // Re-attach lifecycle hooks
+            entity.onSpawn = (eng, e) => {
+              addTimelineEvent('spawn', e, null, `${e._persona.mbti} • ${e._persona.essence.slice(0, 40)}...`)
+            }
+            entity.onDestroy = (e) => {
+              addTimelineEvent('destroy', e, null, `Final age: ${Math.round(e.age)}s, opacity: ${Math.round(e.opacity * 100)}%`)
+            }
+          })
+
+          // Restart engine
+          engine.start()
+          statsRefresh()
+          pushFeed('📂 Story loaded from localStorage (v4.2)', '📂')
+          alert('✅ Story loaded successfully!\n\n' +
+                `Population: ${entities.length}\n` +
+                `Bonds: ${state.bonds}\n` +
+                `Timeline events: ${state.timeline.length}`)
+        } catch (e) {
+          console.error('Load failed:', e)
+          alert('❌ Load failed: ' + e.message)
+          pushFeed('❌ Load failed', '⚠️')
+        }
+      }
+
+      // ========================================
+      // v4.2 Seed Toggle (Deterministic Mode)
+      // ========================================
+      window.toggleSeed = () => {
+        useSeed = !useSeed
+        hudMode.textContent = useSeed ? `Seed ${SEED}` : 'Random'
+        hudMode.className = useSeed ? 'text-xs font-mono text-violet-300' : 'text-xs font-mono text-fuchsia-300'
+
+        // Restart engine
+        engine.stop()
+        engine.clear()
+        entityLayer.querySelectorAll('*').forEach(el => el.remove())
+        fieldLayer.querySelectorAll('*').forEach(el => el.remove())
+
+        engine = new Engine({
+          worldBounds: bounds(),
+          boundaryBehavior: 'bounce',
+          boundaryBounceDamping: 0.82,
+          seed: useSeed ? SEED : undefined
+        })
+
+        // Reset state
+        state.bonds = 0
+        state.breakups = 0
+        state.dreams = 0
+        state.startTime = performance.now()
+        state.timeline = []
+        timelineEvents.innerHTML = '<div class="text-xs text-amber-200/50 italic">No events yet. Spawn teens to begin.</div>'
+        feedBody.innerHTML = ''
+
+        pushFeed(`🎲 Mode: ${useSeed ? 'Deterministic (Seed ' + SEED + ')' : 'Random'}`)
+        statsRefresh()
+        engine.start()
+        monitorLife()
+        spawnTeen()
+        spawnTeen()
+      }
+
+      // ========================================
+      // Button Handlers
+      // ========================================
       document.getElementById('btn-spawn').addEventListener('click', () => spawnTeen())
 
       let paused = false
@@ -333,13 +665,39 @@
         fieldLayer.querySelectorAll('*').forEach(el => el.remove())
         feedBody.innerHTML = ''
         state.bonds = state.breakups = state.dreams = 0
+        state.startTime = performance.now()
+        state.timeline = []
+        timelineEvents.innerHTML = '<div class="text-xs text-amber-200/50 italic">No events yet. Spawn teens to begin.</div>'
         pushFeed('World reset. The glass forgets softly.')
         statsRefresh()
       })
 
+      document.getElementById('btn-save').addEventListener('click', () => window.saveStory())
+      document.getElementById('btn-load').addEventListener('click', () => window.loadStory())
+      document.getElementById('btn-seed').addEventListener('click', () => window.toggleSeed())
+
       document.getElementById('btn-info').addEventListener('click', () => {
-        alert(`Lovefield Tailwind Demo\n\n- Engine bounds: bounce ${JSON.stringify(engine.getOptions().worldBounds)}\n- Teens inherit MBTI-based dialog\n- HUD + feed implemented with Tailwind utilities`)
+        alert(`Lovefield Tailwind Demo v4.2\n\n` +
+              `✨ NEW v4.2 Features:\n` +
+              `- Relationship Timeline (right panel)\n` +
+              `- Save/Load Story (localStorage)\n` +
+              `- Deterministic Mode (seed toggle)\n` +
+              `- Lifecycle Hooks (spawn/destroy logging)\n\n` +
+              `🎮 Controls:\n` +
+              `- Engine bounds: bounce ${JSON.stringify(engine.getOptions().worldBounds)}\n` +
+              `- Teens inherit MBTI-based dialog\n` +
+              `- Click teens to hear their thoughts\n` +
+              `- HUD + feed implemented with Tailwind utilities`)
       })
+
+      // ========================================
+      // Init
+      // ========================================
+      console.log('🎮 Lovefield Tailwind v4.2 initialized')
+      console.log('✅ Lifecycle hooks active')
+      console.log('✅ Serialization enabled')
+      console.log('✅ Timeline tracking enabled')
+      console.log('✅ Deterministic mode available (seed toggle)')
 
       engine.start()
       monitorLife()
