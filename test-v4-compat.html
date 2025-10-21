@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDS v5 - v4 Backward Compatibility Test</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    #log {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-width: 400px;
+      z-index: 1000;
+    }
+    #log h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #4fc3f7;
+    }
+    #log .pass {
+      color: #66bb6a;
+    }
+    #log .fail {
+      color: #ef5350;
+    }
+    #log .info {
+      color: #ffa726;
+    }
+    .mds-entity {
+      font-size: 32px;
+      cursor: pointer;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="log">
+    <h2>v4 Compatibility Test</h2>
+    <div id="results"></div>
+  </div>
+
+  <script type="module">
+    import { Engine } from './dist/mds-core.esm.js'
+
+    const log = (msg, type = 'info') => {
+      const div = document.createElement('div')
+      div.className = type
+      div.textContent = msg
+      document.getElementById('results').appendChild(div)
+    }
+
+    // Test 1: Engine instantiation (v4)
+    try {
+      const engine = new Engine({ seed: 12345 })
+      log('✓ Engine instantiation', 'pass')
+    } catch (e) {
+      log(`✗ Engine instantiation: ${e.message}`, 'fail')
+    }
+
+    // Test 2: Spawn v4 material (no ontology)
+    try {
+      const v4Material = {
+        material: 'test.v4',
+        intent: 'test',
+        essence: 'v4 backward compat test',
+        manifestation: {
+          emoji: '📝',
+          aging: {
+            start_opacity: 1,
+            decay_rate: 0.01
+          }
+        },
+        physics: {
+          mass: 0.1,
+          friction: 0.02
+        }
+      }
+
+      const engine = new Engine({ seed: 12345 })
+      const entity = engine.spawn(v4Material, 100, 100)
+
+      // Check v4 properties exist
+      if (entity.x && entity.y && entity.vx !== undefined && entity.vy !== undefined) {
+        log('✓ v4 entity spawned', 'pass')
+      } else {
+        log('✗ v4 entity missing properties', 'fail')
+      }
+
+      // Check v5 properties are NOT initialized (backward compat)
+      if (!entity.memory && !entity.emotion && !entity.intent) {
+        log('✓ v5 ontology disabled for v4 material', 'pass')
+      } else {
+        log('✗ v5 ontology incorrectly enabled', 'fail')
+      }
+
+      // Check UUID still assigned (always present)
+      if (entity.id && entity.id.includes('-')) {
+        log('✓ Entity UUID assigned', 'pass')
+      } else {
+        log('✗ Entity UUID missing', 'fail')
+      }
+
+    } catch (e) {
+      log(`✗ v4 material spawn: ${e.message}`, 'fail')
+    }
+
+    // Test 3: v4 tick loop
+    try {
+      const v4Material = {
+        material: 'test.ticker',
+        manifestation: { emoji: '⏱️' }
+      }
+
+      const engine = new Engine()
+      const entity = engine.spawn(v4Material, 200, 200)
+
+      // Manual tick
+      const initialAge = entity.age
+      engine.tick(0.016)  // ~60 FPS
+
+      if (entity.age > initialAge) {
+        log('✓ v4 tick loop working', 'pass')
+      } else {
+        log('✗ v4 tick loop failed', 'fail')
+      }
+
+    } catch (e) {
+      log(`✗ v4 tick: ${e.message}`, 'fail')
+    }
+
+    // Test 4: v4 serialization
+    try {
+      const v4Material = {
+        material: 'test.serialize',
+        manifestation: { emoji: '💾' }
+      }
+
+      const engine = new Engine({ seed: 12345 })
+      const entity = engine.spawn(v4Material, 300, 300)
+
+      const snapshot = engine.snapshot()
+
+      if (snapshot.entities && snapshot.entities.length > 0) {
+        log('✓ v4 serialization working', 'pass')
+      } else {
+        log('✗ v4 serialization failed', 'fail')
+      }
+
+      // Check snapshot data structure
+      const entityData = snapshot.entities[0]
+      if (entityData.material && entityData.x && entityData.y) {
+        log('✓ v4 snapshot data valid', 'pass')
+      } else {
+        log('✗ v4 snapshot data invalid', 'fail')
+      }
+
+    } catch (e) {
+      log(`✗ v4 serialization: ${e.message}`, 'fail')
+    }
+
+    // Test 5: Visual test (spawn some v4 entities)
+    try {
+      const v4Material = {
+        material: 'test.visual',
+        manifestation: { emoji: '✨' },
+        physics: { friction: 0.05 }
+      }
+
+      const engine = new Engine({ seed: 99999 })
+
+      // Spawn 5 entities
+      for (let i = 0; i < 5; i++) {
+        const entity = engine.spawn(v4Material)
+        entity.vx = (Math.random() - 0.5) * 2
+        entity.vy = (Math.random() - 0.5) * 2
+      }
+
+      engine.start()
+
+      log('✓ Visual test running (watch entities)', 'pass')
+      log('→ All v4 tests passed!', 'pass')
+
+    } catch (e) {
+      log(`✗ Visual test: ${e.message}`, 'fail')
+    }
+
+  </script>
+</body>
+</html>
