@@ -1,14 +1,17 @@
 /**
- * MDS v4.0 - Material Loader
- * Load material definitions from JSON manifests
+ * MDS v5.0 - Material Loader
+ * Load material definitions from .mdm files (Material Definition)
  */
 
 import type { MdsMaterial } from '../schema/mdspec'
 
 /**
- * Load a material from a JSON manifest file
- * @param path - Relative or absolute path to .mdspec.json file
+ * Load a material from a .mdm file (Material Definition)
+ * @param path - Relative or absolute path to .mdm file
  * @returns Parsed material definition
+ *
+ * @example
+ * const material = await loadMaterial('./paper.shy.mdm')
  */
 export async function loadMaterial(path: string): Promise<MdsMaterial> {
   const res = await fetch(path)

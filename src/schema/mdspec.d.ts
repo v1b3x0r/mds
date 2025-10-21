@@ -1,14 +1,25 @@
 /**
- * MDS v4.1 - Material Definition Specification
+ * MDS v5.0 - Material Definition Specification (MDSpec)
  * Schema for living material descriptions (not configs)
  *
- * v4.1 Changes:
- * - Added lifecycle hooks support
- * - Added serialization support
+ * File extension: .mdm (Material Definition)
+ * World files: .world.mdm
+ *
+ * v5.0 Changes:
+ * - Complete architecture upgrade
+ * - Ontology: memory, emotion, relationships
+ * - Physics: collision, temperature, weather
+ * - Communication: messages, dialogue trees, LLM
+ * - Cognitive: learning, skills, consolidation
+ * - World mind: collective intelligence, pattern detection
  *
  * v4.2 Changes:
- * - Added deterministic mode (seeded random)
- * - Added snapshot/restore functionality
+ * - Lifecycle hooks (onSpawn/onUpdate/onDestroy)
+ * - Serialization (snapshot/restore)
+ * - Deterministic mode (seeded random)
+ *
+ * v4.1 Changes:
+ * - Entity lifecycle support
  */
 
 /**

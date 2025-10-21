@@ -17,16 +17,16 @@
  * import { Engine, loadMaterial } from '@v1b3x0r/mds-core'
  *
  * const engine = new Engine()
- * const material = await loadMaterial('./paper.shy.mdspec.json')
+ * const material = await loadMaterial('./paper.shy.mdm')
  * const entity = engine.spawn(material, 100, 100)
  * engine.start()
  *
- * // v5 usage (World with ontology)
+ * // v5 usage (World with full features)
  * import { World, loadMaterial } from '@v1b3x0r/mds-core'
  *
  * const world = new World({ features: { ontology: true } })
- * const material = await loadMaterial('./paper.v5.mdspec.json')
- * const entity = world.spawn(material, { x: 100, y: 100 })
+ * const material = await loadMaterial('./paper.curious.mdm')
+ * const entity = world.spawn(material, 100, 100)
  *
  * // Use ontology features
  * entity.remember({ type: 'observation', subject: 'world', timestamp: 0 })

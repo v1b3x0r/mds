@@ -19,7 +19,7 @@
 
 **MDS (Material Definition System)** is a TypeScript engine that turns JSON into living, breathing entities.
 
-Every `.mdspec.json` file becomes a conscious being that:
+Every `.mdm` file (Material Definition) becomes a conscious being that:
 - **Thinks** (memory, emotion, learning)
 - **Feels** (emotional states, relationship bonds)
 - **Communicates** (messages, dialogue trees)
@@ -51,7 +51,7 @@ npm install @v1b3x0r/mds-core
 import { Engine, loadMaterial } from '@v1b3x0r/mds-core'
 
 const engine = new Engine()
-const paper = await loadMaterial('./paper.shy.mdspec.json')
+const paper = await loadMaterial('./paper.shy.mdm')
 
 engine.spawn(paper, 100, 100)
 engine.start()
