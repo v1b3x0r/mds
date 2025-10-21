@@ -1,7 +1,7 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "4.2.3",
-  "description": "An intention engine for living materials. Traditional engines simulate motion. MDS simulates meaning.",
+  "version": "5.0.0",
+  "description": "Living World Simulation Engine. JSON entities that think, feel, learn, and form societies.",
   "sideEffects": false,
   "type": "module",
   "main": "./dist/mds-core.esm.js",
