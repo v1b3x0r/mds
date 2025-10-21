@@ -171,6 +171,21 @@ export {
   resetLlmAdapter
 } from './io/llmAdapter'
 
+// MDM Parser (v5.1 declarative config)
+export {
+  MdmParser,
+  parseMaterial,
+  detectLanguage,
+  getDialoguePhrase
+} from './io/mdm-parser'
+
+export type {
+  ParsedDialogue,
+  EmotionTrigger,
+  TriggerContext,
+  ParsedMaterialConfig
+} from './io/mdm-parser'
+
 // WorldFile persistence (v5)
 export {
   toWorldFile,

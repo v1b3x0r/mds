@@ -62,7 +62,7 @@ import {
   fromWorldFile,
   saveWorldFile,
   loadWorldFile
-} from './dist/mds-core.esm.js'
+} from '../dist/mds-core.esm.js'
 
 let passCount = 0
 let failCount = 0

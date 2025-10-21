@@ -24,7 +24,7 @@ global.performance = {
 global.requestAnimationFrame = (fn) => setTimeout(fn, 16)
 
 // Import MDS
-import { World, Engine } from './dist/mds-core.esm.js'
+import { World, Engine } from '../dist/mds-core.esm.js'
 
 let passCount = 0
 let failCount = 0

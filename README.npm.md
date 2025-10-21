@@ -1,319 +1,304 @@
 # @v1b3x0r/mds-core
 
 [![npm version](https://img.shields.io/npm/v/%40v1b3x0r%2Fmds-core)](https://www.npmjs.com/package/@v1b3x0r/mds-core)
-[![bundle size](https://img.shields.io/badge/min-18.42KB-blue)](https://bundlephobia.com/package/@v1b3x0r/mds-core)
 [![TypeScript](https://img.shields.io/badge/types-TypeScript-3178C6)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 
-> **MDS is not a physics engine — it's an intention engine.**
->
-> Traditional engines simulate motion.
-> MDS simulates meaning.
->
-> In this world, gravity comes from similarity,
-> and motion emerges from intent.
+> **Entities with memory, emotion, and dialogue. 140 KB. Zero dependencies.**
 
-**MDS (Material Definition System)** is a lightweight TypeScript engine for creating autonomous, interactive entities through declarative JSON definitions. Every material has an essence, and behavior emerges from the relationships between them.
+**MDS (Material Definition System)** — Write JSON that talks, remembers, and feels. No if-statements needed.
 
-## Features
+---
 
-- **18.42 KB minified** (5.48 KB gzipped) - Zero runtime dependencies
-- **Declarative**: Define materials in JSON, not imperative code
-- **Info-physics**: Entities interact based on similarity and proximity
-- **Lifecycle hooks**: `onSpawn`, `onUpdate`, `onDestroy` callbacks
-- **Serialization**: Save/load full simulation state
-- **Deterministic mode**: Reproducible simulations with seeded random
-- **TypeScript**: Full type definitions included
-- **ESM**: Modern ES modules for tree-shaking
-
-## Installation
+## Quick Start
 
 ```bash
 npm install @v1b3x0r/mds-core
 ```
 
-## Quick Start
+```javascript
+import { World } from '@v1b3x0r/mds-core'
 
-```typescript
-import { Engine, loadMaterial } from "@v1b3x0r/mds-core"
+const world = new World({ features: { ontology: true } })
 
-// Create engine
-const engine = new Engine()
+const ghost = world.spawn({
+  essence: 'Lonely ghost',
+  dialogue: {
+    intro: [{ lang: { en: 'Why am I alone?' } }]
+  }
+})
 
-// Load material definition
-const material = await loadMaterial("./paper.shy.mdspec.json")
+// Ghost speaks!
+console.log(ghost.speak('intro'))  // → "Why am I alone?"
+
+world.start()
+```
+
+**That's it.** Ghost exists, speaks, gets lonelier, fades away.
+
+---
+
+## Tutorial: Zero to Mindfuck in 10 Minutes
+
+### 1. It Speaks (2 min)
+
+```javascript
+import { World } from '@v1b3x0r/mds-core'
+
+const world = new World({ features: { ontology: true } })
+
+const entity = world.spawn({
+  essence: 'Curious shadow',
+  dialogue: {
+    intro: [{
+      lang: {
+        en: 'You see me, but do you remember me?',
+        th: 'เธอเห็นฉัน... แต่เธอจำฉันได้ไหม?'
+      }
+    }]
+  }
+}, 200, 200)
+
+// Speak (auto-detects browser language)
+console.log(entity.speak('intro'))
+// → "You see me, but do you remember me?" (or Thai if browser is th-TH)
+
+// Force language
+console.log(entity.speak('intro', 'th'))
+// → "เธอเห็นฉัน... แต่เธอจำฉันได้ไหม?"
+
+world.start()
+```
+
+**Mindfuck:** Multilingual dialogue with **zero translation libraries**. JSON only.
+
+---
+
+### 2. It Remembers & Reacts (5 min)
+
+```javascript
+const world = new World({ features: { ontology: true } })
+
+const npc = world.spawn({
+  essence: 'NPC who hates violence',
+  emotion: {
+    transitions: [
+      {
+        trigger: 'player.attack',
+        to: 'anger',
+        intensity: 0.9
+      }
+    ]
+  },
+  dialogue: {
+    intro: [{ lang: { en: 'Hello, traveler.' } }],
+    onPlayerAttack: [{ lang: { en: 'So you choose violence?' } }]
+  }
+}, 400, 300)
+
+// Before attack
+console.log(npc.speak('intro'))
+// → "Hello, traveler."
+
+// Simulate player attack
+npc.updateTriggerContext({ playerAction: 'attack' })
+npc.checkEmotionTriggers()
+
+// After attack
+console.log('Emotion:', npc.emotion.valence)  // → -0.54 (angry!)
+console.log(npc.speak('onPlayerAttack'))      // → "So you choose violence?"
+
+// NPC remembers forever (memory is automatic)
+const memories = npc.memory.recall({ type: 'interaction' })
+console.log('NPC remembers', memories.length, 'interactions')
+
+world.start()
+```
+
+**Mindfuck:**
+- Emotion changed automatically (trigger-based)
+- Dialogue context-aware
+- Memory persists forever
+
+**All from JSON config.**
+
+---
+
+### 3. Multiple Entities Talk to Each Other (8 min)
+
+```javascript
+const world = new World({ features: { ontology: true, communication: true } })
+
+// Spawn 2 entities with different emotions
+const alice = world.spawn({
+  essence: 'Happy person',
+  dialogue: {
+    self_monologue: [{
+      lang: { en: 'What a beautiful day!' }
+    }]
+  }
+}, 100, 200)
+
+const bob = world.spawn({
+  essence: 'Sad person',
+  dialogue: {
+    self_monologue: [{
+      lang: { en: 'Why does everything hurt...' }
+    }]
+  }
+}, 150, 200)  // Nearby (50px away)
+
+// Set emotions
+alice.emotion.valence = 0.8   // Happy
+bob.emotion.valence = -0.7    // Sad
+
+// Watch them affect each other
+setInterval(() => {
+  console.log('Alice:', alice.speak('self_monologue'), '| valence:', alice.emotion.valence.toFixed(2))
+  console.log('Bob:', bob.speak('self_monologue'), '| valence:', bob.emotion.valence.toFixed(2))
+}, 3000)
+
+world.start()
+
+// After 30s:
+// Alice: "What a beautiful day!" | valence: 0.60 (getting sadder)
+// Bob: "Why does everything hurt..." | valence: -0.45 (getting happier)
+```
+
+**Mindfuck:** **Emotional contagion** happens automatically. Bob's sadness "infects" Alice. Alice's happiness helps Bob.
+
+**No "if Alice near Bob then..." code needed.**
+
+---
+
+## Load from .mdm Files
+
+```javascript
+import { World, loadMaterial } from '@v1b3x0r/mds-core'
+
+// Load heroblind.mdm (example entity)
+const heroblind = await fetch('/materials/entities/heroblind.mdm')
+  .then(res => res.json())
+
+const world = new World({ features: { ontology: true, communication: true } })
+const entity = world.spawn(heroblind, 400, 300)
+
+// Speak intro (multilingual)
+console.log(entity.speak('intro'))
+// → "You see me, but do you *remember* me?" (or TH/JA/ES depending on browser)
+
+// Simulate player gazing for 6 seconds
+entity.updateTriggerContext({ playerGazeDuration: 6 })
+entity.checkEmotionTriggers()
+
+// Emotion changed automatically!
+console.log('Emotion:', entity.emotion.valence)  // → -0.12 (uneasy)
+
+world.start()
+```
+
+See [heroblind.mdm](https://github.com/v1b3x0r/mds/blob/main/materials/entities/heroblind.mdm) for full example (277 lines of JSON, zero code).
+
+---
+
+## Core API
+
+### World
+
+```javascript
+import { World } from '@v1b3x0r/mds-core'
+
+const world = new World({
+  features: {
+    ontology: true,        // Enable memory/emotion/intent
+    communication: true,   // Enable dialogue/messages
+    cognitive: true,       // Enable learning/skills
+    rendering: 'dom'       // 'dom' | 'canvas' | 'headless'
+  },
+  seed: 12345              // Deterministic random
+})
 
 // Spawn entity
-const entity = engine.spawn(material, 100, 100)
+const entity = world.spawn(material, { x: 200, y: 200 })
 
 // Start simulation
-engine.start()
-```
+world.start()
 
-## Basic Material Definition
+// Save/load
+const snapshot = world.saveWorldFile()
+localStorage.setItem('world', snapshot)
 
-Create a `paper.curious.mdspec.json` file:
-
-```json
-{
-  "material": "paper.curious",
-  "essence": "A paper that leans toward you when hovered",
-  "manifestation": {
-    "emoji": "🐥"
-  },
-  "behavior": {
-    "onHover": {
-      "type": "transform",
-      "value": "scale(1.15) translateY(-5px)",
-      "duration": "0.3s"
-    }
-  },
-  "physics": {
-    "mass": 1.0,
-    "friction": 0.95
-  }
-}
-```
-
-## Core Concepts
-
-### Intention Engine
-
-MDS doesn't simulate physical forces — it simulates **intent**. Entities attract or repel each other based on a **similarity metric** (currently entropy-based, designed for semantic embeddings in the future):
-
-```typescript
-// Similarity = 1 - |entropyA - entropyB|
-// In this world, gravity comes from similarity
-// Similar essences attract, different essences repel
-```
-
-When entities share similar intent (essence), they're drawn together. When they differ, they naturally drift apart. No hardcoded rules — just emergent behavior from meaning.
-
-### Lifecycle Hooks
-
-```typescript
-const entity = engine.spawn(material, x, y)
-
-entity.onSpawn = (engine, entity) => {
-  console.log("Entity spawned!")
-}
-
-entity.onUpdate = (dt, entity) => {
-  if (entity.age > 10) {
-    console.log("Entity is 10 seconds old")
-  }
-}
-
-entity.onDestroy = (entity) => {
-  console.log("Entity destroyed")
-}
-```
-
-### Serialization
-
-```typescript
-// Save state
-const snapshot = engine.snapshot()
-localStorage.setItem("world", JSON.stringify(snapshot))
-
-// Load state
-const data = JSON.parse(localStorage.getItem("world"))
-engine.restore(data, materialMap, fieldMap)
-```
-
-### Deterministic Mode
-
-```typescript
-// Same seed = same behavior
-const engine = new Engine({ seed: 12345 })
-
-const e1 = engine.spawn(material) // entropy: 0.42...
-const e2 = engine.spawn(material) // entropy: 0.73...
-
-// New engine with same seed = identical results
-const engine2 = new Engine({ seed: 12345 })
-const e3 = engine2.spawn(material) // entropy: 0.42... (same!)
-```
-
-### World Bounds
-
-```typescript
-const engine = new Engine({
-  worldBounds: {
-    minX: 0, maxX: 800,
-    minY: 0, maxY: 600
-  },
-  boundaryBehavior: "bounce", // "none" | "clamp" | "bounce"
-  boundaryBounceDamping: 0.85
-})
-```
-
-## API Reference
-
-### Engine
-
-```typescript
-class Engine {
-  constructor(options?: EngineOptions)
-
-  spawn(material: MdsMaterial, x?: number, y?: number): Entity
-  spawnField(field: MdsField, x: number, y: number): Field
-
-  start(): void
-  stop(): void
-
-  snapshot(): EngineSnapshot
-  restore(snapshot: EngineSnapshot, materialMap: Map, fieldMap: Map): void
-}
+// Restore
+const loaded = World.loadWorldFile(localStorage.getItem('world'))
+loaded.start()
 ```
 
 ### Entity
 
-```typescript
-class Entity {
-  m: MdsMaterial        // Material definition
-  x: number             // Position X
-  y: number             // Position Y
-  vx: number            // Velocity X
-  vy: number            // Velocity Y
-  age: number           // Age in seconds
-  entropy: number       // Similarity metric (0..1)
-  opacity: number       // Current opacity (0..1)
+```javascript
+// Dialogue
+entity.speak('intro')              // Auto-detect language
+entity.speak('onPlayerClose', 'th') // Force Thai
 
-  onSpawn?: (engine: Engine, entity: Entity) => void
-  onUpdate?: (dt: number, entity: Entity) => void
-  onDestroy?: (entity: Entity) => void
+// Emotion
+entity.updateTriggerContext({ playerAction: 'attack' })
+entity.checkEmotionTriggers()
+console.log(entity.emotion.valence)  // -1..1 (negative = bad mood)
 
-  destroy(): void
-}
+// Memory
+entity.remember({
+  type: 'interaction',
+  subject: 'player',
+  timestamp: world.worldTime,
+  salience: 1.0
+})
+
+const memories = entity.memory.recall({ type: 'interaction' })
+console.log('Remembered', memories.length, 'interactions')
 ```
 
-### Material Schema (MDSpec v4.1)
+---
 
-See full schema in [docs/guides/MDSPEC_GUIDE.md](https://github.com/v1b3x0r/mds/blob/main/docs/guides/MDSPEC_GUIDE.md)
+## React Integration
 
-```typescript
-interface MdsMaterial {
-  material: string               // Unique ID
-  essence?: string               // Semantic description
-  intent?: string                // Short purpose
+```jsx
+import { useEffect, useRef } from 'react'
+import { World } from '@v1b3x0r/mds-core'
 
-  manifestation?: {
-    emoji?: string               // Visual representation
-    visual?: string              // Style hint
-    aging?: {
-      start_opacity?: number     // Initial opacity
-      decay_rate?: number        // Fade per second
+function MDSWorld() {
+  const containerRef = useRef(null)
+  const worldRef = useRef(null)
+
+  useEffect(() => {
+    const world = new World({ features: { ontology: true } })
+    worldRef.current = world
+
+    const ghost = world.spawn({
+      essence: 'React ghost',
+      dialogue: {
+        intro: [{ lang: { en: 'Hello from React!' } }]
+      }
+    }, 100, 100)
+
+    console.log(ghost.speak('intro'))  // → "Hello from React!"
+
+    if (containerRef.current && ghost.el) {
+      containerRef.current.appendChild(ghost.el)
     }
-  }
 
-  behavior?: {
-    onHover?: MdsBehaviorRule
-    onIdle?: MdsBehaviorRule
-    onProximity?: MdsBehaviorRule
-    // ... more events
-  }
+    world.start()
 
-  physics?: {
-    mass?: number                // Inertia
-    friction?: number            // Drag (0..1)
-    bounce?: number              // Elasticity (0..1)
-  }
+    return () => {
+      world.stop()
+      world.destroy()
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ width: '100%', height: '400px' }} />
 }
 ```
 
-## Examples
-
-### 1. Simple Clustering
-
-```typescript
-import { Engine } from "@v1b3x0r/mds-core"
-
-const engine = new Engine()
-
-// Spawn 5 entities with random positions
-for (let i = 0; i < 5; i++) {
-  const material = {
-    material: `entity-${i}`,
-    essence: "A curious particle",
-    manifestation: { emoji: "✨" },
-    physics: { mass: 1, friction: 0.95 }
-  }
-
-  engine.spawn(material, Math.random() * 800, Math.random() * 600)
-}
-
-engine.start()
-// Entities will cluster based on similarity
-```
-
-### 2. Lifecycle Tracking
-
-```typescript
-const entity = engine.spawn(material, 100, 100)
-
-entity.onSpawn = (engine, entity) => {
-  console.log(`${entity.m.material} spawned at (${entity.x}, ${entity.y})`)
-}
-
-entity.onUpdate = (dt, entity) => {
-  if (entity.age > 5 && entity.opacity < 0.5) {
-    console.log("Entity is fading away...")
-  }
-}
-
-entity.onDestroy = (entity) => {
-  console.log(`${entity.m.material} lived for ${entity.age.toFixed(2)}s`)
-}
-```
-
-### 3. Save/Load System
-
-```typescript
-// Save button
-saveButton.onclick = () => {
-  const snapshot = engine.snapshot()
-  localStorage.setItem("simulation", JSON.stringify(snapshot))
-}
-
-// Load button
-loadButton.onclick = () => {
-  const data = JSON.parse(localStorage.getItem("simulation"))
-
-  // Prepare material/field maps
-  const materialMap = new Map([
-    ["paper.shy", shyMaterial],
-    ["paper.curious", curiousMaterial]
-  ])
-
-  const fieldMap = new Map([
-    ["field.trust.core", trustField]
-  ])
-
-  engine.restore(data, materialMap, fieldMap)
-  engine.start()
-}
-```
-
-## Documentation
-
-- **Quick Start**: [MDSpec Guide](https://github.com/v1b3x0r/mds/blob/main/docs/guides/MDSPEC_GUIDE.md) - Learn the schema in 3 minutes
-- **Recipes**: [Cookbook](https://github.com/v1b3x0r/mds/blob/main/docs/guides/COOKBOOK.md) - 12 copy-paste examples
-- **Deep Dive**: [Architecture](https://github.com/v1b3x0r/mds/blob/main/docs/technical/ARCHITECTURE.md) - How the engine works
-- **Migration**: [v3 → v4 Upgrade Guide](https://github.com/v1b3x0r/mds/blob/main/docs/technical/V4-UPGRADE.md)
-- **Changelog**: [Version History](https://github.com/v1b3x0r/mds/blob/main/docs/meta/CHANGELOG.md)
-
-## Live Demos
-
-- [01-basics/emoji-field.html](https://v1b3x0r.github.io/mds/examples/01-basics/emoji-field.html) - Lifecycle + save/load
-- [02-advanced/cluster.html](https://v1b3x0r.github.io/mds/examples/02-advanced/cluster.html) - Timeline scrubber
-- [03-showcase/lovefield.html](https://v1b3x0r.github.io/mds/examples/03-showcase/lovefield.html) - Relationship simulation
-
-## Browser Support
-
-- ES2020+
-- Modern browsers (Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+)
-- Node.js 18+
+---
 
 ## TypeScript
 
@@ -321,60 +306,103 @@ Full type definitions included:
 
 ```typescript
 import type {
-  Engine,
+  World,
   Entity,
-  Field,
   MdsMaterial,
-  MdsField,
-  EngineOptions,
-  EngineSnapshot
-} from "@v1b3x0r/mds-core"
+  MdsDialogueConfig,
+  MdsEmotionConfig
+} from '@v1b3x0r/mds-core'
+
+const material: MdsMaterial = {
+  essence: 'Typed entity',
+  dialogue: {
+    intro: [{ lang: { en: 'TypeScript knows me!' } }]
+  },
+  emotion: {
+    transitions: [
+      { trigger: 'player.attack', to: 'anger', intensity: 0.9 }
+    ]
+  }
+}
 ```
 
-## Performance
+---
 
-- **O(n²) pairwise forces**: Works well for 5-50 entities (research/demo scale)
-- **60 FPS** on modern hardware
-- **18.42 KB minified** - smaller than most images
-- **Zero dependencies** - no bloat
+## Features
 
-For larger simulations (>50 entities), consider spatial partitioning (quadtree) - see [Architecture docs](https://github.com/v1b3x0r/mds/blob/main/docs/technical/ARCHITECTURE.md).
+### 🧠 Memory System
+- Ebbinghaus forgetting curve (memories decay naturally)
+- High-salience events remembered longer
+- Recall by type, subject, time range
 
-## Use Cases
+### 💚 Emotion System
+- PAD model: Valence (happy/sad), Arousal (calm/excited), Dominance (control)
+- **Trigger-based transitions** (declarative in JSON)
+- Emotional contagion (proximity-based)
 
-- **Interactive art installations** - Living, breathing visuals
-- **Game prototypes** - Emergent NPC behavior without AI
-- **Research simulations** - Study emergent systems
-- **Educational demos** - Visualize complex systems
-- **Ambient UIs** - Interfaces that feel alive
+### 💬 Dialogue System
+- **Multilingual support** (EN, TH, JA, ES, ZH, AR, or any language)
+- Auto-detects browser language
+- Event-driven phrases (intro, onPlayerClose, self_monologue, etc.)
 
-## Philosophy
+### 🎓 Learning System
+- Q-learning reinforcement
+- Skill progression
+- Pattern detection
 
-> **MDS is not a physics engine — it's an intention engine.**
->
-> Traditional engines simulate motion. MDS simulates meaning.
+### 💾 Save/Load
+- WorldFile format (save entire simulation state)
+- Memories + emotions + relationships persist
+- Deterministic replay with seeded random
 
-MDS is built on three principles:
+### 🌍 Info-Physics
+- Entities move based on **semantic similarity**
+- Emotion-based attraction/repulsion
+- Environmental effects (temperature, weather)
 
-1. **Essence-first**: A material with just an `essence` field is valid and meaningful
-2. **Emergence over control**: Complex behaviors arise from simple rules
-3. **Meaning is physical**: Similarity creates gravity, intent creates motion
+---
 
-In this world, forces aren't mass × acceleration — they're **intent × proximity**. Entities don't collide with momentum; they connect through resonance.
+## Bundle Size
 
-Read more: [README on GitHub](https://github.com/v1b3x0r/mds#readme)
+📦 **140 KB** minified (33 KB gzipped)
+⚡ **60 FPS** for ~50 entities
+🌲 **Tree-shakeable** ESM
 
-## Contributing
+---
 
-See [CONTRIBUTING.md](https://github.com/v1b3x0r/mds/blob/main/docs/meta/CONTRIBUTING.md)
+## Examples
+
+- [heroblind.mdm](https://github.com/v1b3x0r/mds/blob/main/materials/entities/heroblind.mdm) — Full entity with multilingual dialogue + emotion triggers
+- [Gaming Guide](https://github.com/v1b3x0r/mds/blob/main/docs/examples/gaming.md) — NPCs that hold grudges
+- [Education Guide](https://github.com/v1b3x0r/mds/blob/main/docs/examples/education.md) — Classroom simulations
+- [Advanced Integration](https://github.com/v1b3x0r/mds/blob/main/docs/examples/advanced.md) — React/Svelte/Node
+
+---
+
+## Documentation
+
+- [GitHub README](https://github.com/v1b3x0r/mds#readme) — User-friendly overview
+- [API Reference](https://github.com/v1b3x0r/mds/blob/main/docs/REFERENCE.md) — Full API docs
+- [MDSpec Guide](https://github.com/v1b3x0r/mds/blob/main/docs/guides/MDSPEC_GUIDE.md) — JSON schema reference
+- [Philosophy](https://github.com/v1b3x0r/mds/blob/main/docs/wtf-is-this-really.md) — Why this exists
+
+---
+
+## Browser Support
+
+- ES2020+
+- Modern browsers (Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+)
+- Node.js 18+
+
+---
 
 ## License
 
 MIT © v1b3x0r
 
-Built in Chiang Mai 🌄 | Powered by coffee and curiosity ☕✨
+Built in Chiang Mai 🇹🇭
 
 ---
 
-**Questions?** Open an issue: https://github.com/v1b3x0r/mds/issues
-**More examples?** Check the [Cookbook](https://github.com/v1b3x0r/mds/blob/main/docs/guides/COOKBOOK.md)
+**Questions?** → [GitHub Issues](https://github.com/v1b3x0r/mds/issues)
+**More examples?** → [Cookbook](https://github.com/v1b3x0r/mds/blob/main/docs/guides/COOKBOOK.md)

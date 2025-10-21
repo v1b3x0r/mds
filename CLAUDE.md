@@ -8,6 +8,53 @@
 
 ---
 
+## 🎯 **NEW DIRECTION v5.1 (2025-10-22): "Anyone Can Play"**
+
+**Target Audience Shift:**
+- **OLD:** Developers, researchers, game devs (technical focus)
+- **NEW:** Curious minds ages 12+ | Multilingual learners | Hackers of all backgrounds
+
+**Philosophy:**
+- **"ใช้ภาษาแม่ก็เข้าใจ, เขียนโค้ดง่ายก็ทำได้"** (Use your native language, write simple code, and it works)
+- No assumptions about TypeScript, game dev, or English proficiency
+- Progressive learning: 9 levels from absolute beginner to advanced
+- All `essence` / `content` / `notes` fields accept **ANY language**
+
+**Documentation Overhaul (Oct 22, 2025):**
+- ❌ Removed: `/examples/` (6 demos — too dev-heavy)
+- ❌ Removed: `/docs/technical/` (ARCHITECTURE, TECH_SPEC, API)
+- ❌ Removed: `/docs/guides/` (COOKBOOK, MDSPEC_GUIDE, USE_CASES)
+- ✅ Added: Simple progressive learning path:
+  - `README.md` — Multilingual welcome (70 lines vs 532 old)
+  - `docs/01-START.md` — Your first character (5 min)
+  - `docs/02-WHAT.md` — All features with multilingual examples
+  - `docs/03-LEARN.md` — 9-level learning hub
+  - `docs/04-06` — Detailed tutorials (Memory, Emotion, Communication)
+  - `docs/07-11` — Placeholder tutorials (to be completed)
+  - `docs/DICTIONARY.md` — Terms in 7+ languages
+  - `docs/MDM-FORMAT.md` — Complete `.mdm` reference
+- ✅ Updated: `package.json` description & keywords (education, multilingual, kids)
+- ✅ Kept: `docs/meta/` (CHANGELOG, LICENSE, CONTRIBUTING)
+
+**Multilingual Examples Strategy:**
+Every code example shows:
+```javascript
+// English
+{ "essence": "A shy ghost" }
+
+// ไทย (Thai)
+{ "essence": "ผีขี้อาย" }
+
+// 日本語 (Japanese)
+{ "essence": "恥ずかしがり屋の幽霊" }
+
+// 中文 / العربية / Español...
+```
+
+→ Shows users **"your language works here"** without telling them.
+
+---
+
 ## Task Log (v5.0.0)
 
 | Date | Update | Details |

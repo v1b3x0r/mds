@@ -34,6 +34,10 @@ import { MessageQueue as MsgQueue, createMessage } from '../communication'
 // v5 Phase 7: Cognitive imports
 import type { LearningSystem, MemoryConsolidation, SkillSystem } from '../cognitive'
 
+// v5.1: Declarative config parser
+import { parseMaterial, getDialoguePhrase } from '../io/mdm-parser'
+import type { TriggerContext } from '../io/mdm-parser'
+
 export class Entity {
   // Material definition
   m: MdsMaterial
@@ -91,6 +95,11 @@ export class Entity {
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystem                          // Skill acquisition
 
+  // v5.1: Declarative config (from heroblind.mdm)
+  private dialoguePhrases?: import('../io/mdm-parser').ParsedDialogue
+  private emotionTriggers?: import('../io/mdm-parser').EmotionTrigger[]
+  private triggerContext: import('../io/mdm-parser').TriggerContext = {}
+
   constructor(
     m: MdsMaterial,
     x?: number,
@@ -117,6 +126,19 @@ export class Entity {
     // v5: Initialize ontology (conditional - only if schema >= 5.0)
     if (this.shouldEnableOntology(m)) {
       this.initializeOntology(m)
+    }
+
+    // v5.1: Parse declarative config (dialogue, emotion triggers, skills)
+    if (m.dialogue || m.emotion?.transitions || m.skills) {
+      const parsed = parseMaterial(m)
+
+      if (parsed.dialogue) {
+        this.dialoguePhrases = parsed.dialogue
+      }
+
+      if (parsed.emotionTriggers.length > 0) {
+        this.emotionTriggers = parsed.emotionTriggers
+      }
     }
 
     // Create DOM element (v4 legacy mode - skip if using v5 renderer)
@@ -499,5 +521,61 @@ export class Entity {
 
     entity.render()
     return entity
+  }
+
+  /**
+   * v5.1: Speak dialogue based on category/event
+   * @param category - 'intro', 'self_monologue', or event name (e.g., 'onPlayerClose')
+   * @param lang - Language code (auto-detect if not specified)
+   */
+  speak(category?: string, lang?: string): string | undefined {
+    if (!this.dialoguePhrases) return undefined
+
+    return getDialoguePhrase(
+      this.dialoguePhrases,
+      category || 'intro',
+      lang
+    )
+  }
+
+  /**
+   * v5.1: Update trigger context (for emotion transitions)
+   */
+  updateTriggerContext(context: Partial<TriggerContext>): void {
+    this.triggerContext = { ...this.triggerContext, ...context }
+  }
+
+  /**
+   * v5.1: Check and apply emotion triggers
+   */
+  checkEmotionTriggers(): void {
+    if (!this.emotionTriggers || !this.emotion) return
+
+    for (const trigger of this.emotionTriggers) {
+      if (trigger.condition(this.triggerContext)) {
+        // Map emotion name to PAD values
+        const emotionMap: Record<string, { valence: number; arousal: number }> = {
+          'happy': { valence: 0.8, arousal: 0.6 },
+          'sad': { valence: -0.7, arousal: 0.3 },
+          'angry': { valence: -0.6, arousal: 0.9 },
+          'anger': { valence: -0.6, arousal: 0.9 },  // alias for angry
+          'uneasy': { valence: -0.3, arousal: 0.7 },
+          'curious': { valence: 0.5, arousal: 0.8 },
+          'sorrow': { valence: -0.8, arousal: 0.2 },
+          'calm': { valence: 0.3, arousal: 0.2 },
+          'fearful': { valence: -0.7, arousal: 0.9 },
+          'neutral': { valence: 0, arousal: 0.5 }
+        }
+
+        const targetEmotion = emotionMap[trigger.to] || { valence: 0, arousal: 0.5 }
+
+        // Apply emotion change with intensity
+        this.emotion.valence = targetEmotion.valence * trigger.intensity
+        this.emotion.arousal = targetEmotion.arousal * trigger.intensity
+
+        // TODO: Apply visual expression (trigger.expression)
+        // This would require access to renderer/DOM
+      }
+    }
   }
 }
