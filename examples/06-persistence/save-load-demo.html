@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDS v5 - WorldFile Save/Load Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      overflow: hidden;
+    }
+
+    #ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 25px;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: 0.85;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .metric-value {
+      font-size: 26px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .button-group.full {
+      grid-template-columns: 1fr;
+    }
+
+    button {
+      padding: 14px;
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(245, 87, 108, 0.5);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background: rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(240, 147, 251, 0.3);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      margin-top: 12px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(0, 255, 136, 0.15);
+      border-radius: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.error {
+      background: rgba(255, 82, 82, 0.15);
+    }
+
+    .mds-entity {
+      font-size: 32px;
+      cursor: move;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>💾 WorldFile Persistence</h1>
+    <p>Create entities, save the world to a file, load it back, and watch deterministic restoration!</p>
+
+    <div class="badge">Phase 4: Save/Load System</div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Entities</div>
+        <div class="metric-value" id="entityCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Memories</div>
+        <div class="metric-value" id="memoryCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">World Time</div>
+        <div class="metric-value" id="worldTime">0s</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">File Size</div>
+        <div class="metric-value" id="fileSize">-</div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button onclick="spawnEntity()">Spawn Entity</button>
+      <button onclick="clearWorld()" class="secondary">Clear All</button>
+    </div>
+
+    <div class="button-group full">
+      <button onclick="saveToLocalStorage()">💾 Save to LocalStorage</button>
+      <button onclick="loadFromLocalStorage()" class="secondary">📂 Load from LocalStorage</button>
+    </div>
+
+    <div class="button-group full">
+      <button onclick="downloadWorld()">⬇️ Download .world.mdm</button>
+      <button onclick="document.getElementById('fileInput').click()" class="secondary">⬆️ Upload .world.mdm</button>
+    </div>
+
+    <input type="file" id="fileInput" accept=".mdm,.json" onchange="uploadWorld(event)">
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script type="module">
+    import {
+      World,
+      saveWorldFile,
+      loadWorldFile,
+      downloadWorldFile,
+      uploadWorldFile
+    } from '../../dist/mds-core.esm.js'
+
+    // Create world with ontology + history
+    let world = new World({
+      features: {
+        ontology: true,
+        history: true,
+        rendering: 'dom'  // DOM renderer for visual demo
+      },
+      seed: Date.now(),  // Different seed each time
+      worldBounds: {
+        minX: 0,
+        maxX: window.innerWidth,
+        minY: 0,
+        maxY: window.innerHeight
+      },
+      boundaryBehavior: 'bounce',
+      boundaryBounceDamping: 0.8
+    })
+
+    // Material definition
+    const emotionMaterial = {
+      $schema: 'https://mds.v1b3.dev/schema/v5',
+      material: 'entity.emotional.saveable',
+      manifestation: {
+        emoji: '✨',
+        visual: 'animated'
+      },
+      physics: {
+        mass: 1,
+        friction: 0.01
+      },
+      ontology: {
+        memorySize: 100,
+        emotionBaseline: {
+          valence: 0,
+          arousal: 0.5,
+          dominance: 0.5
+        }
+      }
+    }
+
+    // Spawn initial entities
+    function spawnEntity() {
+      const x = Math.random() * (window.innerWidth - 100) + 50
+      const y = Math.random() * (window.innerHeight - 100) + 50
+
+      const entity = world.spawn(emotionMaterial, { x, y })
+
+      // Set random emotion
+      entity.emotion.valence = Math.random() * 2 - 1
+      entity.emotion.arousal = Math.random()
+      entity.emotion.dominance = Math.random()
+
+      // Random velocity
+      const angle = Math.random() * Math.PI * 2
+      const speed = 50 + Math.random() * 100
+      entity.vx = Math.cos(angle) * speed
+      entity.vy = Math.sin(angle) * speed
+
+      // Add spawn memory
+      entity.remember({
+        timestamp: entity.age,
+        type: 'spawn',
+        subject: 'user',
+        content: { x, y },
+        salience: 1.0
+      })
+
+      showStatus(`Spawned entity at (${Math.round(x)}, ${Math.round(y)})`)
+    }
+
+    // Clear world
+    function clearWorld() {
+      world.clear()
+      showStatus('World cleared')
+    }
+
+    // Save to LocalStorage
+    function saveToLocalStorage() {
+      const json = saveWorldFile(world, {
+        name: 'MDS v5 World',
+        description: 'Saved from WorldFile demo',
+        author: 'User',
+        tags: ['demo', 'v5', 'persistence']
+      })
+
+      localStorage.setItem('mds_world', json)
+
+      const sizeKB = (json.length / 1024).toFixed(2)
+      document.getElementById('fileSize').textContent = `${sizeKB}KB`
+
+      showStatus(`Saved to LocalStorage (${sizeKB}KB)`)
+    }
+
+    // Load from LocalStorage
+    function loadFromLocalStorage() {
+      const json = localStorage.getItem('mds_world')
+
+      if (!json) {
+        showStatus('No saved world found in LocalStorage', true)
+        return
+      }
+
+      try {
+        // Destroy current world
+        world.destroy()
+
+        // Load from JSON
+        world = loadWorldFile(json)
+
+        // Restart
+        world.start()
+
+        showStatus(`Loaded from LocalStorage (${world.entities.length} entities)`)
+      } catch (err) {
+        showStatus(`Load failed: ${err.message}`, true)
+      }
+    }
+
+    // Download as file
+    function downloadWorld() {
+      downloadWorldFile(world, 'mds-world.world.mdm', {
+        name: 'MDS v5 World',
+        description: 'Exported from WorldFile demo',
+        author: 'User',
+        tags: ['demo', 'v5', 'persistence']
+      })
+
+      showStatus('World downloaded as .world.mdm file')
+    }
+
+    // Upload from file
+    function uploadWorld(event) {
+      const file = event.target.files[0]
+      if (!file) return
+
+      uploadWorldFile(file, (newWorld) => {
+        // Destroy current world
+        world.destroy()
+
+        // Replace with loaded world
+        world = newWorld
+        world.start()
+
+        showStatus(`Uploaded: ${file.name} (${world.entities.length} entities)`)
+      })
+    }
+
+    // Show status message
+    function showStatus(message, isError = false) {
+      const status = document.getElementById('status')
+      status.textContent = message
+      status.className = 'status show' + (isError ? ' error' : '')
+
+      setTimeout(() => {
+        status.classList.remove('show')
+      }, 3000)
+    }
+
+    // Make functions global
+    window.spawnEntity = spawnEntity
+    window.clearWorld = clearWorld
+    window.saveToLocalStorage = saveToLocalStorage
+    window.loadFromLocalStorage = loadFromLocalStorage
+    window.downloadWorld = downloadWorld
+    window.uploadWorld = uploadWorld
+
+    // Spawn initial population
+    for (let i = 0; i < 5; i++) {
+      spawnEntity()
+    }
+
+    // Start simulation
+    world.start()
+
+    // Update UI metrics
+    setInterval(() => {
+      document.getElementById('entityCount').textContent = world.entities.length
+
+      const totalMemories = world.entities.reduce((sum, e) => {
+        return sum + (e.memory ? e.memory.count() : 0)
+      }, 0)
+      document.getElementById('memoryCount').textContent = totalMemories
+
+      document.getElementById('worldTime').textContent = `${world.worldTime.toFixed(1)}s`
+    }, 100)
+
+    // Log info
+    console.log('💾 MDS v5 WorldFile Persistence Demo')
+    console.log('World ID:', world.id)
+    console.log('')
+    console.log('Features:')
+    console.log('  ✓ WorldFile format (single .world.mdm file)')
+    console.log('  ✓ Two-pass loading (entities → relationships)')
+    console.log('  ✓ Deterministic restoration (exact state recovery)')
+    console.log('  ✓ Delta compression (optional fields omitted)')
+    console.log('  ✓ Memory/emotion/intent/relationship persistence')
+    console.log('  ✓ LocalStorage save/load')
+    console.log('  ✓ File download/upload')
+    console.log('')
+    console.log('Try it:')
+    console.log('1. Spawn some entities')
+    console.log('2. Let them interact (move around, form memories)')
+    console.log('3. Save to LocalStorage or download as file')
+    console.log('4. Clear the world')
+    console.log('5. Load it back - exact same state!')
+  </script>
+</body>
+</html>

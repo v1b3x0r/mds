@@ -165,6 +165,13 @@ export class IntentStack {
   }
 
   /**
+   * Get all intents (for serialization)
+   */
+  getAll(): Intent[] {
+    return [...this.stack]
+  }
+
+  /**
    * Serialize to JSON
    */
   toJSON() {

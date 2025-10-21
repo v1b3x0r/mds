@@ -47,6 +47,19 @@ export { Field } from './core/field'
 export { World } from './world'
 export type { WorldOptions, SpawnOptions, WorldEvent } from './world'
 
+// Renderers (v5)
+export {
+  DOMRenderer,
+  CanvasRenderer,
+  HeadlessRenderer,
+  StateMapper
+} from './render'
+
+export type {
+  RendererAdapter,
+  VisualStyle
+} from './render'
+
 // IO
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
@@ -59,6 +72,23 @@ export {
   isLlmEnabled,
   resetLlmAdapter
 } from './io/llmAdapter'
+
+// WorldFile persistence (v5)
+export {
+  toWorldFile,
+  fromWorldFile,
+  saveWorldFile,
+  loadWorldFile,
+  downloadWorldFile,
+  uploadWorldFile
+} from './io/worldfile'
+
+export type {
+  WorldFile,
+  SerializedEntity,
+  SerializedField,
+  SerializedRelationship
+} from './io/worldfile'
 
 // Utils
 export { clamp, distance, similarity, lerp, randRange, randInt } from './utils/math'

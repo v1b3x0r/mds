@@ -176,6 +176,13 @@ export class MemoryBuffer {
   }
 
   /**
+   * Get all memories (for serialization)
+   */
+  getAll(): Memory[] {
+    return [...this.buffer]
+  }
+
+  /**
    * Clear all memories
    */
   clear(): void {
