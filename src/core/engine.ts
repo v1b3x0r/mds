@@ -111,8 +111,10 @@ export class Engine {
   /**
    * Main simulation tick
    * Implements info-physics: proximity + similarity forces
+   *
+   * Note: Made public in v5 to allow World class delegation
    */
-  private tick(dt: number): void {
+  tick(dt: number): void {
     // 1. Update all entities (age, decay, friction)
     for (const e of this.entities) {
       e.update(dt)

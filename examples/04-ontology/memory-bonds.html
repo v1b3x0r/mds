@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDS v5 - Memory Bonds Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      color: #e0e0e0;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      font-size: 14px;
+      overflow: hidden;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .mds-entity {
+      font-size: 32px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+
+    #hud {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 20px;
+      border: 1px solid rgba(79, 195, 247, 0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      max-width: 350px;
+      z-index: 1000;
+    }
+
+    #hud h1 {
+      font-size: 18px;
+      color: #4fc3f7;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    #hud p {
+      font-size: 12px;
+      color: #9e9e9e;
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .metric:last-child {
+      border-bottom: none;
+    }
+
+    .metric-label {
+      color: #b0b0b0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      color: #66bb6a;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .legend {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 6px 0;
+      font-size: 11px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      margin-right: 8px;
+    }
+
+    .controls {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    button {
+      background: rgba(79, 195, 247, 0.1);
+      border: 1px solid rgba(79, 195, 247, 0.3);
+      color: #4fc3f7;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      margin-right: 8px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: rgba(79, 195, 247, 0.2);
+      border-color: rgba(79, 195, 247, 0.5);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+
+  <div id="hud">
+    <h1>🧠 Memory Bonds</h1>
+    <p>Entities form memories when close. Watch colors change from emotional contagion!</p>
+
+    <div class="metric">
+      <span class="metric-label">Total Memories</span>
+      <span class="metric-value" id="totalMemories">0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Avg Memory Strength</span>
+      <span class="metric-value" id="avgMemoryStrength">0.00</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Avg Emotion (Valence)</span>
+      <span class="metric-value" id="avgValence">0.00</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">World Time</span>
+      <span class="metric-value" id="worldTime">0.0s</span>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(240, 100%, 50%)"></div>
+        <span>Positive emotion (blue)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(120, 100%, 50%)"></div>
+        <span>Neutral emotion (green)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: hsl(0, 100%, 50%)"></div>
+        <span>Negative emotion (red)</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button onclick="spawnEntity()">Spawn Entity</button>
+      <button onclick="resetWorld()">Reset</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { World, emotionToColor } from '../../dist/mds-core.esm.js'
+
+    // v5 Material with ontology
+    const sentientMaterial = {
+      $schema: 'https://mds.v1b3.dev/schema/v5',
+      material: 'entity.sentient',
+      intent: 'connect',
+      essence: 'A living entity that remembers and feels',
+
+      manifestation: {
+        emoji: '✨',
+        aging: {
+          start_opacity: 1,
+          decay_rate: 0.0  // No decay for demo
+        }
+      },
+
+      physics: {
+        mass: 0.1,
+        friction: 0.03
+      },
+
+      ontology: {
+        memorySize: 100,
+        emotionBaseline: {
+          valence: 0,      // Neutral
+          arousal: 0.5,
+          dominance: 0.5
+        },
+        intentDefault: {
+          goal: 'wander',
+          motivation: 0.4,
+          priority: 1
+        }
+      }
+    }
+
+    // Create v5 World with ontology enabled
+    const world = new World({
+      seed: 42,
+      features: { ontology: true, history: true },
+      worldBounds: {
+        minX: 0,
+        maxX: window.innerWidth,
+        minY: 0,
+        maxY: window.innerHeight
+      },
+      boundaryBehavior: 'bounce'
+    })
+
+    // Spawn initial entities
+    for (let i = 0; i < 5; i++) {
+      const entity = world.spawn(sentientMaterial)
+
+      // Give each entity a random initial emotion
+      entity.emotion.valence = Math.random() * 2 - 1  // -1 to 1
+      entity.emotion.arousal = Math.random()
+      entity.emotion.dominance = Math.random()
+
+      // Give them random velocities
+      entity.vx = (Math.random() - 0.5) * 3
+      entity.vy = (Math.random() - 0.5) * 3
+    }
+
+    // Update HUD
+    function updateHUD() {
+      const entities = world.entities
+
+      // Total memories
+      const totalMemories = entities.reduce((sum, e) => sum + (e.memory?.count() ?? 0), 0)
+      document.getElementById('totalMemories').textContent = totalMemories
+
+      // Average memory strength (across all relationships)
+      let totalStrength = 0
+      let strengthCount = 0
+      for (const entity of entities) {
+        if (!entity.memory) continue
+        for (const other of entities) {
+          if (entity.id === other.id) continue
+          const strength = entity.memory.getStrength(other.id)
+          if (strength > 0) {
+            totalStrength += strength
+            strengthCount++
+          }
+        }
+      }
+      const avgStrength = strengthCount > 0 ? totalStrength / strengthCount : 0
+      document.getElementById('avgMemoryStrength').textContent = avgStrength.toFixed(3)
+
+      // Average emotion valence
+      const avgValence = entities.reduce((sum, e) => sum + (e.emotion?.valence ?? 0), 0) / entities.length
+      document.getElementById('avgValence').textContent = avgValence.toFixed(2)
+
+      // World time
+      document.getElementById('worldTime').textContent = world.worldTime.toFixed(1) + 's'
+
+      // Update entity colors based on emotion
+      for (const entity of entities) {
+        if (entity.emotion) {
+          const color = emotionToColor(entity.emotion)
+          entity.el.style.color = color
+        }
+      }
+    }
+
+    // Start simulation
+    world.start()
+
+    // Update HUD every frame
+    setInterval(updateHUD, 100)
+
+    // Global functions
+    window.spawnEntity = () => {
+      const entity = world.spawn(sentientMaterial, {
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+      })
+
+      // Random initial emotion
+      entity.emotion.valence = Math.random() * 2 - 1
+      entity.emotion.arousal = Math.random()
+      entity.emotion.dominance = Math.random()
+
+      // Random velocity
+      entity.vx = (Math.random() - 0.5) * 3
+      entity.vy = (Math.random() - 0.5) * 3
+    }
+
+    window.resetWorld = () => {
+      for (const entity of [...world.entities]) {
+        world.removeEntity(entity)
+      }
+
+      // Spawn 5 new entities
+      for (let i = 0; i < 5; i++) {
+        window.spawnEntity()
+      }
+    }
+  </script>
+</body>
+</html>
