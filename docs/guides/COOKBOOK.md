@@ -1,394 +1,554 @@
-# MDS Cookbook — Quick Hacks & Experiments
+# MDS Cookbook — Quick Recipes
 
-**Each recipe is ≤ 10 lines. Copy, paste, play.**
+**Copy, paste, customize. Each recipe ≤ 15 lines.**
 
 Think of this as a menu from that weird cafe where they serve code and philosophy in equal measure. 🍜
 
 ⸻
 
-## 🧪 Table of Contents
+## 📚 Table of Contents
 
-1. [Make two emojis fall in love](#1-make-two-emojis-fall-in-love)
-2. [Create a shy entity that runs away](#2-create-a-shy-entity-that-runs-away)
-3. [Spawn a trust field when entities get close](#3-spawn-a-trust-field-when-entities-get-close)
-4. [Make entities drift apart when ignored](#4-make-entities-drift-apart-when-ignored)
-5. [Add initial random movement](#5-add-initial-random-movement)
-6. [Deterministic replay (same every time)](#6-deterministic-replay-same-every-time)
-7. [Save & load full simulation state](#7-save--load-full-simulation-state)
-8. [Lifecycle hooks for spawn/destroy](#8-lifecycle-hooks-for-spawndestroy)
-9. [Make an entity that ages gracefully](#9-make-an-entity-that-ages-gracefully)
-10. [Create a bouncing ball](#10-create-a-bouncing-ball)
-11. [Field memory (remember where they met)](#11-field-memory-remember-where-they-met)
-12. [MBTI personalities with dialogues](#12-mbti-personalities-with-dialogues)
+### v4 Basics (Works in Engine or World)
+1. [Spawn a simple entity](#1-spawn-a-simple-entity)
+2. [Make a bouncing ball](#2-make-a-bouncing-ball)
+3. [Create a shy entity that runs away](#3-create-a-shy-entity-that-runs-away)
+4. [Spawn entities with random movement](#4-spawn-entities-with-random-movement)
+5. [Deterministic replay (same every time)](#5-deterministic-replay)
+6. [Save & load simulation state](#6-save--load-simulation-state)
+
+### v5 Ontology (Memory & Emotion)
+7. [Add memory to an entity](#7-add-memory-to-an-entity)
+8. [Set emotion and watch it decay](#8-set-emotion-and-watch-it-decay)
+9. [Track relationships between entities](#9-track-relationships)
+
+### v5 Communication
+10. [Send messages between entities](#10-send-messages-between-entities)
+11. [Create a simple dialogue tree](#11-create-a-dialogue-tree)
+12. [Broadcast to nearby entities](#12-broadcast-to-nearby-entities)
+
+### v5 Cognitive
+13. [Enable learning from experience](#13-enable-learning)
+14. [Teach skills and practice](#14-teach-skills-and-practice)
+15. [Detect learning patterns](#15-detect-learning-patterns)
+
+### v5 World Mind
+16. [Get world statistics](#16-get-world-statistics)
+17. [Detect emergent patterns](#17-detect-emergent-patterns)
+18. [Check collective emotion](#18-check-collective-emotion)
 
 ⸻
 
-## 1. Make two emojis fall in love
+## v4 Basics
 
-**The concept:** Spawn two entities, watch them drift toward each other via info-physics.
+### 1. Spawn a simple entity
 
 ```typescript
-import { Engine } from '@v1b3x0r/mds-core'
+import { Engine, loadMaterial } from '@v1b3x0r/mds-core'
 
 const engine = new Engine()
+const material = await loadMaterial('./paper.shy.mdm')
 
-const heart1 = engine.spawn({
-  material: "heart.a",
-  essence: "A lonely heart",
-  manifestation: { emoji: "💙" }
-}, 100, 200)
-
-const heart2 = engine.spawn({
-  material: "heart.b",
-  essence: "Another lonely heart",
-  manifestation: { emoji: "💚" }
-}, 400, 200)
-
-// Give them initial velocity
-heart1.vx = 1
-heart2.vx = -1
-
+engine.spawn(material, 200, 200)
 engine.start()
 ```
 
-**What happens:** They drift toward each other because of proximity forces. When close enough, they might spawn a field (if you set `onProximity`).
-
 ⸻
 
-## 2. Create a shy entity that runs away
+### 2. Make a bouncing ball
 
-**The concept:** On hover, entity gets velocity *away* from cursor.
-
-```typescript
-const shy = engine.spawn({
-  material: "ghost.shy",
-  essence: "A shy ghost",
-  manifestation: { emoji: "👻" },
-  behavior: {
-    onHover: {
-      type: "velocity",
-      value: { vx: 3, vy: -3 }  // runs up-right
-    }
-  }
-}, 250, 250)
-
-engine.start()
-```
-
-**Tweak:** Change `vx`/`vy` based on cursor position (requires custom `onProximity` logic).
-
-⸻
-
-## 3. Spawn a trust field when entities get close
-
-**The concept:** When two entities are within 80px, spawn a shared field.
-
-```json
-// field.trust.mdspec.json
-{
-  "material": "field.trust",
-  "type": "field",
-  "origin": "$bind",
-  "radius": 120,
-  "duration": 8000,
-  "visual": {
-    "aura": "radial-gradient(circle, rgba(167,139,250,0.3), transparent)"
-  }
-}
-```
-
-```typescript
-const entity1 = engine.spawn(material1, 100, 100)
-const entity2 = engine.spawn(material2, 200, 100)
-
-entity1.onProximity = (eng, other, dist) => {
-  if (dist < 80) {
-    eng.spawnField(trustField, (entity1.x + other.x) / 2, (entity1.y + other.y) / 2)
-  }
-}
-
-engine.start()
-```
-
-**Result:** A glowing field appears when they meet. Adjust `radius` and `duration` to taste.
-
-⸻
-
-## 4. Make entities drift apart when ignored
-
-**The concept:** If no interaction for N seconds, increase `friction` to slow them down, or add repulsive force.
-
-```typescript
-entity.onIdle = () => {
-  // Gradually increase friction when idle
-  entity.m.physics = entity.m.physics || {}
-  entity.m.physics.friction = Math.min(0.2, (entity.m.physics.friction || 0.05) + 0.01)
-}
-```
-
-**Alternative:** Use negative velocity toward nearby entities if no `onProximity` triggered recently.
-
-⸻
-
-## 5. Add initial random movement
-
-**The concept:** Spawn entities with random velocity so they don't sit still.
-
-```typescript
-const entity = engine.spawn(material, 200, 200)
-
-// Give random velocity
-entity.vx = (Math.random() - 0.5) * 4
-entity.vy = (Math.random() - 0.5) * 4
-
-engine.start()
-```
-
-**Why:** Without this, entities with low friction just sit there. Initial velocity makes the simulation lively.
-
-⸻
-
-## 6. Deterministic replay (same every time)
-
-**The concept:** Use a seed so simulation runs identically every time.
-
-```typescript
-const engine = new Engine({ seed: 12345 })
-
-const entity = engine.spawn(material, 100, 100)
-entity.vx = 2  // Same initial conditions
-
-engine.start()
-```
-
-**Result:** Every run produces the same movement. Perfect for debugging or artistic control.
-
-⸻
-
-## 7. Save & load full simulation state
-
-**The concept:** Snapshot engine state, store it, restore later.
-
-```typescript
-// Save
-const snapshot = engine.snapshot()
-localStorage.setItem('my-sim', JSON.stringify(snapshot))
-
-// Load
-const data = JSON.parse(localStorage.getItem('my-sim'))
-const materialMap = new Map([[material.material, material]])
-const fieldMap = new Map()
-
-engine.stop()
-engine.clear()
-engine.restore(data, materialMap, fieldMap)
-engine.start()
-```
-
-**Use case:** Let users save their creations, export to file, or replay from specific timestamp.
-
-⸻
-
-## 8. Lifecycle hooks for spawn/destroy
-
-**The concept:** Run custom logic when entity is born or dies.
-
-```typescript
-entity.onSpawn = (eng, e) => {
-  console.log(`✨ ${e.m.material} spawned at (${e.x}, ${e.y})`)
-}
-
-entity.onDestroy = (e) => {
-  console.log(`💀 ${e.m.material} destroyed after ${Math.round(e.age)}s`)
-}
-
-entity.onUpdate = (dt, e) => {
-  if (e.age > 10) {
-    console.log('Entity is getting old...')
-  }
-}
-```
-
-**Use case:** Logging, analytics, triggering other events, playing sounds.
-
-⸻
-
-## 9. Make an entity that ages gracefully
-
-**The concept:** Entity fades slowly over time, then vanishes.
-
+**Material file:** `ball.bouncy.mdm`
 ```json
 {
-  "material": "memory.fading",
-  "essence": "A fading memory",
-  "manifestation": {
-    "emoji": "🌸",
-    "aging": {
-      "start_opacity": 1,
-      "decay_rate": 0.003
-    }
+  "material": "ball.bouncy",
+  "essence": "A bouncy ball",
+  "manifestation": { "emoji": "⚽" },
+  "physics": {
+    "mass": 0.5,
+    "friction": 0.02,
+    "bounce": 0.9
   }
 }
 ```
 
-**Result:** Lives ~5 minutes (1 / 0.003 ≈ 333 seconds).
-
-**Tweak:** Higher `decay_rate` = shorter life.
-
-⸻
-
-## 10. Create a bouncing ball
-
-**The concept:** Use world bounds with `bounce` behavior.
-
+**Code:**
 ```typescript
 const engine = new Engine({
-  worldBounds: {
-    minX: 0,
-    maxX: window.innerWidth,
-    minY: 0,
-    maxY: window.innerHeight
-  },
-  boundaryBehavior: 'bounce',
-  boundaryBounceDamping: 0.85
+  worldBounds: { minX: 0, maxX: 800, minY: 0, maxY: 600 },
+  boundaryBehavior: 'bounce'
 })
 
-const ball = engine.spawn({
-  material: "ball.bouncy",
-  essence: "A bouncy ball",
-  manifestation: { emoji: "⚽" },
-  physics: {
-    mass: 1,
-    friction: 0.01,
-    bounce: 0.9
-  }
-}, 200, 200)
+const ball = await loadMaterial('./ball.bouncy.mdm')
+const entity = engine.spawn(ball, 400, 100)
 
-ball.vx = 5
-ball.vy = 3
+// Give it initial velocity
+entity.vx = 5
+entity.vy = 0
 
 engine.start()
 ```
 
-**Result:** Ball bounces off screen edges. Adjust `boundaryBounceDamping` to control energy loss.
-
 ⸻
 
-## 11. Field memory (remember where they met)
+### 3. Create a shy entity that runs away
 
-**The concept:** When entities meet, spawn a field that stays even after they leave.
-
-```typescript
-entity1.onProximity = (eng, other, dist) => {
-  if (dist < 60) {
-    const memoryField = eng.spawnField({
-      material: "field.memory",
-      type: "field",
-      origin: "$bind",
-      radius: 80,
-      duration: 20000,  // 20 seconds
-      visual: { aura: "rgba(255, 192, 203, 0.2)" }
-    }, (entity1.x + other.x) / 2, (entity1.y + other.y) / 2)
-
-    console.log(`💭 Memory created at (${memoryField.x}, ${memoryField.y})`)
+**Material file:** `ghost.shy.mdm`
+```json
+{
+  "material": "ghost.shy",
+  "essence": "A shy ghost that flees",
+  "manifestation": { "emoji": "👻" },
+  "behavior": {
+    "onHover": {
+      "type": "velocity",
+      "value": { "vx": 3, "vy": -3 }
+    }
   }
 }
 ```
 
-**Result:** Visual trail of where relationships happened.
-
 ⸻
 
-## 12. MBTI personalities with dialogues
-
-**The concept:** Assign personality traits + dialogue system.
+### 4. Spawn entities with random movement
 
 ```typescript
-const personalities = {
-  ENTP: {
-    emoji: "🎧",
-    dialogues: {
-      intro: ["Beat synced. Feeling the vibe."],
-      bond: ["This connection hits different."],
-      conflict: ["Static on the line. Let's reset."]
-    }
-  },
-  INFP: {
-    emoji: "📝",
-    dialogues: {
-      intro: ["New stanza written."],
-      bond: ["We drafted a canon line together."],
-      conflict: ["Metaphors clash. Pause?"]
-    }
-  }
-}
+const engine = new Engine()
 
-const teen = engine.spawn({
-  material: "teen.holo",
-  essence: "Neon DJ sampling rumors",
-  manifestation: { emoji: "🎧" }
-}, 150, 150)
+for (let i = 0; i < 10; i++) {
+  const entity = engine.spawn(material,
+    Math.random() * 800,
+    Math.random() * 600
+  )
 
-teen._personality = personalities.ENTP
-
-teen.onProximity = (eng, other, dist) => {
-  if (dist < 70) {
-    const dialogue = teen._personality.dialogues.bond
-    console.log(`💬 ${dialogue[0]}`)
-  }
+  // Random initial velocity
+  entity.vx = (Math.random() - 0.5) * 4
+  entity.vy = (Math.random() - 0.5) * 4
 }
 
 engine.start()
 ```
 
-**Result:** Entities "speak" based on personality when interacting.
+⸻
+
+### 5. Deterministic replay
+
+```typescript
+// Same seed = identical simulation every time
+const engine = new Engine({ seed: 12345 })
+
+const e1 = engine.spawn(material, 100, 100)
+const e2 = engine.spawn(material, 200, 200)
+
+// Entropy values will be identical across runs
+console.log(e1.entropy) // Always same value
+console.log(e2.entropy) // Always same value
+
+engine.start()
+```
 
 ⸻
 
-## 🍜 Bonus: Kitchen Sink (Everything at once)
+### 6. Save & load simulation state
 
-Want to see all features in one chaotic sim? Check `/examples/lovefield-tailwind.html`.
+```typescript
+import { World } from '@v1b3x0r/mds-core'
 
-It has:
-- ✅ MBTI dialogues
-- ✅ Relationship timeline
-- ✅ Save/Load story
-- ✅ Deterministic mode toggle
-- ✅ Lifecycle hooks
-- ✅ Bond/breakup/dream fields
-- ✅ HUD + metrics
+const world = new World()
 
-Open it, spawn 5 teens, watch the chaos unfold. 🌀
+// ... spawn entities, run simulation ...
+
+// Save
+const snapshot = world.snapshot()
+localStorage.setItem('world', JSON.stringify(snapshot))
+
+// Load (later)
+const data = JSON.parse(localStorage.getItem('world'))
+const materialMap = new Map([
+  ['paper.shy', shyMaterial],
+  ['paper.curious', curiousMaterial]
+])
+const fieldMap = new Map([
+  ['field.trust.core', trustField]
+])
+
+world.restore(data, materialMap, fieldMap)
+```
 
 ⸻
 
-## 🧭 Pro Tips
+## v5 Ontology
 
-1. **Start with one entity** → test behavior in isolation
-2. **Add a second** → see fields emerge
-3. **Log everything** → use lifecycle hooks to debug
-4. **Tweak friction first** → it controls how "floaty" things feel
-5. **Save often** → use snapshot() during experiments
+### 7. Add memory to an entity
+
+```typescript
+import { World } from '@v1b3x0r/mds-core'
+
+const world = new World({ features: { ontology: true } })
+const entity = world.spawn(material, 100, 100)
+
+// Add a memory
+entity.remember({
+  timestamp: Date.now(),
+  type: 'observation',
+  subject: 'player',
+  content: 'First meeting',
+  salience: 0.9  // High importance
+})
+
+// Recall memories
+const memories = entity.memory.recall({ subject: 'player' })
+console.log(`Entity has ${memories.length} memories about player`)
+
+// Memories decay over time following Ebbinghaus curve
+```
 
 ⸻
 
-## 🔮 What to try next
+### 8. Set emotion and watch it decay
 
-- Combine recipes (e.g., aging + memory fields)
-- Add sound effects to lifecycle hooks
-- Create a "graveyard" for destroyed entities
-- Build a dialogue tree with branching paths
-- Make entities that reproduce (spawn children)
-- Implement gravity toward cursor position
+```typescript
+const world = new World({ features: { ontology: true } })
+const entity = world.spawn(material, 100, 100)
+
+// Set emotion (PAD model: Pleasure-Arousal-Dominance)
+entity.setEmotion({
+  valence: 0.8,   // Happy (positive)
+  arousal: 0.6,   // Excited
+  dominance: 0.7  // In control
+})
+
+// Check emotion
+console.log(entity.emotion)
+
+// Emotion decays over time (returns to neutral)
+setInterval(() => {
+  console.log(`Valence: ${entity.emotion.valence.toFixed(2)}`)
+}, 1000)
+```
+
+⸻
+
+### 9. Track relationships
+
+```typescript
+const world = new World({ features: { ontology: true } })
+
+const alice = world.spawn({ essence: 'Alice' }, 100, 100)
+const bob = world.spawn({ essence: 'Bob' }, 200, 200)
+
+alice.enableRelationships()
+bob.enableRelationships()
+
+// Create relationship
+alice.addRelationship(bob.id, 'friend', 0.7)
+
+// Update bond over time
+alice.updateRelationship(bob.id, {
+  bond: '+0.1',  // Increase by 0.1
+  lastInteraction: Date.now()
+})
+
+// Check relationship
+const rel = alice.getRelationship(bob.id)
+console.log(`Bond strength: ${rel.bond}`)
+```
+
+⸻
+
+## v5 Communication
+
+### 10. Send messages between entities
+
+```typescript
+const world = new World({ features: { communication: true } })
+
+const sender = world.spawn({ essence: 'Sender' }, 100, 100)
+const receiver = world.spawn({ essence: 'Receiver' }, 200, 200)
+
+// Send direct message
+sender.sendMessage('greeting', 'Hello there!', receiver)
+
+// Receiver reads messages
+if (receiver.hasUnreadMessages()) {
+  const msg = receiver.readNextMessage()
+  console.log(`${msg.sender.m.essence} says: ${msg.content}`)
+}
+```
+
+⸻
+
+### 11. Create a dialogue tree
+
+```typescript
+import { DialogueBuilder } from '@v1b3x0r/mds-core'
+
+const dialogue = new DialogueBuilder('quest_start')
+  .addNode({
+    id: 'greeting',
+    text: 'Hello, traveler! Need a quest?',
+    choices: [
+      { text: 'Yes, please', next: 'accept_quest' },
+      { text: 'Not now', next: 'farewell' }
+    ]
+  })
+  .addNode({
+    id: 'accept_quest',
+    text: 'Go defeat the dragon!',
+    choices: [
+      { text: 'On my way!', next: 'end' }
+    ]
+  })
+  .build()
+
+// Use with DialogueManager
+const world = new World({ features: { communication: true } })
+world.dialogueManager?.startDialogue(entity, dialogue)
+```
+
+⸻
+
+### 12. Broadcast to nearby entities
+
+```typescript
+const world = new World({ features: { communication: true } })
+
+const speaker = world.spawn({ essence: 'Town crier' }, 400, 300)
+
+// Broadcast (delivered to entities within 200px)
+speaker.sendMessage('broadcast', 'Hear ye, hear ye!')
+
+// Message delivered to all nearby entities
+world.tick(0.016)
+```
+
+⸻
+
+## v5 Cognitive
+
+### 13. Enable learning
+
+```typescript
+const world = new World({ features: { cognitive: true } })
+const entity = world.spawn({ essence: 'Apprentice' }, 100, 100)
+
+entity.enableLearning()
+
+// Add experience
+entity.learning.addExperience({
+  action: 'craft_sword',
+  context: 'training',
+  reward: 0.8,
+  success: true,
+  timestamp: Date.now()
+})
+
+// Check learned value
+const value = entity.learning.getActionValue('craft_sword')
+console.log(`Action value: ${value}`) // Higher = more rewarding
+```
+
+⸻
+
+### 14. Teach skills and practice
+
+```typescript
+const world = new World({ features: { cognitive: true } })
+const entity = world.spawn({ essence: 'Student' }, 100, 100)
+
+entity.enableSkills()
+
+// Learn a skill
+entity.skills.learnSkill('blacksmithing')
+
+// Practice improves proficiency
+entity.skills.practice('blacksmithing', 0.9) // 90% success rate
+
+// Check proficiency
+const skill = entity.skills.getSkill('blacksmithing')
+console.log(`Proficiency: ${skill.proficiency}`) // 0..1 (novice → master)
+```
+
+⸻
+
+### 15. Detect learning patterns
+
+```typescript
+const entity = world.spawn({ essence: 'Learner' }, 100, 100)
+entity.enableLearning()
+
+// Add multiple experiences
+entity.learning.addExperience({ action: 'explore', context: 'forest', reward: 1.0, timestamp: Date.now() })
+entity.learning.addExperience({ action: 'rest', context: 'forest', reward: 0.5, timestamp: Date.now() + 1000 })
+entity.learning.addExperience({ action: 'explore', context: 'forest', reward: 1.0, timestamp: Date.now() + 2000 })
+
+// Get detected patterns (sequences)
+const patterns = entity.learning.getPatterns()
+patterns.forEach(p => {
+  console.log(`Pattern: ${p.sequence.map(s => s.action).join(' → ')}`)
+  console.log(`Frequency: ${p.frequency}`)
+})
+```
+
+⸻
+
+## v5 World Mind
+
+### 16. Get world statistics
+
+```typescript
+const world = new World({
+  features: {
+    ontology: true,
+    physics: true,
+    cognitive: true
+  }
+})
+
+// ... spawn entities, run simulation ...
+
+const stats = world.getWorldStats()
+
+console.log('Entities:', stats.entityCount)
+console.log('Avg age:', stats.avgAge)
+console.log('Avg energy:', stats.avgEnergy)
+console.log('Total memories:', stats.totalMemories)
+console.log('Total experiences:', stats.totalExperiences)
+console.log('Avg emotional valence:', stats.avgEmotionalValence)
+```
+
+⸻
+
+### 17. Detect emergent patterns
+
+```typescript
+const world = new World()
+
+// ... spawn multiple entities ...
+
+world.start()
+
+setInterval(() => {
+  const patterns = world.getPatterns()
+
+  patterns.forEach(p => {
+    if (p.pattern === 'clustering') {
+      console.log('Entities formed a cluster!')
+      console.log(`Strength: ${p.strength}`)
+      console.log(`Entities: ${p.entities.join(', ')}`)
+    }
+
+    if (p.pattern === 'synchronization') {
+      console.log('Entities moving in sync!')
+    }
+
+    if (p.pattern === 'stillness') {
+      console.log('World is calm')
+    }
+  })
+}, 5000)
+```
+
+⸻
+
+### 18. Check collective emotion
+
+```typescript
+const world = new World({ features: { ontology: true } })
+
+// ... spawn entities with emotions ...
+
+const mood = world.getCollectiveEmotion()
+
+if (mood) {
+  if (mood.valence > 0.5) {
+    console.log('World is happy!')
+  } else if (mood.valence < -0.5) {
+    console.log('World is sad')
+  }
+
+  if (mood.arousal > 0.7) {
+    console.log('World is energetic')
+  }
+}
+```
+
+⸻
+
+## 💡 Pro Tips
+
+1. **Start simple** → Add features gradually
+2. **Use feature flags** → Enable only what you need
+3. **Deterministic mode** → Use seeds for reproducible experiments
+4. **Save often** → Use snapshots for checkpoints
+5. **Monitor patterns** → Watch for emergent behavior
+6. **Combine systems** → Memory + emotion + learning = rich NPCs
+
+⸻
+
+## 🎯 Common Combos
+
+### Smart NPC (remembers + learns)
+```typescript
+const world = new World({
+  features: { ontology: true, cognitive: true }
+})
+
+const npc = world.spawn({ essence: 'Village elder' }, 400, 300)
+npc.enableLearning()
+npc.enableRelationships()
+
+// NPC remembers player interactions
+npc.remember({ type: 'interaction', subject: 'player', content: 'quest_accepted', salience: 0.9, timestamp: Date.now() })
+
+// NPC learns from quest outcomes
+npc.learning.addExperience({ action: 'give_quest', reward: 1.0, timestamp: Date.now() })
+
+// NPC tracks relationship
+npc.addRelationship('player_id', 'ally', 0.8)
+```
+
+### Emotional character (mood affects behavior)
+```typescript
+const world = new World({ features: { ontology: true, physics: true } })
+
+const character = world.spawn({ essence: 'Nervous person' }, 200, 200)
+character.setEmotion({ valence: -0.3, arousal: 0.9, dominance: 0.3 })
+
+// Fear increases chaos (entity moves erratically)
+// Joy reduces entropy (entity becomes more organized)
+// Check emotion-physics coupling in action!
+```
+
+### Social simulation (village)
+```typescript
+const world = new World({
+  features: { ontology: true, communication: true }
+})
+
+// Spawn villagers
+const villagers = []
+for (let i = 0; i < 10; i++) {
+  const v = world.spawn({ essence: `Villager ${i}` },
+    Math.random() * 800,
+    Math.random() * 600
+  )
+  v.enableRelationships()
+  villagers.push(v)
+}
+
+// They naturally form relationships through proximity
+// Watch for clustering patterns
+setInterval(() => {
+  const patterns = world.getPatterns()
+  console.log('Social patterns:', patterns.map(p => p.pattern))
+}, 5000)
+```
 
 ⸻
 
 **That's it!**
 
-These recipes should keep you busy for a week. Mix, remix, break things.
-
-If you make something cool, tag us. We're curious what weird stuff you'll build. 👀
+Mix and match these recipes to create your own simulations. 🧪
 
 ⸻
 
-_Cooked in Chiang Mai. Best served with coffee._ ☕✨
+_Written in Chiang Mai. Powered by coffee and curiosity._ ☕✨
