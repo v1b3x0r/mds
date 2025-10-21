@@ -4,14 +4,23 @@
 
 ---
 
-## CURRENT VERSION: v4.2.1 (Info-Physics Engine - Production Ready)
+## CURRENT VERSION: v5.0.0 (Living World Simulation Engine - Production Ready)
 
 ---
 
-## Task Log (v4.2.1)
+## Task Log (v5.0.0)
 
 | Date | Update | Details |
 |------|--------|---------|
+| 2025-10-21 | **v5.0.0 RELEASE** | **COMPLETE** - All 8 phases implemented (100% checklist complete). Final bundle: 132.53 KB (30.98 KB gzipped), 110 tests (100% pass). Phases: Ontology + World + Renderer + WorldFile + Physics + Communication + Cognitive + World Mind. Updated README.md and USE_CASES.md for v5. |
+| 2025-10-21 | Phase 8: World Mind | CollectiveIntelligence system (statistics aggregation, pattern detection, collective emotion), integrated into World tick loop, 31 tests (100% pass), +6 KB bundle |
+| 2025-10-21 | Phase 7: Cognitive Evolution | Learning system (Q-learning, pattern detection), memory consolidation (Ebbinghaus), skill proficiency system, 18 tests (100% pass), +16 KB bundle |
+| 2025-10-21 | Phase 6: Communication | Message queue with priority, dialogue trees, LLM language generation (OpenRouter/Anthropic/OpenAI), semantic similarity via embeddings, 18 tests (100% pass), +30 KB bundle |
+| 2025-10-21 | Phase 5: Environmental Physics | Spatial collision (O(n) grid), thermal energy transfer, weather system, emotion-physics coupling, 43 tests (100% pass), +11 KB bundle |
+| 2025-10-21 | Phase 4: WorldFile Persistence | Save/load with snapshots, world serialization, integrated into World container |
+| 2025-10-21 | Phase 3: Renderer Abstraction | DOM/Canvas/WebGL support, RendererAdapter interface, configurable via WorldOptions |
+| 2025-10-21 | Phase 2: World Container | Three-phase tick (Physical/Mental/Relational), World class as simulation container, v4 Engine integration |
+| 2025-10-21 | Phase 1: Ontology Foundation | Memory system (Ebbinghaus curve), emotional state (PAD model), relationship tracking, integrated into Entity |
 | 2025-10-17 | v4.2.1 Documentation Complete | จัดโครงสร้างโฟลเดอร์แบบ world-class (/materials, /docs, /examples hierarchy), เพิ่มเอกสารครบ 7 ไฟล์ (guides/technical/meta), อัปเดต package.json + CLAUDE.md ให้ coherent, ลบไฟล์ซ้ำซ้อน (deploy.yml), เพิ่ม GitHub Pages workflow |
 | 2025-10-17 | v4.2.0 Stable Release | เพิ่ม lifecycle hooks (onSpawn/onUpdate/onDestroy), serialization (snapshot/restore), deterministic mode (seeded random), bump schema 4.1, ready for production use |
 | 2025-10-16 | Lovefield map redesign | รีดีไซน์หน้าเดโม่เป็น 2D DOM map แบบเกม (ถนน/หมู่บ้าน/สิ่งปลูกสร้าง emoji), ย้าย entity/field ลงเลเยอร์, เพิ่ม liquid glass HUD/hud-feed ที่สื่อสารได้, ปรับตัวละครวัยรุ่น + MBTI dialogues ให้เข้ากับธีม, field ตามจุด spark, UI ไม่บังแผนที่ |
