@@ -31,6 +31,9 @@ import {
 import type { MessageQueue, DialogueState, Message, MessageType, MessagePriority } from '../communication'
 import { MessageQueue as MsgQueue, createMessage } from '../communication'
 
+// v5 Phase 7: Cognitive imports
+import type { LearningSystem, MemoryConsolidation, SkillSystem } from '../cognitive'
+
 export class Entity {
   // Material definition
   m: MdsMaterial
@@ -82,6 +85,11 @@ export class Entity {
   inbox?: MessageQueue                          // Received messages
   outbox?: MessageQueue                         // Sent messages
   dialogue?: DialogueState                      // Current dialogue state
+
+  // v5 Phase 7: Cognitive (optional)
+  learning?: LearningSystem                     // Experience-based learning
+  consolidation?: MemoryConsolidation           // Memory consolidation
+  skills?: SkillSystem                          // Skill acquisition
 
   constructor(
     m: MdsMaterial,

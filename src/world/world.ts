@@ -60,6 +60,7 @@ export interface WorldOptions {
     physics?: boolean         // Enable environmental physics (Phase 5)
     communication?: boolean   // Enable message system (Phase 6)
     languageGeneration?: boolean  // Enable LLM-powered dialogue (Phase 6)
+    cognitive?: boolean       // Enable learning/skills (Phase 7)
   }
 
   // Phase 5: Environmental physics configuration
@@ -397,6 +398,11 @@ export class World {
       this.updateRelational(dt)
     }
 
+    // Phase 3.5: Cognitive update (Phase 7 - if enabled)
+    if (this.options.features?.cognitive) {
+      this.updateCognitive(dt)
+    }
+
     // Phase 4: Rendering update
     if (this.renderer.renderAll) {
       // Batch rendering (Canvas/WebGL)
@@ -677,6 +683,40 @@ export class World {
     for (const entity of entities) {
       if (entity.inbox) {
         entity.inbox.clearOld(60000)  // Keep last 60 seconds
+      }
+    }
+  }
+
+  /**
+   * Phase 3.5: Cognitive update (Phase 7)
+   * - Skill decay
+   * - Memory consolidation
+   * - Pattern forgetting
+   */
+  private updateCognitive(dt: number): void {
+    const entities = this.entities
+    const now = Date.now()
+
+    for (const entity of entities) {
+      // Skill decay (unused skills deteriorate)
+      if (entity.skills) {
+        entity.skills.applyDecay(dt)
+      }
+
+      // Memory consolidation (merge similar memories periodically)
+      if (entity.consolidation && entity.memory) {
+        if (entity.consolidation.shouldConsolidate(now)) {
+          const memories = entity.memory.getAll()
+          entity.consolidation.consolidate(memories)
+        }
+
+        // Apply forgetting curve
+        entity.consolidation.applyForgetting(dt)
+      }
+
+      // Learning pattern forgetting
+      if (entity.learning) {
+        entity.learning.forgetOldPatterns(now, 300000)  // Forget patterns older than 5 min
       }
     }
   }

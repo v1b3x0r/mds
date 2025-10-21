@@ -123,6 +123,30 @@ export type {
   SemanticConfig
 } from './communication'
 
+// Cognitive (v5 Phase 7)
+export {
+  LearningSystem,
+  createExperience,
+  calculateReward,
+  MemoryConsolidation,
+  memorySimilarity,
+  SkillSystem,
+  createSkill,
+  SKILL_PRESETS
+} from './cognitive'
+
+export type {
+  Experience,
+  Pattern,
+  LearningStats,
+  LearningConfig,
+  ConsolidatedMemory,
+  ConsolidationConfig,
+  Skill,
+  SkillLevel,
+  SkillConfig
+} from './cognitive'
+
 // IO
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
