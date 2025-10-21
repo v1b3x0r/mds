@@ -35,6 +35,12 @@ import {
   createEnvironment,
   createWeather
 } from '../physics'
+import {
+  DialogueManager,
+  LanguageGenerator,
+  SemanticSimilarity,
+  MessageDelivery
+} from '../communication'
 
 /**
  * World configuration options
@@ -52,12 +58,21 @@ export interface WorldOptions {
     history?: boolean         // Enable event log (for debugging)
     rendering?: 'dom' | 'canvas' | 'headless'  // Rendering backend
     physics?: boolean         // Enable environmental physics (Phase 5)
+    communication?: boolean   // Enable message system (Phase 6)
+    languageGeneration?: boolean  // Enable LLM-powered dialogue (Phase 6)
   }
 
   // Phase 5: Environmental physics configuration
   environment?: EnvironmentConfig | 'desert' | 'forest' | 'ocean' | 'arctic'
   weather?: WeatherConfig | 'calm' | 'stormy' | 'dry' | 'variable'
   collision?: boolean         // Enable collision detection
+
+  // Phase 6: Communication configuration
+  languageProvider?: 'openrouter' | 'anthropic' | 'openai' | 'mock'
+  languageApiKey?: string
+  languageModel?: string
+  semanticProvider?: 'openai' | 'mock'
+  semanticApiKey?: string
 }
 
 /**
@@ -137,6 +152,11 @@ export class World {
   private collisionDetector?: CollisionDetector
   private energySystem?: EnergySystem
 
+  // Phase 6: Communication systems (optional)
+  dialogueManager?: import('../communication').DialogueManager
+  languageGenerator?: import('../communication').LanguageGenerator
+  semanticSimilarity?: import('../communication').SemanticSimilarity
+
   // Options
   options: WorldOptions
 
@@ -164,6 +184,11 @@ export class World {
     // Phase 5: Initialize physics systems (if enabled)
     if (options.features?.physics) {
       this.initializePhysics(options)
+    }
+
+    // Phase 6: Initialize communication systems (if enabled)
+    if (options.features?.communication) {
+      this.initializeCommunication(options)
     }
   }
 
@@ -222,6 +247,31 @@ export class World {
 
     // Create energy system
     this.energySystem = new EnergySystem()
+  }
+
+  /**
+   * Initialize communication systems (Phase 6)
+   */
+  private initializeCommunication(options: WorldOptions): void {
+    // Create dialogue manager
+    this.dialogueManager = new DialogueManager()
+
+    // Create language generator (if enabled)
+    if (options.features?.languageGeneration) {
+      const provider = options.languageProvider ?? 'mock'
+      this.languageGenerator = new LanguageGenerator({
+        provider,
+        apiKey: options.languageApiKey,
+        model: options.languageModel
+      })
+    }
+
+    // Create semantic similarity system
+    const semProvider = options.semanticProvider ?? 'mock'
+    this.semanticSimilarity = new SemanticSimilarity({
+      provider: semProvider,
+      apiKey: options.semanticApiKey
+    })
   }
 
   /**
@@ -335,6 +385,11 @@ export class World {
     // Phase 2: Mental update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
       this.updateMental(dt)
+    }
+
+    // Phase 2.5: Communication update (Phase 6 - if enabled)
+    if (this.options.features?.communication) {
+      this.updateCommunication(dt)
     }
 
     // Phase 3: Relational update (v5 ontology - if enabled)
@@ -578,6 +633,50 @@ export class World {
             }
           }
         }
+      }
+    }
+  }
+
+  /**
+   * Phase 2.5: Communication update (Phase 6)
+   * - Message delivery
+   * - Dialogue updates (auto-advance)
+   * - Language generation triggers
+   */
+  private updateCommunication(dt: number): void {
+    const entities = this.entities
+
+    // Process outbox messages (deliver all pending messages)
+    for (const entity of entities) {
+      if (!entity.outbox) continue
+
+      const messages = entity.outbox.getAll()
+      for (const message of messages) {
+        if (!message.delivered) {
+          // Deliver message to recipients
+          if (message.receiver) {
+            // Direct message
+            MessageDelivery.deliver(message, entities)
+          } else {
+            // Broadcast (within radius 200px)
+            MessageDelivery.deliverProximity(message, entities, 200)
+          }
+        }
+      }
+
+      // Clear old messages from outbox
+      entity.outbox.clearOld(30000)  // Keep last 30 seconds
+    }
+
+    // Update dialogues (auto-advance)
+    if (this.dialogueManager) {
+      this.dialogueManager.update(dt)
+    }
+
+    // Clean up old messages from inboxes
+    for (const entity of entities) {
+      if (entity.inbox) {
+        entity.inbox.clearOld(60000)  // Keep last 60 seconds
       }
     }
   }

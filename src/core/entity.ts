@@ -27,6 +27,10 @@ import {
   EMOTION_BASELINES
 } from '../ontology'
 
+// v5 Phase 6: Communication imports
+import type { MessageQueue, DialogueState, Message, MessageType, MessagePriority } from '../communication'
+import { MessageQueue as MsgQueue, createMessage } from '../communication'
+
 export class Entity {
   // Material definition
   m: MdsMaterial
@@ -73,6 +77,11 @@ export class Entity {
   humidity?: number                             // 0..1
   density?: number                              // kg/m³
   conductivity?: number                         // Thermal transfer rate (0..1)
+
+  // v5 Phase 6: Communication (optional)
+  inbox?: MessageQueue                          // Received messages
+  outbox?: MessageQueue                         // Sent messages
+  dialogue?: DialogueState                      // Current dialogue state
 
   constructor(
     m: MdsMaterial,
@@ -188,6 +197,10 @@ export class Entity {
     this.density = m.physics?.density ?? 1.0  // kg/m³
     // @ts-ignore - v5 Phase 5 extension
     this.conductivity = m.physics?.conductivity ?? 0.5  // 0..1
+
+    // Phase 6: Communication (lazy initialization - created on first use)
+    // this.inbox and this.outbox will be created when first message is sent/received
+    // this.dialogue will be set by DialogueManager when dialogue starts
 
     // Log spawn memory
     this.remember({
@@ -322,6 +335,77 @@ export class Entity {
    */
   getCurrentIntent(): Intent | undefined {
     return this.intent?.current()
+  }
+
+  /**
+   * Send message to another entity (v5 Phase 6)
+   */
+  sendMessage(
+    type: MessageType,
+    content: string,
+    receiver?: Entity,
+    priority: MessagePriority = 'normal'
+  ): Message {
+    // Lazy initialization of outbox
+    if (!this.outbox) {
+      this.outbox = new MsgQueue()
+    }
+
+    // Create message
+    const message = createMessage(this, type, content, receiver, priority)
+
+    // Add to outbox
+    this.outbox.enqueue(message)
+
+    // Remember sending message (if memory enabled)
+    if (this.memory) {
+      this.remember({
+        timestamp: Date.now(),
+        type: 'interaction',  // Use valid MemoryType
+        subject: receiver?.id || 'broadcast',
+        content: { messageType: type, content },
+        salience: 0.7
+      })
+    }
+
+    return message
+  }
+
+  /**
+   * Get unread messages from inbox (v5 Phase 6)
+   */
+  getUnreadMessages(): Message[] {
+    if (!this.inbox) return []
+    return this.inbox.getUnread()
+  }
+
+  /**
+   * Read next message from inbox (v5 Phase 6)
+   */
+  readNextMessage(): Message | undefined {
+    if (!this.inbox) return undefined
+
+    const message = this.inbox.dequeue()
+
+    if (message && this.memory) {
+      // Remember receiving message (if memory enabled)
+      this.remember({
+        timestamp: Date.now(),
+        type: 'interaction',  // Use valid MemoryType
+        subject: message.sender.id,
+        content: { messageType: message.type, content: message.content },
+        salience: message.priority === 'urgent' ? 1.0 : 0.6
+      })
+    }
+
+    return message
+  }
+
+  /**
+   * Check if entity has unread messages (v5 Phase 6)
+   */
+  hasUnreadMessages(): boolean {
+    return this.inbox ? this.inbox.unreadCount() > 0 : false
   }
 
   /**

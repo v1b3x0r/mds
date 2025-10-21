@@ -87,6 +87,42 @@ export type {
   EnergyConfig
 } from './physics'
 
+// Communication (v5 Phase 6)
+export {
+  MessageBuilder,
+  MessageQueue,
+  MessageDelivery,
+  createMessage,
+  DialogueManager,
+  DialogueBuilder,
+  createNode,
+  createChoice,
+  LanguageGenerator,
+  createOpenRouterGenerator,
+  createMockGenerator,
+  SemanticSimilarity,
+  createOpenAISemantic,
+  createMockSemantic,
+  jaccardSimilarity,
+  levenshteinDistance,
+  levenshteinSimilarity
+} from './communication'
+
+export type {
+  Message,
+  MessageType,
+  MessagePriority,
+  DialogueNode,
+  DialogueChoice,
+  DialogueTree,
+  DialogueState,
+  LanguageConfig,
+  LanguageRequest,
+  LanguageResponse,
+  Embedding,
+  SemanticConfig
+} from './communication'
+
 // IO
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
