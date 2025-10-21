@@ -1,6 +1,6 @@
-# MDSPEC Guide — The Schema Bible (but readable)
+# MDSPEC Guide — The Schema Reference
 
-**This guide will get you writing `.mdspec.json` files in 3 minutes.**
+**This guide will get you writing `.mdm` files (Material Definitions) in 5 minutes.**
 
 ⸻
 
@@ -13,13 +13,15 @@ It's how we tell the universe "here's a living thing" using JSON.
 But it's not config —
 it's **ontology** (a description of what something *is*).
 
+**File extension:** `.mdm` (Material Definition)
+
 ⸻
 
-## 📖 Complete Schema (v4.1)
+## 📖 Complete Schema (v5.0)
 
 ```json
 {
-  "$schema": "4.1",
+  "$schema": "5.0",
   "material": "paper.curious",
   "intent": "observe",
   "essence": "A paper that leans toward you when hovered.",
@@ -63,6 +65,38 @@ it's **ontology** (a description of what something *is*).
 }
 ```
 
+**What's new in v5.0:**
+
+Entities now support optional advanced features (enabled via World feature flags):
+
+```json
+{
+  "material": "person.curious",
+  "essence": "A curious explorer who remembers and learns",
+
+  // v5: Ontology features (optional - enable with features.ontology)
+  "memory": {
+    "maxSize": 100,
+    "forgetRate": 0.1
+  },
+  "emotion": {
+    "valence": 0.5,
+    "arousal": 0.3,
+    "dominance": 0.6
+  },
+
+  // v5: Physics features (optional - enable with features.physics)
+  "temperature": 25,
+  "conductivity": 0.5,
+
+  // v5: Communication features (optional - enable with features.communication)
+  "canSpeak": true,
+
+  // v5: Cognitive features (optional - enable with features.cognitive)
+  "canLearn": true
+}
+```
+
 ⸻
 
 ## 🔑 Key-by-Key Explanation
@@ -76,7 +110,7 @@ it's **ontology** (a description of what something *is*).
 ```
 
 - Name pattern: `{type}.{personality}.{variant}`
-- Must be unique within the same engine
+- Must be unique within the same world
 - Use kebab-case (`paper-shy`) or dot notation (`paper.shy`)
 
 ⸻
@@ -214,7 +248,7 @@ Or bilingual:
 - `model_hint` → suggest which LLM to use
 - `simulate` → if `true`, uses dummy responses (no real API call)
 
-**Note:** You must implement LlmBridge yourself (v4.2 only has the interface)
+**Note:** You must implement LlmBridge yourself or use provided adapters (OpenRouter, Anthropic, OpenAI)
 
 ⸻
 
@@ -228,6 +262,127 @@ Or bilingual:
   "Best viewed at night",
   "Pairs well with field.nostalgia"
 ]
+```
+
+⸻
+
+## 🆕 v5.0 Optional Features
+
+### Memory System (Ontology)
+
+Entities can remember past events using Ebbinghaus forgetting curve:
+
+```json
+{
+  "material": "npc.villager",
+  "essence": "A villager who remembers your kindness",
+  "memory": {
+    "maxSize": 50,
+    "forgetRate": 0.1
+  }
+}
+```
+
+**Enable in code:**
+```typescript
+const world = new World({ features: { ontology: true } })
+const entity = world.spawn(material, 100, 100)
+
+entity.remember({
+  timestamp: Date.now(),
+  type: 'interaction',
+  subject: 'player',
+  content: 'helped with quest',
+  salience: 0.9
+})
+```
+
+⸻
+
+### Emotion System (Ontology)
+
+Entities have emotional states using the PAD model (Pleasure-Arousal-Dominance):
+
+```json
+{
+  "material": "character.nervous",
+  "essence": "A nervous character",
+  "emotion": {
+    "valence": -0.3,
+    "arousal": 0.8,
+    "dominance": 0.3
+  }
+}
+```
+
+**Enable in code:**
+```typescript
+entity.setEmotion({ valence: 0.8, arousal: 0.6, dominance: 0.7 })
+```
+
+⸻
+
+### Temperature & Physics (Environmental)
+
+Entities interact with environmental physics:
+
+```json
+{
+  "material": "object.hot",
+  "essence": "A warm object",
+  "temperature": 35,
+  "conductivity": 0.8
+}
+```
+
+**Enable in code:**
+```typescript
+const world = new World({ features: { physics: true } })
+```
+
+⸻
+
+### Communication (Messages & Dialogue)
+
+Entities can send messages and follow dialogue trees:
+
+```json
+{
+  "material": "npc.merchant",
+  "essence": "A talkative merchant",
+  "canSpeak": true
+}
+```
+
+**Enable in code:**
+```typescript
+const world = new World({ features: { communication: true } })
+entity.sendMessage('greeting', 'Hello traveler!', otherEntity)
+```
+
+⸻
+
+### Learning & Skills (Cognitive)
+
+Entities can learn from experience and develop skills:
+
+```json
+{
+  "material": "apprentice.blacksmith",
+  "essence": "An apprentice learning the craft",
+  "canLearn": true
+}
+```
+
+**Enable in code:**
+```typescript
+const world = new World({ features: { cognitive: true } })
+entity.enableLearning()
+entity.learning.addExperience({
+  action: 'forge_sword',
+  reward: 0.8,
+  timestamp: Date.now()
+})
 ```
 
 ⸻
@@ -326,14 +481,14 @@ You care about **measurable properties**:
 }
 ```
 
-Use **deterministic mode** in engine:
+Use **deterministic mode** in world:
 ```typescript
-const engine = new Engine({ seed: 12345 })
+const world = new World({ seed: 12345 })
 ```
 
 ⸻
 
-## 🚀 Design Your Own Material (3-Minute Tutorial)
+## 🚀 Create Your Own Material (5-Minute Tutorial)
 
 ### Step 1: Pick a concept
 What do you want? (e.g., "a paper that's curious")
@@ -370,17 +525,20 @@ What do you want? (e.g., "a paper that's curious")
 }
 ```
 
-### Step 5: Test it
+### Step 5: Save as `.mdm` file
+Save your file as `paper.curious.mdm`
+
+### Step 6: Test it
 ```typescript
 import { Engine, loadMaterial } from '@v1b3x0r/mds-core'
 
 const engine = new Engine()
-const curious = await loadMaterial('./paper.curious.mdspec.json')
+const curious = await loadMaterial('./paper.curious.mdm')
 engine.spawn(curious, 200, 200)
 engine.start()
 ```
 
-### Step 6: Iterate
+### Step 7: Iterate
 - Too slow? Lower `friction`
 - Disappears too fast? Lower `decay_rate`
 - Want it to bounce? Increase `physics.bounce`
@@ -391,9 +549,10 @@ engine.start()
 
 1. **Start with essence alone** → see how it behaves raw
 2. **Add one property at a time** → easier to debug
-3. **Copy existing materials** → `paper.shy` is a great template
+3. **Copy existing materials** → `paper.shy.mdm` is a great template
 4. **Test in pairs** → spawn 2 entities to see fields emerge
 5. **Use notes liberally** → future you will thank you
+6. **Use v5 features optionally** → enable only what you need via feature flags
 
 ⸻
 
@@ -455,11 +614,13 @@ Fields are **different** from entities — they're spawned **by relationships**.
 
 ## 📚 Full Examples
 
-Check `examples/` folder:
-- `paper.shy.mdspec.json` → basic interactive paper
-- `paper.curious.mdspec.json` → hover-responsive
-- `field.trust.core.mdspec.json` → relationship field
-- `emotion.trust.mdspec.json` → essence-only minimal
+Check `materials/` folder:
+- `paper.shy.mdm` → basic interactive paper
+- `paper.curious.mdm` → hover-responsive
+- `field.trust.core.mdm` → relationship field
+- `emotion.trust.mdm` → essence-only minimal
+
+Check `examples/` folder for live demos.
 
 ⸻
 
@@ -467,7 +628,7 @@ Check `examples/` folder:
 
 You now know everything to create living materials. 🌊
 
-Go make weird stuff. Report bugs. Tag us with your creations.
+Go make weird stuff. Report bugs on GitHub if you find any.
 
 ⸻
 
