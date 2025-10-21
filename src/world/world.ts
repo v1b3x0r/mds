@@ -19,6 +19,12 @@ import {
   driftToBaseline,
   EMOTION_BASELINES
 } from '../ontology'
+import {
+  RendererAdapter,
+  DOMRenderer,
+  CanvasRenderer,
+  HeadlessRenderer
+} from '../render'
 
 /**
  * World configuration options
@@ -34,6 +40,7 @@ export interface WorldOptions {
   features?: {
     ontology?: boolean        // Enable memory/emotion/intent system
     history?: boolean         // Enable event log (for debugging)
+    rendering?: 'dom' | 'canvas' | 'headless'  // Rendering backend
   }
 }
 
@@ -105,6 +112,9 @@ export class World {
   historyEnabled = false
   eventLog: WorldEvent[] = []
 
+  // Renderer (v5)
+  private renderer: RendererAdapter
+
   // Options
   options: WorldOptions
 
@@ -121,8 +131,29 @@ export class World {
       boundaryBounceDamping: options.boundaryBounceDamping
     })
 
+    // Initialize renderer
+    const renderMode = options.features?.rendering ?? 'dom'
+    this.renderer = this.createRenderer(renderMode)
+    this.renderer.init()
+
     // Enable history if requested
     this.historyEnabled = options.features?.history ?? false
+  }
+
+  /**
+   * Create renderer based on mode
+   */
+  private createRenderer(mode: 'dom' | 'canvas' | 'headless'): RendererAdapter {
+    switch (mode) {
+      case 'dom':
+        return new DOMRenderer()
+      case 'canvas':
+        return new CanvasRenderer()
+      case 'headless':
+        return new HeadlessRenderer()
+      default:
+        return new DOMRenderer()
+    }
   }
 
   /**
@@ -168,7 +199,15 @@ export class World {
    * Spawn entity (evolved from engine.spawn)
    */
   spawn(material: MdsMaterial, options?: SpawnOptions): Entity {
-    const entity = this.engine.spawn(material, options?.x, options?.y)
+    // Determine if we should skip DOM creation
+    const renderMode = this.options.features?.rendering ?? 'dom'
+    const skipDOM = renderMode !== 'dom'
+
+    // Spawn entity (with or without DOM)
+    const entity = this.engine.spawn(material, options?.x, options?.y, { skipDOM })
+
+    // Delegate rendering to renderer
+    this.renderer.spawn(entity)
 
     // Log event if history enabled
     if (this.historyEnabled) {
@@ -189,6 +228,9 @@ export class World {
   spawnField(fieldSpec: MdsFieldSpec, x: number, y: number): Field {
     const field = this.engine.spawnField(fieldSpec, x, y)
 
+    // Delegate field rendering if renderer supports it
+    this.renderer.renderField?.(field)
+
     // Log event if history enabled
     if (this.historyEnabled) {
       this.eventLog.push({
@@ -207,6 +249,7 @@ export class World {
    * Phase 1: Physical (v4 delegation)
    * Phase 2: Mental (v5 ontology - memory decay, emotion drift)
    * Phase 3: Relational (v5 ontology - emotional contagion, memory formation)
+   * Phase 4: Rendering (v5 renderer delegation)
    */
   tick(dt: number): void {
     this.worldTime += dt
@@ -223,6 +266,24 @@ export class World {
     // Phase 3: Relational update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
       this.updateRelational(dt)
+    }
+
+    // Phase 4: Rendering update
+    if (this.renderer.renderAll) {
+      // Batch rendering (Canvas/WebGL)
+      this.renderer.renderAll(this.entities, this.fields)
+    } else {
+      // Per-entity rendering (DOM)
+      for (const entity of this.entities) {
+        this.renderer.update(entity, dt)
+      }
+
+      // Update fields if renderer supports it
+      if (this.renderer.updateField) {
+        for (const field of this.fields) {
+          this.renderer.updateField(field, dt)
+        }
+      }
     }
   }
 
@@ -364,6 +425,10 @@ export class World {
    * Remove a specific entity
    */
   removeEntity(entity: Entity): void {
+    // Cleanup renderer resources first
+    this.renderer.destroy(entity)
+
+    // Remove from engine
     this.engine.removeEntity(entity)
 
     // Log event if history enabled
@@ -380,6 +445,10 @@ export class World {
    * Clear all entities and fields
    */
   clear(): void {
+    // Clear renderer resources
+    this.renderer.clear()
+
+    // Clear engine state
     this.engine.clear()
   }
 
@@ -439,6 +508,10 @@ export class World {
    * Cleanup and destroy world
    */
   destroy(): void {
+    // Dispose renderer resources
+    this.renderer.dispose()
+
+    // Destroy engine
     this.engine.destroy()
   }
 }

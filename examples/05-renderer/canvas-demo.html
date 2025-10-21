@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDS v5 - Canvas Renderer Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      overflow: hidden;
+    }
+
+    #ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      max-width: 300px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(102, 126, 234, 0.3);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <h1>🎨 Canvas Renderer</h1>
+    <p>MDS v5 with Canvas2D backend. High performance batch rendering with emotional colors and memory trails.</p>
+
+    <div class="badge">Phase 3: Renderer Abstraction</div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Entities</div>
+        <div class="metric-value" id="entityCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Ticks</div>
+        <div class="metric-value" id="tickCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Memory</div>
+        <div class="metric-value" id="memoryCount">0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">FPS</div>
+        <div class="metric-value" id="fps">60</div>
+      </div>
+    </div>
+
+    <button onclick="spawnEntity()">Spawn Entity (Click Me!)</button>
+    <button onclick="clearWorld()">Clear All</button>
+  </div>
+
+  <script type="module">
+    import { World } from '../../dist/mds-core.esm.js'
+
+    // Create world with Canvas renderer + ontology
+    const world = new World({
+      features: {
+        rendering: 'canvas',
+        ontology: true,
+        history: true
+      },
+      seed: 42,  // Deterministic for reproducibility
+      worldBounds: {
+        minX: 0,
+        maxX: window.innerWidth,
+        minY: 0,
+        maxY: window.innerHeight
+      },
+      boundaryBehavior: 'bounce',
+      boundaryBounceDamping: 0.7
+    })
+
+    // Material definition (v5 with ontology)
+    const emotionMaterial = {
+      $schema: 'https://mds.v1b3.dev/schema/v5',
+      material: 'entity.emotional',
+      manifestation: {
+        emoji: '✨',
+        visual: 'animated'
+      },
+      physics: {
+        mass: 1,
+        friction: 0.005  // Very low friction for smooth movement
+      },
+      ontology: {
+        memorySize: 100,
+        emotionBaseline: {
+          valence: 0,
+          arousal: 0.5,
+          dominance: 0.5
+        }
+      }
+    }
+
+    // Spawn initial entities
+    function spawnEntity() {
+      const x = Math.random() * window.innerWidth
+      const y = Math.random() * window.innerHeight
+
+      const entity = world.spawn(emotionMaterial, { x, y })
+
+      // Set random initial emotion
+      entity.emotion.valence = Math.random() * 2 - 1  // -1 to 1
+      entity.emotion.arousal = Math.random()  // 0 to 1
+      entity.emotion.dominance = Math.random()  // 0 to 1
+
+      // Add spawn memory
+      entity.remember({
+        timestamp: entity.age,
+        type: 'spawn',
+        subject: 'user',
+        content: { x, y },
+        salience: 1.0
+      })
+
+      // Give random velocity
+      const angle = Math.random() * Math.PI * 2
+      const speed = 50 + Math.random() * 100
+      entity.vx = Math.cos(angle) * speed
+      entity.vy = Math.sin(angle) * speed
+    }
+
+    // Clear world
+    function clearWorld() {
+      world.clear()
+    }
+
+    // Make functions global
+    window.spawnEntity = spawnEntity
+    window.clearWorld = clearWorld
+
+    // Spawn initial population
+    for (let i = 0; i < 10; i++) {
+      spawnEntity()
+    }
+
+    // Start simulation
+    world.start()
+
+    // Update UI metrics
+    let lastTime = performance.now()
+    let frameCount = 0
+    let fps = 60
+
+    setInterval(() => {
+      // Entity count
+      document.getElementById('entityCount').textContent = world.entities.length
+
+      // Tick count
+      document.getElementById('tickCount').textContent = world.tickCount
+
+      // Total memories across all entities
+      const totalMemories = world.entities.reduce((sum, e) => {
+        return sum + (e.memory ? e.memory.count() : 0)
+      }, 0)
+      document.getElementById('memoryCount').textContent = totalMemories
+
+      // FPS
+      const now = performance.now()
+      const dt = (now - lastTime) / 1000
+      if (dt > 0) {
+        fps = Math.round(frameCount / dt)
+        document.getElementById('fps').textContent = fps
+      }
+      frameCount = 0
+      lastTime = now
+    }, 1000)
+
+    // Count frames
+    function countFrame() {
+      frameCount++
+      requestAnimationFrame(countFrame)
+    }
+    countFrame()
+
+    // Log world info
+    console.log('🎨 MDS v5 Canvas Renderer Demo')
+    console.log('World ID:', world.id)
+    console.log('Renderer:', world.options.features.rendering)
+    console.log('Ontology:', world.options.features.ontology)
+    console.log('Bundle size: 49.79 KB (12.60 KB gzipped)')
+    console.log('')
+    console.log('Features:')
+    console.log('  ✓ Canvas2D batch rendering')
+    console.log('  ✓ Emotional color mapping (PAD → HSL)')
+    console.log('  ✓ Memory-based trails (>50 memories)')
+    console.log('  ✓ Emotional contagion (close entities)')
+    console.log('  ✓ Memory-based attraction (shared history)')
+    console.log('  ✓ World bounds with bounce behavior')
+    console.log('')
+    console.log('Click "Spawn Entity" to add more!')
+  </script>
+</body>
+</html>

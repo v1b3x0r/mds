@@ -46,8 +46,8 @@ export class Entity {
   energy: number
   opacity = 1
 
-  // DOM element
-  el: HTMLDivElement
+  // DOM element (optional in v5 renderer mode)
+  el?: HTMLDivElement
 
   // Interaction tracking
   hoverCount = 0
@@ -72,7 +72,8 @@ export class Entity {
     m: MdsMaterial,
     x?: number,
     y?: number,
-    rng: () => number = Math.random
+    rng: () => number = Math.random,
+    options?: { skipDOM?: boolean }  // v5: Allow DOM-less entities
   ) {
     this.m = m
     this.x = x ?? rng() * 480
@@ -95,25 +96,28 @@ export class Entity {
       this.initializeOntology(m)
     }
 
-    // Create DOM element
-    this.el = document.createElement('div')
-    this.el.className = 'mds-entity'
-    this.el.style.position = 'absolute'
-    this.el.style.willChange = 'transform, opacity, filter'
-    this.el.dataset.material = m.material
+    // Create DOM element (v4 legacy mode - skip if using v5 renderer)
+    if (!options?.skipDOM) {
+      this.el = document.createElement('div')
+      this.el.className = 'mds-entity'
+      this.el.style.position = 'absolute'
+      this.el.style.willChange = 'transform, opacity, filter'
+      this.el.dataset.material = m.material
+      this.el.dataset.id = this.id
 
-    // Set emoji
-    const emoji = m.manifestation?.emoji ?? '📄'
-    this.el.textContent = emoji
+      // Set emoji
+      const emoji = m.manifestation?.emoji ?? '📄'
+      this.el.textContent = emoji
 
-    // Attach event handlers
-    this.attachDOMHandlers()
+      // Attach event handlers
+      this.attachDOMHandlers()
 
-    // Append to body
-    document.body.appendChild(this.el)
+      // Append to body
+      document.body.appendChild(this.el)
 
-    // Initial render
-    this.render()
+      // Initial render
+      this.render()
+    }
   }
 
   /**
@@ -183,6 +187,8 @@ export class Entity {
    * Attach DOM event handlers for interactive behavior
    */
   private attachDOMHandlers(): void {
+    if (!this.el) return
+
     this.el.addEventListener('mouseover', () => {
       const now = performance.now()
 
@@ -242,20 +248,21 @@ export class Entity {
   }
 
   /**
-   * Update DOM styles
+   * Update DOM styles (v4 legacy mode only)
    */
   render(): void {
+    if (!this.el) return
     this.el.style.opacity = String(this.opacity)
     this.el.style.transform = `translate(${this.x}px, ${this.y}px)`
   }
 
   /**
-   * Cleanup DOM element
+   * Cleanup DOM element (v4 legacy mode only)
    */
   destroy(): void {
     // Call lifecycle hook (v4.1)
     this.onDestroy?.(this)
-    this.el.remove()
+    this.el?.remove()
   }
 
   /**

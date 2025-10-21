@@ -53,9 +53,10 @@ export class Engine {
 
   /**
    * Spawn a new material entity
+   * @param options - v5: skipDOM option for renderer abstraction
    */
-  spawn(material: MdsMaterial, x?: number, y?: number): Entity {
-    const e = new Entity(material, x, y, this.rng)
+  spawn(material: MdsMaterial, x?: number, y?: number, options?: { skipDOM?: boolean }): Entity {
+    const e = new Entity(material, x, y, this.rng, options)
     this.entities.push(e)
     // Call lifecycle hook (v4.1)
     e.onSpawn?.(this, e)
