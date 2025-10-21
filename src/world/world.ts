@@ -25,6 +25,16 @@ import {
   CanvasRenderer,
   HeadlessRenderer
 } from '../render'
+import {
+  Environment,
+  Weather,
+  CollisionDetector,
+  EnergySystem,
+  EnvironmentConfig,
+  WeatherConfig,
+  createEnvironment,
+  createWeather
+} from '../physics'
 
 /**
  * World configuration options
@@ -41,7 +51,13 @@ export interface WorldOptions {
     ontology?: boolean        // Enable memory/emotion/intent system
     history?: boolean         // Enable event log (for debugging)
     rendering?: 'dom' | 'canvas' | 'headless'  // Rendering backend
+    physics?: boolean         // Enable environmental physics (Phase 5)
   }
+
+  // Phase 5: Environmental physics configuration
+  environment?: EnvironmentConfig | 'desert' | 'forest' | 'ocean' | 'arctic'
+  weather?: WeatherConfig | 'calm' | 'stormy' | 'dry' | 'variable'
+  collision?: boolean         // Enable collision detection
 }
 
 /**
@@ -115,6 +131,12 @@ export class World {
   // Renderer (v5)
   private renderer: RendererAdapter
 
+  // Phase 5: Physics systems (optional)
+  environment?: Environment
+  weather?: Weather
+  private collisionDetector?: CollisionDetector
+  private energySystem?: EnergySystem
+
   // Options
   options: WorldOptions
 
@@ -138,6 +160,11 @@ export class World {
 
     // Enable history if requested
     this.historyEnabled = options.features?.history ?? false
+
+    // Phase 5: Initialize physics systems (if enabled)
+    if (options.features?.physics) {
+      this.initializePhysics(options)
+    }
   }
 
   /**
@@ -154,6 +181,47 @@ export class World {
       default:
         return new DOMRenderer()
     }
+  }
+
+  /**
+   * Initialize physics systems (Phase 5)
+   */
+  private initializePhysics(options: WorldOptions): void {
+    // Create environment
+    if (typeof options.environment === 'string') {
+      // Preset
+      this.environment = createEnvironment(options.environment)
+    } else if (options.environment) {
+      // Custom config
+      this.environment = new Environment(options.environment)
+    } else {
+      // Default
+      this.environment = new Environment()
+    }
+
+    // Create weather
+    if (typeof options.weather === 'string') {
+      // Preset
+      this.weather = createWeather(options.weather)
+    } else if (options.weather) {
+      // Custom config
+      this.weather = new Weather(options.weather)
+    } else {
+      // Default
+      this.weather = new Weather()
+    }
+
+    // Create collision detector (if enabled)
+    if (options.collision) {
+      const bounds = {
+        width: options.worldBounds?.maxX ?? 1920,
+        height: options.worldBounds?.maxY ?? 1080
+      }
+      this.collisionDetector = new CollisionDetector(100, bounds)
+    }
+
+    // Create energy system
+    this.energySystem = new EnergySystem()
   }
 
   /**
@@ -244,10 +312,11 @@ export class World {
   }
 
   /**
-   * Main tick loop (three-phase update)
+   * Main tick loop (multi-phase update)
    *
-   * Phase 1: Physical (v4 delegation)
-   * Phase 2: Mental (v5 ontology - memory decay, emotion drift)
+   * Phase 1: Physical (v4 delegation - motion, forces)
+   * Phase 1.5: Environmental Physics (Phase 5 - if enabled)
+   * Phase 2: Mental (v5 ontology - memory decay, emotion drift, emotion-physics coupling)
    * Phase 3: Relational (v5 ontology - emotional contagion, memory formation)
    * Phase 4: Rendering (v5 renderer delegation)
    */
@@ -257,6 +326,11 @@ export class World {
 
     // Phase 1: Physical update (v4 delegation)
     this.engine.tick(dt)
+
+    // Phase 1.5: Environmental Physics (Phase 5 - if enabled)
+    if (this.options.features?.physics) {
+      this.updatePhysics(dt)
+    }
 
     // Phase 2: Mental update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
@@ -288,10 +362,85 @@ export class World {
   }
 
   /**
+   * Phase 1.5: Environmental Physics update (Phase 5)
+   * - Environment and weather updates
+   * - Collision detection and response
+   * - Thermal energy transfer (entity ↔ entity, entity ↔ environment)
+   * - Humidity exchange
+   * - Thermal decay
+   */
+  private updatePhysics(dt: number): void {
+    const entities = this.entities
+
+    // Update environment and weather
+    this.environment?.update(dt)
+    this.weather?.update(dt)
+
+    // Collision detection and response
+    if (this.collisionDetector) {
+      this.collisionDetector.update(entities)
+      const collisions = this.collisionDetector.detectCollisions(entities)
+
+      for (const collision of collisions) {
+        CollisionDetector.resolve(collision)
+      }
+    }
+
+    // Energy transfer (thermal)
+    if (this.energySystem && this.environment) {
+      // Entity ↔ Entity thermal transfer
+      this.energySystem.updateEntityTransfer(entities, dt)
+
+      // Entity ↔ Environment thermal transfer
+      this.energySystem.updateEnvironmentTransfer(entities, this.environment, dt)
+
+      // Entity ↔ Environment humidity exchange
+      this.energySystem.updateHumidityTransfer(entities, this.environment, dt)
+
+      // Apply thermal decay (hot entities decay faster)
+      for (const entity of entities) {
+        this.energySystem.applyThermalDecay(entity, dt)
+      }
+    }
+
+    // Apply weather effects
+    if (this.weather) {
+      const weatherState = this.weather.getState()
+
+      // Wind affects velocity
+      const windMultiplier = weatherState.windStrength
+      if (this.environment) {
+        for (const entity of entities) {
+          const envState = this.environment.getState(entity.x, entity.y)
+          entity.vx += envState.windVx * windMultiplier * dt * 0.01
+          entity.vy += envState.windVy * windMultiplier * dt * 0.01
+        }
+      }
+
+      // Rain increases humidity
+      if (weatherState.rain) {
+        for (const entity of entities) {
+          if (entity.humidity !== undefined) {
+            entity.humidity = Math.min(1, entity.humidity + weatherState.rainIntensity * dt * 0.1)
+          }
+        }
+      }
+
+      // Evaporation decreases humidity
+      for (const entity of entities) {
+        if (entity.humidity !== undefined) {
+          entity.humidity = Math.max(0, entity.humidity - weatherState.evaporationRate * dt)
+        }
+      }
+    }
+  }
+
+  /**
    * Phase 2: Mental update
    * - Memory decay
    * - Memory pruning
    * - Emotion drift to baseline
+   * - Emotion-physics coupling (Phase 5)
    * - Intent timeout evaluation
    */
   private updateMental(dt: number): void {
@@ -311,6 +460,32 @@ export class World {
         const baseline = EMOTION_BASELINES.neutral
         const driftRate = 0.01 * dt
         entity.emotion = driftToBaseline(entity.emotion, baseline, driftRate)
+      }
+
+      // Phase 5: Emotion-Physics coupling (if physics enabled)
+      if (this.options.features?.physics && entity.emotion) {
+        // Joy (high valence) → reduces entropy (order increases)
+        if (entity.emotion.valence > 0.5) {
+          const joyStrength = (entity.emotion.valence - 0.5) * 2  // 0..1
+          entity.entropy *= Math.pow(0.99, joyStrength * 10)  // Max 10% reduction
+        }
+
+        // Fear (high arousal, low dominance) → increases kinetic randomness
+        if (entity.emotion.arousal > 0.7 && entity.emotion.dominance < 0.3) {
+          const fearStrength = entity.emotion.arousal * (1 - entity.emotion.dominance)
+          const randomAngle = Math.random() * Math.PI * 2
+          const randomSpeed = fearStrength * 30  // Max 30 px/s
+          entity.vx += Math.cos(randomAngle) * randomSpeed * dt
+          entity.vy += Math.sin(randomAngle) * randomSpeed * dt
+        }
+
+        // Sadness (low valence) → increases viscosity (slows down)
+        if (entity.emotion.valence < -0.3) {
+          const sadnessStrength = Math.abs(entity.emotion.valence + 0.3) / 1.3  // 0..1
+          const dampingFactor = 1 - (sadnessStrength * 0.05)  // Max 5% damping
+          entity.vx *= dampingFactor
+          entity.vy *= dampingFactor
+        }
       }
 
       // Intent timeout evaluation

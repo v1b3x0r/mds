@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MDS v5 Phase 5 - Environmental Physics Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    #world-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 30% 30%, rgba(100, 150, 255, 0.1), transparent 50%);
+    }
+
+    /* HUD Overlay */
+    #hud {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 100;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      pointer-events: none;
+    }
+
+    .hud-panel {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      pointer-events: auto;
+    }
+
+    .hud-panel h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #64b5f6;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .hud-stat {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      font-size: 13px;
+    }
+
+    .hud-stat-label {
+      color: #aaa;
+    }
+
+    .hud-stat-value {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* Temperature gradient visualization */
+    .temp-high { color: #ff6b6b; }
+    .temp-med { color: #ffd93d; }
+    .temp-low { color: #6bcbff; }
+
+    /* Controls */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 15px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: rgba(100, 181, 246, 0.2);
+      border: 1px solid rgba(100, 181, 246, 0.5);
+      color: #64b5f6;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: rgba(100, 181, 246, 0.3);
+      border-color: #64b5f6;
+    }
+
+    button.active {
+      background: rgba(100, 181, 246, 0.5);
+      border-color: #64b5f6;
+      color: #fff;
+    }
+
+    /* Entity styles */
+    .mds-entity {
+      position: absolute;
+      font-size: 32px;
+      user-select: none;
+      cursor: pointer;
+      transition: filter 0.2s;
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+    }
+
+    .mds-entity:hover {
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+    }
+
+    /* Temperature halo effect */
+    .hot-entity {
+      filter: drop-shadow(0 0 12px rgba(255, 100, 100, 0.8));
+    }
+
+    .cold-entity {
+      filter: drop-shadow(0 0 12px rgba(100, 200, 255, 0.8));
+    }
+
+    /* Rain effect */
+    #rain-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
+
+    #rain-canvas.active {
+      opacity: 1;
+    }
+
+    /* Environment visualization */
+    #env-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+<body>
+  <div id="world-container"></div>
+
+  <!-- Environment visualization canvas -->
+  <canvas id="env-canvas"></canvas>
+
+  <!-- Rain effect canvas -->
+  <canvas id="rain-canvas"></canvas>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-panel">
+      <h3>🌡️ Environment</h3>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Temperature</span>
+        <span class="hud-stat-value temp-med" id="avg-temp">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Humidity</span>
+        <span class="hud-stat-value" id="avg-humidity">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Light</span>
+        <span class="hud-stat-value" id="avg-light">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Wind</span>
+        <span class="hud-stat-value" id="wind-speed">--</span>
+      </div>
+    </div>
+
+    <div class="hud-panel">
+      <h3>🌦️ Weather</h3>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Condition</span>
+        <span class="hud-stat-value" id="weather-condition">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Rain Intensity</span>
+        <span class="hud-stat-value" id="rain-intensity">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Evaporation</span>
+        <span class="hud-stat-value" id="evaporation">--</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Cloud Cover</span>
+        <span class="hud-stat-value" id="cloud-cover">--</span>
+      </div>
+    </div>
+
+    <div class="hud-panel">
+      <h3>📊 Statistics</h3>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Entities</span>
+        <span class="hud-stat-value" id="entity-count">0</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Collisions</span>
+        <span class="hud-stat-value" id="collision-count">0</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">Thermal Energy</span>
+        <span class="hud-stat-value" id="total-energy">0</span>
+      </div>
+      <div class="hud-stat">
+        <span class="hud-stat-label">FPS</span>
+        <span class="hud-stat-value" id="fps">60</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <div class="control-group">
+      <label>Environment Presets</label>
+      <div class="button-group">
+        <button onclick="setEnvironment('desert')">🏜️ Desert</button>
+        <button onclick="setEnvironment('forest')" class="active">🌲 Forest</button>
+        <button onclick="setEnvironment('ocean')">🌊 Ocean</button>
+        <button onclick="setEnvironment('arctic')">🧊 Arctic</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Weather Control</label>
+      <div class="button-group">
+        <button onclick="setWeather('calm')" class="active">☀️ Calm</button>
+        <button onclick="setWeather('stormy')">⛈️ Stormy</button>
+        <button onclick="setWeather('dry')">🌵 Dry</button>
+        <button onclick="toggleRain()">🌧️ Toggle Rain</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>Actions</label>
+      <div class="button-group">
+        <button onclick="spawnEntity()">➕ Spawn Entity</button>
+        <button onclick="addHotspot()">🔥 Add Hotspot</button>
+        <button onclick="clearEntities()">🗑️ Clear All</button>
+        <button onclick="togglePhysics()">⚙️ Toggle Physics</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { World, createEnvironment, createWeather } from '../../dist/mds-core.esm.js'
+
+    // World instance
+    let world = null
+    let currentEnvPreset = 'forest'
+    let currentWeatherPreset = 'calm'
+    let physicsEnabled = true
+    let rainCanvas, rainCtx
+    let envCanvas, envCtx
+    let raindrops = []
+
+    // Initialize
+    async function init() {
+      // Setup canvases
+      rainCanvas = document.getElementById('rain-canvas')
+      envCanvas = document.getElementById('env-canvas')
+      rainCanvas.width = envCanvas.width = window.innerWidth
+      rainCanvas.height = envCanvas.height = window.innerHeight
+      rainCtx = rainCanvas.getContext('2d')
+      envCtx = envCanvas.getContext('2d')
+
+      // Create world with physics enabled
+      world = new World({
+        features: {
+          ontology: true,
+          physics: true,
+          rendering: 'dom'
+        },
+        environment: 'forest',
+        weather: 'calm',
+        collision: true,
+        worldBounds: {
+          minX: 0,
+          maxX: window.innerWidth,
+          minY: 0,
+          maxY: window.innerHeight
+        },
+        boundaryBehavior: 'bounce'
+      })
+
+      // Spawn some initial entities
+      for (let i = 0; i < 10; i++) {
+        spawnEntity()
+      }
+
+      // Start simulation
+      world.start()
+
+      // Update HUD
+      setInterval(updateHUD, 100)
+
+      // Render environment visualization
+      setInterval(renderEnvironment, 500)
+
+      // Render rain
+      requestAnimationFrame(renderRain)
+    }
+
+    // Spawn entity with random properties
+    window.spawnEntity = function() {
+      const emojis = ['🔥', '❄️', '💧', '⚡', '🌟', '🌸', '🍃', '🌙']
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)]
+
+      const material = {
+        material: `entity.${Date.now()}`,
+        essence: { en: `A ${emoji} wandering the environment` },
+        manifestation: {
+          emoji,
+          aging: { decay_rate: 0.01 }
+        },
+        physics: {
+          mass: 0.5 + Math.random() * 1.5,
+          friction: 0.02,
+          bounce: 0.8,
+          temperature: 273 + Math.random() * 60, // 0°C to 60°C
+          humidity: Math.random(),
+          conductivity: Math.random()
+        }
+      }
+
+      world.spawnEntity(material, Math.random() * window.innerWidth, Math.random() * window.innerHeight)
+    }
+
+    // Add hotspot at random location
+    window.addHotspot = function() {
+      if (!world.environment) return
+
+      const x = Math.random() * window.innerWidth
+      const y = Math.random() * window.innerHeight
+
+      world.environment.addHotspot({
+        x,
+        y,
+        radius: 100 + Math.random() * 100,
+        intensity: 20 + Math.random() * 30
+      })
+
+      console.log(`🔥 Hotspot added at (${Math.round(x)}, ${Math.round(y)})`)
+    }
+
+    // Set environment preset
+    window.setEnvironment = function(preset) {
+      currentEnvPreset = preset
+
+      // Update world environment
+      world.environment = createEnvironment(preset)
+
+      // Update button states
+      document.querySelectorAll('#controls .control-group:nth-child(1) button').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.includes(preset.charAt(0).toUpperCase()))
+      })
+
+      console.log(`🌍 Environment: ${preset}`)
+    }
+
+    // Set weather preset
+    window.setWeather = function(preset) {
+      currentWeatherPreset = preset
+
+      // Update world weather
+      world.weather = createWeather(preset)
+
+      // Update button states
+      document.querySelectorAll('#controls .control-group:nth-child(2) button').forEach((btn, i) => {
+        if (i < 3) btn.classList.toggle('active', btn.textContent.toLowerCase().includes(preset))
+      })
+
+      console.log(`🌦️ Weather: ${preset}`)
+    }
+
+    // Toggle rain
+    window.toggleRain = function() {
+      if (!world.weather) return
+
+      if (world.weather.isRaining()) {
+        world.weather.clearWeather()
+      } else {
+        world.weather.forceRain(30, 0.8)
+      }
+    }
+
+    // Toggle physics
+    window.togglePhysics = function() {
+      physicsEnabled = !physicsEnabled
+      world.options.features.physics = physicsEnabled
+
+      const btn = event.target
+      btn.classList.toggle('active')
+
+      console.log(`⚙️ Physics: ${physicsEnabled ? 'ON' : 'OFF'}`)
+    }
+
+    // Clear all entities
+    window.clearEntities = function() {
+      world.clear()
+      console.log('🗑️ All entities cleared')
+    }
+
+    // Update HUD
+    function updateHUD() {
+      if (!world || !world.environment || !world.weather) return
+
+      const entities = world.getAllEntities()
+      const centerX = window.innerWidth / 2
+      const centerY = window.innerHeight / 2
+
+      // Environment stats (at center)
+      const envState = world.environment.getState(centerX, centerY)
+      const tempC = (envState.temperature - 273).toFixed(1)
+      const tempClass = envState.temperature > 300 ? 'temp-high' : envState.temperature < 280 ? 'temp-low' : 'temp-med'
+
+      document.getElementById('avg-temp').textContent = `${tempC}°C`
+      document.getElementById('avg-temp').className = `hud-stat-value ${tempClass}`
+      document.getElementById('avg-humidity').textContent = `${(envState.humidity * 100).toFixed(0)}%`
+      document.getElementById('avg-light').textContent = `${(envState.light * 100).toFixed(0)}%`
+
+      const windMag = Math.sqrt(envState.windVx ** 2 + envState.windVy ** 2)
+      document.getElementById('wind-speed').textContent = `${windMag.toFixed(1)} px/s`
+
+      // Weather stats
+      const weatherState = world.weather.getState()
+      document.getElementById('weather-condition').textContent = weatherState.rain ? '🌧️ Raining' : '☀️ Clear'
+      document.getElementById('rain-intensity').textContent = `${(weatherState.rainIntensity * 100).toFixed(0)}%`
+      document.getElementById('evaporation').textContent = `${(weatherState.evaporationRate * 100).toFixed(1)}`
+      document.getElementById('cloud-cover').textContent = `${(weatherState.cloudCover * 100).toFixed(0)}%`
+
+      // Toggle rain canvas
+      rainCanvas.classList.toggle('active', weatherState.rain)
+
+      // Statistics
+      document.getElementById('entity-count').textContent = entities.length
+
+      // Count collisions (approximate - check entities within collision distance)
+      let collisions = 0
+      for (let i = 0; i < entities.length; i++) {
+        for (let j = i + 1; j < entities.length; j++) {
+          const dx = entities[i].x - entities[j].x
+          const dy = entities[i].y - entities[j].y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 32) collisions++
+        }
+      }
+      document.getElementById('collision-count').textContent = collisions
+
+      // Calculate total thermal energy
+      let totalEnergy = 0
+      for (const entity of entities) {
+        if (entity.temperature) {
+          const mass = entity.m.physics?.mass ?? 1
+          totalEnergy += mass * entity.temperature
+        }
+      }
+      document.getElementById('total-energy').textContent = totalEnergy.toFixed(0)
+
+      // FPS (approximate)
+      document.getElementById('fps').textContent = Math.round(1000 / 16)
+
+      // Update entity visual effects based on temperature
+      for (const entity of entities) {
+        if (!entity.el) continue
+
+        if (entity.temperature) {
+          if (entity.temperature > 310) {
+            entity.el.classList.add('hot-entity')
+            entity.el.classList.remove('cold-entity')
+          } else if (entity.temperature < 280) {
+            entity.el.classList.add('cold-entity')
+            entity.el.classList.remove('hot-entity')
+          } else {
+            entity.el.classList.remove('hot-entity', 'cold-entity')
+          }
+        }
+      }
+    }
+
+    // Render environment temperature gradient
+    function renderEnvironment() {
+      if (!world || !world.environment) return
+
+      const width = envCanvas.width
+      const height = envCanvas.height
+      const imageData = envCtx.createImageData(width, height)
+      const data = imageData.data
+
+      // Sample grid (every 10 pixels for performance)
+      const step = 10
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const envState = world.environment.getState(x, y)
+          const temp = envState.temperature
+
+          // Map temperature to color (blue=cold, red=hot)
+          const normalized = (temp - 273) / 50 // 0°C to 50°C range
+          const r = Math.floor(Math.min(255, Math.max(0, normalized * 255)))
+          const b = Math.floor(Math.min(255, Math.max(0, (1 - normalized) * 255)))
+          const g = 0
+
+          // Fill 10x10 block
+          for (let dy = 0; dy < step && y + dy < height; dy++) {
+            for (let dx = 0; dx < step && x + dx < width; dx++) {
+              const idx = ((y + dy) * width + (x + dx)) * 4
+              data[idx] = r
+              data[idx + 1] = g
+              data[idx + 2] = b
+              data[idx + 3] = 40 // Low opacity
+            }
+          }
+        }
+      }
+
+      envCtx.putImageData(imageData, 0, 0)
+    }
+
+    // Render rain effect
+    function renderRain() {
+      if (!world || !world.weather) {
+        requestAnimationFrame(renderRain)
+        return
+      }
+
+      const weatherState = world.weather.getState()
+
+      rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height)
+
+      if (weatherState.rain) {
+        // Spawn new raindrops
+        const spawnRate = weatherState.rainIntensity * 5
+        for (let i = 0; i < spawnRate; i++) {
+          raindrops.push({
+            x: Math.random() * rainCanvas.width,
+            y: -10,
+            speed: 10 + Math.random() * 10,
+            length: 10 + Math.random() * 20
+          })
+        }
+
+        // Update and draw raindrops
+        rainCtx.strokeStyle = 'rgba(200, 220, 255, 0.5)'
+        rainCtx.lineWidth = 1
+
+        for (let i = raindrops.length - 1; i >= 0; i--) {
+          const drop = raindrops[i]
+
+          drop.y += drop.speed
+
+          rainCtx.beginPath()
+          rainCtx.moveTo(drop.x, drop.y)
+          rainCtx.lineTo(drop.x, drop.y + drop.length)
+          rainCtx.stroke()
+
+          // Remove if off screen
+          if (drop.y > rainCanvas.height) {
+            raindrops.splice(i, 1)
+          }
+        }
+      } else {
+        // Clear raindrops when not raining
+        raindrops = []
+      }
+
+      requestAnimationFrame(renderRain)
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      rainCanvas.width = envCanvas.width = window.innerWidth
+      rainCanvas.height = envCanvas.height = window.innerHeight
+
+      if (world) {
+        world.options.worldBounds = {
+          minX: 0,
+          maxX: window.innerWidth,
+          minY: 0,
+          maxY: window.innerHeight
+        }
+      }
+    })
+
+    // Start
+    init()
+  </script>
+</body>
+</html>

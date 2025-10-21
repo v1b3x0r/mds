@@ -68,6 +68,12 @@ export class Entity {
   intent?: IntentStack                          // Goal stack
   relationships?: Map<string, Relationship>     // Entity bonds
 
+  // v5 Phase 5: Environmental physics (optional)
+  temperature?: number                          // Kelvin
+  humidity?: number                             // 0..1
+  density?: number                              // kg/m³
+  conductivity?: number                         // Thermal transfer rate (0..1)
+
   constructor(
     m: MdsMaterial,
     x?: number,
@@ -172,6 +178,16 @@ export class Entity {
 
     // Relationships (empty initially)
     this.relationships = new Map()
+
+    // Phase 5: Environmental physics properties
+    // @ts-ignore - v5 Phase 5 extension
+    this.temperature = m.physics?.temperature ?? 293  // 20°C default
+    // @ts-ignore - v5 Phase 5 extension
+    this.humidity = m.physics?.humidity ?? 0.5
+    // @ts-ignore - v5 Phase 5 extension
+    this.density = m.physics?.density ?? 1.0  // kg/m³
+    // @ts-ignore - v5 Phase 5 extension
+    this.conductivity = m.physics?.conductivity ?? 0.5  // 0..1
 
     // Log spawn memory
     this.remember({

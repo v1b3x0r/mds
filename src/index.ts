@@ -60,6 +60,33 @@ export type {
   VisualStyle
 } from './render'
 
+// Physics (v5 Phase 5)
+export {
+  Environment,
+  createEnvironment,
+  Weather,
+  createWeather,
+  CollisionDetector,
+  SpatialGrid,
+  checkCollisionSimple,
+  getEntityRadius,
+  EnergySystem,
+  initializeThermalProperties
+} from './physics'
+
+export type {
+  EnvironmentConfig,
+  EnvironmentState,
+  HotSpot,
+  MoistZone,
+  LightSource,
+  WeatherState,
+  WeatherConfig,
+  AABB,
+  CollisionPair,
+  EnergyConfig
+} from './physics'
+
 // IO
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
