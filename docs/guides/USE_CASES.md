@@ -1492,7 +1492,6 @@ function checkReminders() {
 ---
 
 **Need help?**
-- [Discord](https://discord.gg/mds) — Ask questions
 - [Examples](../../examples/) — Working demos
 - [API Docs](../technical/API.md) — Full reference
 
