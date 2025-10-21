@@ -41,6 +41,11 @@ import {
   SemanticSimilarity,
   MessageDelivery
 } from '../communication'
+import {
+  CollectiveIntelligence,
+  WorldStats,
+  PatternDetection
+} from '../world-mind'
 
 /**
  * World configuration options
@@ -157,6 +162,12 @@ export class World {
   dialogueManager?: import('../communication').DialogueManager
   languageGenerator?: import('../communication').LanguageGenerator
   semanticSimilarity?: import('../communication').SemanticSimilarity
+
+  // Phase 8: World mind (optional)
+  private worldStats?: WorldStats
+  private patterns: PatternDetection[] = []
+  private statsUpdateInterval: number = 1000 // Update stats every 1 second
+  private lastStatsUpdate: number = 0
 
   // Options
   options: WorldOptions
@@ -403,7 +414,10 @@ export class World {
       this.updateCognitive(dt)
     }
 
-    // Phase 4: Rendering update
+    // Phase 4: World mind update (Phase 8 - statistics & patterns)
+    this.updateWorldMind()
+
+    // Phase 5: Rendering update
     if (this.renderer.renderAll) {
       // Batch rendering (Canvas/WebGL)
       this.renderer.renderAll(this.entities, this.fields)
@@ -719,6 +733,43 @@ export class World {
         entity.learning.forgetOldPatterns(now, 300000)  // Forget patterns older than 5 min
       }
     }
+  }
+
+  /**
+   * Phase 8: Update world mind
+   * - Calculate world statistics
+   * - Detect emergent patterns
+   */
+  private updateWorldMind(): void {
+    const now = Date.now()
+
+    // Update stats at intervals (not every tick)
+    if (now - this.lastStatsUpdate >= this.statsUpdateInterval) {
+      this.worldStats = CollectiveIntelligence.calculateStats(this.entities)
+      this.patterns = CollectiveIntelligence.detectPatterns(this.entities)
+      this.lastStatsUpdate = now
+    }
+  }
+
+  /**
+   * Get current world statistics
+   */
+  getWorldStats(): WorldStats | undefined {
+    return this.worldStats
+  }
+
+  /**
+   * Get detected emergent patterns
+   */
+  getPatterns(): PatternDetection[] {
+    return this.patterns
+  }
+
+  /**
+   * Get collective emotion (world mood)
+   */
+  getCollectiveEmotion(): import('../ontology').EmotionalState | null {
+    return CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
   }
 
   /**

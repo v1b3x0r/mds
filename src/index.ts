@@ -147,6 +147,17 @@ export type {
   SkillConfig
 } from './cognitive'
 
+// World Mind (v5 Phase 8)
+export {
+  CollectiveIntelligence
+} from './world-mind'
+
+export type {
+  WorldStats,
+  EmergentPattern,
+  PatternDetection
+} from './world-mind'
+
 // IO
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
