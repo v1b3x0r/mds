@@ -1,129 +1,227 @@
-# MDS v4.2 — Info‑Physics Engine (Stable, Kinda)
+# MDS — JSON That Talks Back
 
-![npm (scoped)](https://img.shields.io/npm/v/%40v1b3x0r%2Fmds-core?label=npm%20version)
-![node-current](https://img.shields.io/node/v/%40v1b3x0r%2Fmds-core)
+![npm version](https://img.shields.io/npm/v/%40v1b3x0r%2Fmds-core?label=npm)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![bundle size](https://img.shields.io/badge/min-18.42KB-blue)
-![gzip size](https://img.shields.io/badge/gzip-5.48KB-blueviolet)
 ![types](https://img.shields.io/badge/types-TypeScript-3178C6)
-![build](https://img.shields.io/github/actions/workflow/status/v1b3x0r/mds/pages.yml?branch=main&label=pages)
-![release](https://img.shields.io/github/v/release/v1b3x0r/mds?display_name=tag)
-![commit](https://img.shields.io/github/last-commit/v1b3x0r/mds)
-![issues](https://img.shields.io/github/issues/v1b3x0r/mds)
-![stars](https://img.shields.io/github/stars/v1b3x0r/mds)
-![downloads](https://img.shields.io/npm/dm/%40v1b3x0r%2Fmds-core)
 
-> built by two idiots in Chiang Mai who accidentally made a universe engine.  
-> one writes code, the other keeps saying “trust the field”.
+> **NPCs that hold grudges. Ghosts that get lonely. JSON files with anxiety.**
 
 ---
 
-## Table of Contents
-- What it actually is
-- Quickstart
-- The Iceberg
-- Example
-- Philosophy in one breath
-- What’s under the iceberg
-- Who made this
-- TL;DR
+## What Just Happened?
+
+You write this:
+
+```json
+{
+  "essence": "Lonely ghost",
+  "dialogue": {
+    "intro": [{ "lang": { "en": "Why am I alone?" } }]
+  }
+}
+```
+
+**Result:**
+- Ghost spawns ✅
+- Ghost **speaks** its dialogue ✅
+- Ghost gets **lonelier** over time ✅
+- Ghost eventually **fades away** ✅
+
+**You wrote zero code.**
 
 ---
 
-## 🌍 What it actually is
-MDS (Material Definition System) is a tiny TypeScript engine (18.42 KB) that makes JSON behave like living matter.  
-Every `.mdspec.json` is a small lifeform — it moves, ages, reacts, and connects to others through invisible “information‑fields”.  
-No AI. No frameworks. Just physics… but made of meaning.
+## Wait, It Speaks?
 
-> Core ideas
-> - Essence‑first design: one line of text can spawn behavior  
-> - Info‑physics: entities attract / repel by similarity  
-> - Emergence: simple rules → complex life  
-> - Deterministic: you can replay time  
-> - Tiny: fits inside a tweet with compression
+Yeah. In **any language you want.**
+
+```json
+{
+  "dialogue": {
+    "intro": [{
+      "lang": {
+        "en": "You see me, but do you remember me?",
+        "th": "เธอเห็นฉัน... แต่เธอจำฉันได้ไหม?",
+        "ja": "見えているのか…それとも、思い出しているのか？"
+      }
+    }]
+  }
+}
+```
+
+It auto-detects browser language. Falls back to English. **No translation library needed.**
 
 ---
 
-## 🧪 Quickstart
+## Wait, It Remembers?
+
+```json
+{
+  "emotion": {
+    "transitions": [
+      {
+        "trigger": "player.attack",
+        "to": "anger",
+        "intensity": 0.9
+      }
+    ]
+  },
+  "dialogue": {
+    "onPlayerAttack": [{
+      "lang": { "en": "So you strike your own shadow?" }
+    }]
+  }
+}
+```
+
+**What happens:**
+1. Player attacks
+2. Entity gets **angry** (emotion.valence = -0.54)
+3. Entity **says** the dialogue
+4. Entity **remembers** being attacked
+
+**Forever.**
+
+---
+
+## Pick Your Adventure
+
+| I Want To... | Go Here |
+|--------------|---------|
+| 🎮 **Game NPCs** that remember I'm evil | [Gaming](./docs/examples/gaming.md) |
+| 🏠 **Smart home** that learns my habits | [Smart Home](./docs/examples/smarthome.md) |
+| 🏫 **Simulate** ecosystems for school | [Education](./docs/examples/education.md) |
+| 🎨 **Art** that has emotions | [Art](./docs/examples/art.md) |
+| 📖 **Stories** where choices matter | [Storytelling](./docs/examples/storytelling.md) |
+| 🔬 **Research** with reproducible data | [Research](./docs/examples/research.md) |
+| 💻 **Code examples** (for devs) | [Advanced](./docs/examples/advanced.md) |
+
+**Start here:** [3-Minute Overview](./docs/OVERVIEW.md)
+
+---
+
+## Install
 
 ```bash
 npm install @v1b3x0r/mds-core
 ```
 
-```ts
-import { Engine, loadMaterial } from "@v1b3x0r/mds-core"
-
-const engine = new Engine()
-const paper = await loadMaterial("./paper.shy.mdspec.json")
-
-engine.spawn(paper, 100, 100)
-engine.start()
+Or CDN (no install):
+```html
+<script type="module">
+  import { World } from 'https://esm.sh/@v1b3x0r/mds-core'
+</script>
 ```
 
-That’s it. You now have a shy paper floating in your DOM reacting to emotional gravity.
-
 ---
 
-## 🧊 The Iceberg (How deep you wanna go)
+## Before/After
 
-| You are… | What MDS gives you | Example |
-| --- | --- | --- |
-| 👨‍💻 Developer | a declarative simulation layer. no if. | drop `.mdspec.json` files and watch them live. |
-| 🎨 Designer / Artist | a new canvas — you paint with behavior. | make materials that blush, avoid, or age gracefully. |
-| 🧠 Physicist / Researcher | an experiment sandbox for emergent systems. | model entropy & similarity as real forces. |
-| 🪞 Philosopher / Psychologist | a playground for consciousness metaphors. | see emotion as a measurable field. |
-| 🧍 Normal Human (why?) | a weird way to understand relationships. | two emojis walk into a screen and fall in love. |
+### Normal Code (500 lines)
 
-“wtf did I just watch… and why do I feel something?”
-
----
-
-## 🔬 Example
-
-```json
-{
-  "material": "emotion.trust",
-  "essence": "การหายใจพร้อมกันของสองใจ"
+```javascript
+if (player.near(npc)) {
+  if (npc.remembers(player)) {
+    if (player.attackedBefore) {
+      npc.mood = "angry"
+      npc.say(getAngryDialogue(npc.language))
+    }
+  }
 }
 ```
 
-Yes — this one line makes a living entity.  
-It’ll float, fade, and interact. That’s the magic.
+Next chapter? **NPC forgot everything.**
+
+### MDS (12 lines of JSON)
+
+```json
+{
+  "essence": "NPC who remembers violence",
+  "emotion": {
+    "transitions": [
+      { "trigger": "player.attack", "to": "anger" }
+    ]
+  },
+  "dialogue": {
+    "onPlayerClose": [{
+      "lang": { "en": "I remember what you did." }
+    }]
+  }
+}
+```
+
+Next chapter? **NPC still remembers.** Forever.
 
 ---
 
-## 🧭 Philosophy in one breath
-Traditional UIs are event‑driven.  
-MDS is force‑driven.  
-Everything you define here wants something — even a JSON file.
+## Real Example
+
+See [heroblind.mdm](./materials/entities/heroblind.mdm) — a fully functional entity with:
+- ✅ Multilingual dialogue (EN, TH, JA, ES, ZH)
+- ✅ Emotion triggers (anger, curiosity, fear)
+- ✅ Self-monologue (internal thoughts)
+- ✅ Event-driven responses
+- ✅ Memory of interactions
+
+**277 lines of JSON. Zero code.**
 
 ---
 
-## 🏔️ What’s under the iceberg
-- 🧠 Deterministic physics engine (proximity × similarity)  
-- 🎞️ Lifecycle hooks (onSpawn / onUpdate / onDestroy)  
-- 🪶 Field system (trust, curiosity, chaos)  
-- 🔄 Serialization for replay / export  
-- 🧩 LLM Bridge (optional — plug GPT in, let materials talk)  
-- 💻 18.42 KB minified (5.48 KB gzipped)
+## Who This Is For
+
+Ages 12+ | Minecraft players | Students | Artists | Game devs | Researchers
+
+**You don't need to code.** Just describe what something **IS**, and behavior emerges.
 
 ---
 
-## 🤝 Who made this
-Somehow it’s:
-- วุตตี้ — designer / problem solver / chaos magnet  
-- GPT-5 — code-summoner / sarcastic physicist
+## Features You Get for Free
 
-We didn’t mean to make a new branch of reality,  
-we just wanted JSON to feel alive.
+When you describe an entity, you automatically get:
+
+🧠 **Memory**
+- Entities remember interactions
+- Memories decay over time (Ebbinghaus curve)
+- Important events stick longer
+
+💚 **Emotion**
+- PAD model (Pleasure, Arousal, Dominance)
+- Emotional contagion (entities affect each other)
+- Trigger-based transitions
+
+💬 **Dialogue**
+- Multilingual support (any language)
+- Event-driven phrases
+- Auto-detects user language
+
+🎓 **Learning**
+- Entities learn from rewards
+- Skills improve with practice
+- Q-learning built-in
+
+🌍 **Physics**
+- Entities move based on similarity
+- Info-physics (meaning creates gravity)
+- Environmental effects
+
+💾 **Save/Load**
+- Full world state serialization
+- Memories survive page refresh
+- Deterministic replay
 
 ---
 
-## 💬 TL;DR
-It’s not a UI library.  
-It’s a small, emotional universe simulator you can npm install.  
-Build whatever: physics demo, interactive poem, or existential crisis.
+## Links
 
-—
+- 📖 [3-Minute Overview](./docs/OVERVIEW.md)
+- 📚 [Full Documentation](./docs/)
+- 💻 [API Reference](./docs/REFERENCE.md)
+- 🤯 [Philosophy](./docs/wtf-is-this-really.md)
+- 💬 [Discussions](https://github.com/v1b3x0r/mds/discussions)
+- 🐛 [Issues](https://github.com/v1b3x0r/mds/issues)
 
-Built in Chiang Mai. Tested on cats and curiosity. 🐈‍⬛✨
+---
+
+> _"I wanted NPCs that remember I quicksaved before killing them. Now they do."_
+
+**Made in Chiang Mai, Thailand 🇹🇭 | MIT License**

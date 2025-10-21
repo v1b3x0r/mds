@@ -4,14 +4,70 @@
 
 ---
 
-## CURRENT VERSION: v4.2.1 (Info-Physics Engine - Production Ready)
+## CURRENT VERSION: v5.0.0 (Living World Simulation Engine - Production Ready)
 
 ---
 
-## Task Log (v4.2.1)
+## 🎯 **NEW DIRECTION v5.1 (2025-10-22): "Anyone Can Play"**
+
+**Target Audience Shift:**
+- **OLD:** Developers, researchers, game devs (technical focus)
+- **NEW:** Curious minds ages 12+ | Multilingual learners | Hackers of all backgrounds
+
+**Philosophy:**
+- **"ใช้ภาษาแม่ก็เข้าใจ, เขียนโค้ดง่ายก็ทำได้"** (Use your native language, write simple code, and it works)
+- No assumptions about TypeScript, game dev, or English proficiency
+- Progressive learning: 9 levels from absolute beginner to advanced
+- All `essence` / `content` / `notes` fields accept **ANY language**
+
+**Documentation Overhaul (Oct 22, 2025):**
+- ❌ Removed: `/examples/` (6 demos — too dev-heavy)
+- ❌ Removed: `/docs/technical/` (ARCHITECTURE, TECH_SPEC, API)
+- ❌ Removed: `/docs/guides/` (COOKBOOK, MDSPEC_GUIDE, USE_CASES)
+- ✅ Added: Simple progressive learning path:
+  - `README.md` — Multilingual welcome (70 lines vs 532 old)
+  - `docs/01-START.md` — Your first character (5 min)
+  - `docs/02-WHAT.md` — All features with multilingual examples
+  - `docs/03-LEARN.md` — 9-level learning hub
+  - `docs/04-06` — Detailed tutorials (Memory, Emotion, Communication)
+  - `docs/07-11` — Placeholder tutorials (to be completed)
+  - `docs/DICTIONARY.md` — Terms in 7+ languages
+  - `docs/MDM-FORMAT.md` — Complete `.mdm` reference
+- ✅ Updated: `package.json` description & keywords (education, multilingual, kids)
+- ✅ Kept: `docs/meta/` (CHANGELOG, LICENSE, CONTRIBUTING)
+
+**Multilingual Examples Strategy:**
+Every code example shows:
+```javascript
+// English
+{ "essence": "A shy ghost" }
+
+// ไทย (Thai)
+{ "essence": "ผีขี้อาย" }
+
+// 日本語 (Japanese)
+{ "essence": "恥ずかしがり屋の幽霊" }
+
+// 中文 / العربية / Español...
+```
+
+→ Shows users **"your language works here"** without telling them.
+
+---
+
+## Task Log (v5.0.0)
 
 | Date | Update | Details |
 |------|--------|---------|
+| 2025-10-21 | **v5.0.0 RELEASE** | **COMPLETE** - All 8 phases implemented (100% checklist complete). Final bundle: 132.53 KB (30.98 KB gzipped), 110 tests (100% pass). Phases: Ontology + World + Renderer + WorldFile + Physics + Communication + Cognitive + World Mind. Updated README.md and USE_CASES.md for v5. |
+| 2025-10-21 | Phase 8: World Mind | CollectiveIntelligence system (statistics aggregation, pattern detection, collective emotion), integrated into World tick loop, 31 tests (100% pass), +6 KB bundle |
+| 2025-10-21 | Phase 7: Cognitive Evolution | Learning system (Q-learning, pattern detection), memory consolidation (Ebbinghaus), skill proficiency system, 18 tests (100% pass), +16 KB bundle |
+| 2025-10-21 | Phase 6: Communication | Message queue with priority, dialogue trees, LLM language generation (OpenRouter/Anthropic/OpenAI), semantic similarity via embeddings, 18 tests (100% pass), +30 KB bundle |
+| 2025-10-21 | Phase 5: Environmental Physics | Spatial collision (O(n) grid), thermal energy transfer, weather system, emotion-physics coupling, 43 tests (100% pass), +11 KB bundle |
+| 2025-10-21 | Phase 4: WorldFile Persistence | Save/load with snapshots, world serialization, integrated into World container |
+| 2025-10-21 | Phase 3: Renderer Abstraction | DOM/Canvas/WebGL support, RendererAdapter interface, configurable via WorldOptions |
+| 2025-10-21 | Phase 2: World Container | Three-phase tick (Physical/Mental/Relational), World class as simulation container, v4 Engine integration |
+| 2025-10-21 | Phase 1: Ontology Foundation | Memory system (Ebbinghaus curve), emotional state (PAD model), relationship tracking, integrated into Entity |
 | 2025-10-17 | v4.2.1 Documentation Complete | จัดโครงสร้างโฟลเดอร์แบบ world-class (/materials, /docs, /examples hierarchy), เพิ่มเอกสารครบ 7 ไฟล์ (guides/technical/meta), อัปเดต package.json + CLAUDE.md ให้ coherent, ลบไฟล์ซ้ำซ้อน (deploy.yml), เพิ่ม GitHub Pages workflow |
 | 2025-10-17 | v4.2.0 Stable Release | เพิ่ม lifecycle hooks (onSpawn/onUpdate/onDestroy), serialization (snapshot/restore), deterministic mode (seeded random), bump schema 4.1, ready for production use |
 | 2025-10-16 | Lovefield map redesign | รีดีไซน์หน้าเดโม่เป็น 2D DOM map แบบเกม (ถนน/หมู่บ้าน/สิ่งปลูกสร้าง emoji), ย้าย entity/field ลงเลเยอร์, เพิ่ม liquid glass HUD/hud-feed ที่สื่อสารได้, ปรับตัวละครวัยรุ่น + MBTI dialogues ให้เข้ากับธีม, field ตามจุด spark, UI ไม่บังแผนที่ |

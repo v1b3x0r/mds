@@ -53,9 +53,10 @@ export class Engine {
 
   /**
    * Spawn a new material entity
+   * @param options - v5: skipDOM option for renderer abstraction
    */
-  spawn(material: MdsMaterial, x?: number, y?: number): Entity {
-    const e = new Entity(material, x, y, this.rng)
+  spawn(material: MdsMaterial, x?: number, y?: number, options?: { skipDOM?: boolean }): Entity {
+    const e = new Entity(material, x, y, this.rng, options)
     this.entities.push(e)
     // Call lifecycle hook (v4.1)
     e.onSpawn?.(this, e)
@@ -111,8 +112,10 @@ export class Engine {
   /**
    * Main simulation tick
    * Implements info-physics: proximity + similarity forces
+   *
+   * Note: Made public in v5 to allow World class delegation
    */
-  private tick(dt: number): void {
+  tick(dt: number): void {
     // 1. Update all entities (age, decay, friction)
     for (const e of this.entities) {
       e.update(dt)

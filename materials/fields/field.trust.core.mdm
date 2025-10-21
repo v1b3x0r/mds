@@ -1,0 +1,16 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5",
+  "material": "field.trust.core",
+  "type": "field",
+  "origin": "$bind",
+  "radius": 120,
+  "duration": 45000,
+  "visual": {
+    "aura": "gentle amber",
+    "motion": "slow ripple"
+  },
+  "effect_on_others": {
+    "opacity": 0.9,
+    "behavior.depthMultiplier": 1.2
+  }
+}
