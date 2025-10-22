@@ -4,6 +4,36 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.2.2] — AGI-Ready (No Lazy Loading)
+
+📅 2025-10-23
+
+⸻
+
+🔄 Reverted
+
+Lazy Loading Removed
+	•	LanguageGenerator: back to static import (no async delay)
+	•	CollectiveIntelligence: back to static import (no async delay)
+	•	Main bundle: 168.15 KB → 182 KB (+13.85 KB, +8.2%)
+	•	CI threshold: 180 KB → 185 KB
+
+⸻
+
+💡 Why It Matters
+
+**For AGI projects that use LLM + WorldMind constantly:**
+- No async delays (everything loads immediately)
+- Simpler code (no dynamic imports)
+- Better for real-time AGI systems
+
+**Trade-off:**
+- +13.85 KB bundle size
+- Still 8.4% smaller than v5.2.0 (198.79 KB)
+- Lite bundle (93.62 KB) still available for non-AGI use cases
+
+⸻
+
 [5.2.1] — Bundle Optimization
 
 📅 2025-10-23

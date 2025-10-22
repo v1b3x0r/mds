@@ -88,7 +88,6 @@ export type {
 } from './physics'
 
 // Communication (v5 Phase 6)
-// Note: LanguageGenerator lazy-loaded for bundle optimization (Step 4)
 export {
   MessageBuilder,
   MessageQueue,
@@ -98,9 +97,9 @@ export {
   DialogueBuilder,
   createNode,
   createChoice,
-  // LanguageGenerator - lazy-loaded, import from '@v1b3x0r/mds-core/language' if needed
-  // createOpenRouterGenerator - part of LanguageGenerator module
-  // createMockGenerator - part of LanguageGenerator module
+  LanguageGenerator,
+  createOpenRouterGenerator,
+  createMockGenerator,
   SemanticSimilarity,
   createOpenAISemantic,
   createMockSemantic,
@@ -149,9 +148,9 @@ export type {
 } from './cognitive'
 
 // World Mind (v5 Phase 8)
-// Note: CollectiveIntelligence lazy-loaded for bundle optimization (Step 5)
-// Import dynamically via world.getCollectiveEmotion() or world.getWorldStats()
-// export { CollectiveIntelligence } from './world-mind'
+export {
+  CollectiveIntelligence
+} from './world-mind'
 
 export type {
   WorldStats,

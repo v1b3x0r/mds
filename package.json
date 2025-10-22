@@ -1,6 +1,6 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "description": "Make JSON come alive. Entities that think, feel, learn — in any language. For curious minds ages 12+.",
   "sideEffects": false,
   "type": "module",

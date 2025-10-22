@@ -46,11 +46,11 @@ jobs:
       - name: Check bundle size
         run: |
           BUNDLE_SIZE=$(stat -c%s dist/mds-core.esm.js)
-          MAX_SIZE=$((180 * 1024))  # 180 KB in bytes (increased for v5.2.1 - more headroom)
+          MAX_SIZE=$((185 * 1024))  # 185 KB in bytes (increased for v5.2.2 - AGI-ready with no lazy loading)
           echo "Bundle size: $(($BUNDLE_SIZE / 1024)) KB"
-          echo "Maximum allowed: 180 KB"
+          echo "Maximum allowed: 185 KB"
           if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
-            echo "❌ Bundle size exceeds 180 KB limit!"
+            echo "❌ Bundle size exceeds 185 KB limit!"
             exit 1
           fi
           echo "✅ Bundle size within limits"
