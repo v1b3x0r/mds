@@ -16,6 +16,18 @@ export {
   createMemory
 } from './memory'
 
+// Memory crystallization (v5.2 Phase 2.2)
+export type {
+  CrystalMemory,
+  CrystallizationConfig
+} from './crystallization'
+
+export {
+  MemoryCrystallizer,
+  createCrystallizer,
+  crystallizeMemories
+} from './crystallization'
+
 // Emotional state
 export type {
   EmotionalState,
@@ -45,6 +57,20 @@ export {
   INTENT_TEMPLATES
 } from './intent'
 
+// Intent reasoning (v5.2 Phase 2.4)
+export type {
+  ReasonedIntent,
+  ReasoningContext,
+  ReasoningConfig
+} from './reasoning'
+
+export {
+  IntentReasoner,
+  createReasoner,
+  reasonAbout,
+  chooseBestIntent
+} from './reasoning'
+
 // Relationship system
 export type {
   Relationship,
@@ -58,3 +84,18 @@ export {
   isBonded,
   decayRelationship
 } from './relationship'
+
+// Relationship decay (v5.2 Phase 2.5)
+export type {
+  DecayCurve,
+  DecayConfig,
+  DecayStats
+} from './relationship-decay'
+
+export {
+  RelationshipDecayManager,
+  createDecayManager,
+  applyDecay,
+  shouldPrune,
+  DECAY_PRESETS
+} from './relationship-decay'

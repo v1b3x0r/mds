@@ -1,6 +1,6 @@
 # API Reference — Quick Start + Lookup
 
-**Fast reference for MDS v5.0 API. For deep dives, see role-based guides.**
+**Fast reference for MDS v5.2 API. For deep dives, see role-based guides.**
 
 ---
 
@@ -717,6 +717,239 @@ entity.learning.addExperience({ ... })
 ```javascript
 entity.enableRelationships()  // ← Required!
 entity.addRelationship(otherId, 'friend', 0.8)
+```
+
+---
+
+## Phase 2 Features (v5.2) — Advanced Ontology
+
+### `SimilarityProvider`
+
+**Semantic similarity calculation with pluggable providers.**
+
+**Built-in Providers:**
+```typescript
+import {
+  MockSimilarityProvider,
+  OpenAISimilarityProvider,
+  CohereSimilarityProvider
+} from '@v1b3x0r/mds-core'
+
+// Mock provider (no API key needed)
+const mock = new MockSimilarityProvider()
+
+// OpenAI provider (requires API key)
+const openai = new OpenAISimilarityProvider({
+  apiKey: 'sk-...',
+  model: 'text-embedding-3-small'  // or 'text-embedding-3-large'
+})
+
+// Cohere provider (requires API key)
+const cohere = new CohereSimilarityProvider({
+  apiKey: 'co-...',
+  model: 'embed-english-v3.0'
+})
+```
+
+**Entity Clustering:**
+```typescript
+import { EntitySimilarityAdapter } from '@v1b3x0r/mds-core'
+
+const adapter = new EntitySimilarityAdapter(provider)
+
+// Find similar entities
+const similar = await adapter.findSimilar(
+  targetEntity,
+  candidateEntities,
+  0.7  // threshold
+)
+
+// Find top N most similar
+const topN = await adapter.findTopN(targetEntity, candidates, 5)
+
+// Cluster entities by similarity
+const clusters = await adapter.cluster(entities, 0.8)
+```
+
+---
+
+### `MemoryCrystallizer`
+
+**Long-term memory consolidation through pattern recognition.**
+
+```typescript
+import { MemoryCrystallizer } from '@v1b3x0r/mds-core'
+
+const crystallizer = new MemoryCrystallizer({
+  maxCrystals: 20,              // Max crystals to store
+  minOccurrences: 3,            // Min memories to form crystal
+  minStrength: 1.5              // Min total salience
+})
+
+// Crystallize memories
+const newCrystals = crystallizer.crystallize(
+  entity.memory.getAll(),
+  Date.now()
+)
+
+// Get crystals by type
+const socialCrystals = crystallizer.getCrystalsByType('interaction')
+
+// Check if has crystals
+if (crystallizer.hasCrystals()) {
+  const all = crystallizer.getAllCrystals()
+}
+```
+
+**Crystal Structure:**
+```typescript
+interface CrystalMemory {
+  id: string
+  pattern: string              // 'occasional_interaction', 'repeated_emotion', 'frequent_observation'
+  subject: string              // What/who the crystal is about
+  type: MemoryType            // 'interaction', 'emotion', 'observation', 'action'
+  strength: number            // 0..1 consolidation strength
+  firstSeen: number
+  lastReinforced: number
+  count: number               // Number of source memories
+  essence: string             // Human-readable summary
+}
+```
+
+---
+
+### `SymbolicPhysicalCoupler`
+
+**Emotion → Physics mapping using PAD model.**
+
+```typescript
+import {
+  SymbolicPhysicalCoupler,
+  COUPLING_PRESETS
+} from '@v1b3x0r/mds-core'
+
+// Create coupler with preset
+const coupler = new SymbolicPhysicalCoupler(COUPLING_PRESETS.standard)
+
+// Get physics modulation from emotion
+const emotion = { valence: -0.8, arousal: 0.6, dominance: 0.3 }
+const physics = coupler.emotionToPhysics(emotion)
+// → { speed: 1.3, mass: 1.24, forceMultiplier: 1.12, friction: 0.74 }
+
+// Modulate velocity
+const { vx, vy } = coupler.modulateVelocity(
+  entity.vx,
+  entity.vy,
+  entity.emotion,
+  entity.memory.get('recent')
+)
+
+// Modulate force
+const force = coupler.modulateForce(
+  baseForce,
+  entity.emotion,
+  entity.memory
+)
+```
+
+**Coupling Presets:**
+```typescript
+COUPLING_PRESETS.subtle    // Minimal effect (arousalToSpeed: 0.2)
+COUPLING_PRESETS.standard  // Balanced (arousalToSpeed: 0.5)
+COUPLING_PRESETS.extreme   // Maximum effect (arousalToSpeed: 1.0)
+COUPLING_PRESETS.disabled  // No coupling (all multipliers = 0)
+```
+
+---
+
+### `IntentReasoner`
+
+**Context-aware intent confidence scoring.**
+
+```typescript
+import { IntentReasoner, reasonAbout } from '@v1b3x0r/mds-core'
+
+const reasoner = new IntentReasoner({
+  confidenceThreshold: 0.3,      // Min confidence to pursue
+  emotionInfluence: 0.6,         // How much emotion affects intent
+  memoryInfluence: 0.5,          // How much memories affect intent
+  relationshipInfluence: 0.7     // How much relationships affect intent
+})
+
+// Reason about intent
+const reasoned = reasoner.reason(intent, {
+  emotion: entity.emotion,
+  memories: entity.memory.getAll(),
+  crystals: crystallizer.getAllCrystals(),
+  relationships: entity.relationships
+})
+// → { ...intent, confidence: 0.82, reasoning: ['...'], relevance: 0.75 }
+
+// Suggest intents from context
+const suggestions = reasoner.suggest({ emotion, memories, relationships })
+
+// Re-evaluate existing intent
+const updated = reasoner.reevaluate(reasonedIntent, context)
+
+// Check if should abandon
+if (reasoner.shouldAbandon(reasonedIntent, context)) {
+  entity.intents.remove(reasonedIntent.goal)
+}
+
+// Quick helpers
+const reasoned = reasonAbout(intent, context)
+const best = chooseBestIntent(intents, context)
+```
+
+---
+
+### `RelationshipDecayManager`
+
+**Time-based relationship deterioration.**
+
+```typescript
+import {
+  RelationshipDecayManager,
+  DECAY_PRESETS
+} from '@v1b3x0r/mds-core'
+
+// Create decay manager with preset
+const decayManager = new RelationshipDecayManager(DECAY_PRESETS.standard)
+
+// Decay single relationship
+const decayed = decayManager.decay(relationship, Date.now())
+// → { trust: 0.78, familiarity: 0.65, ... } or null if pruned
+
+// Batch decay (efficient)
+entity.relationships = decayManager.decayBatch(
+  entity.relationships,
+  Date.now()
+)
+
+// Reinforce relationship (reset grace period)
+const reinforced = decayManager.reinforce(relationship, Date.now())
+
+// Estimate time until pruning
+const seconds = decayManager.estimateTimeUntilPruning(relationship)
+
+// Get statistics
+const stats = decayManager.getStats()
+// → { totalDecayed: 15, totalPruned: 3, avgDecayAmount: 0.02, lastDecayTime: ... }
+```
+
+**Decay Curves:**
+- `linear`: Constant decay rate (default)
+- `exponential`: Accelerating decay (quadratic)
+- `logarithmic`: Decelerating decay (long-lasting bonds)
+- `stepped`: Sudden drops at intervals
+
+**Decay Presets:**
+```typescript
+DECAY_PRESETS.casual    // Fast decay (baseRate: 0.002, gracePeriod: 30s)
+DECAY_PRESETS.standard  // Balanced (baseRate: 0.001, gracePeriod: 60s)
+DECAY_PRESETS.deep      // Slow decay (curve: logarithmic, gracePeriod: 120s)
+DECAY_PRESETS.fragile   // Rapid decay (curve: exponential, minThreshold: 0.15)
+DECAY_PRESETS.immortal  // No decay (baseRate: 0)
 ```
 
 ---

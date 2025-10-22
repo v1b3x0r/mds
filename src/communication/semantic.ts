@@ -7,9 +7,15 @@
  * - Calculate cosine similarity between entity essences
  * - Cache embeddings to avoid repeated API calls
  * - Fallback to character-based similarity when embeddings unavailable
+ *
+ * v5.2: Uses types with essence field to avoid circular dependency with Entity
  */
 
-import type { Entity } from '../core/entity'
+// Type for entities with essence field (compatible with Entity)
+export interface EssenceHolder {
+  id: string
+  essence?: string
+}
 
 /**
  * Embedding vector (typically 768 or 1536 dimensions)
@@ -46,7 +52,7 @@ export class SemanticSimilarity {
    * Calculate similarity between two entities
    * Returns 0..1 (1 = identical, 0 = completely different)
    */
-  async similarity(entityA: Entity, entityB: Entity): Promise<number> {
+  async similarity(entityA: EssenceHolder, entityB: EssenceHolder): Promise<number> {
     const essenceA = this.getEssence(entityA)
     const essenceB = this.getEssence(entityB)
 
@@ -186,24 +192,14 @@ export class SemanticSimilarity {
   /**
    * Get entity essence as string
    */
-  private getEssence(entity: Entity): string {
-    if (typeof entity.m.essence === 'string') {
-      return entity.m.essence
-    }
-
-    // Try different language keys
-    const essence = entity.m.essence as Record<string, string> | undefined
-    if (essence) {
-      return essence.en || essence.th || essence.ja || Object.values(essence)[0] || entity.m.material
-    }
-
-    return entity.m.material
+  private getEssence(entity: EssenceHolder): string {
+    return entity.essence || entity.id
   }
 
   /**
    * Calculate similarity matrix for entities
    */
-  async similarityMatrix(entities: Entity[]): Promise<number[][]> {
+  async similarityMatrix(entities: EssenceHolder[]): Promise<number[][]> {
     const n = entities.length
     const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0))
 
@@ -223,11 +219,11 @@ export class SemanticSimilarity {
   /**
    * Find most similar entity to target
    */
-  async findMostSimilar(target: Entity, candidates: Entity[]): Promise<Entity | null> {
+  async findMostSimilar(target: EssenceHolder, candidates: EssenceHolder[]): Promise<EssenceHolder | null> {
     if (candidates.length === 0) return null
 
     let maxSim = -1
-    let mostSimilar: Entity | null = null
+    let mostSimilar: EssenceHolder | null = null
 
     for (const candidate of candidates) {
       if (candidate.id === target.id) continue
@@ -245,8 +241,8 @@ export class SemanticSimilarity {
   /**
    * Find top N most similar entities
    */
-  async findTopSimilar(target: Entity, candidates: Entity[], n: number = 5): Promise<Array<{ entity: Entity, similarity: number }>> {
-    const similarities: Array<{ entity: Entity, similarity: number }> = []
+  async findTopSimilar(target: EssenceHolder, candidates: EssenceHolder[], n: number = 5): Promise<Array<{ entity: EssenceHolder, similarity: number }>> {
+    const similarities: Array<{ entity: EssenceHolder, similarity: number }> = []
 
     for (const candidate of candidates) {
       if (candidate.id === target.id) continue

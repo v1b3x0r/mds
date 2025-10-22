@@ -36,7 +36,7 @@ if (player.near(npc)) {
 ```
 You write 500 if-statements. NPC still has amnesia next chapter.
 
-### MDS v5.1 (Just JSON)
+### MDS v5.2 (Just JSON)
 ```json
 {
   "essence": "Friendly NPC who remembers kindness",
@@ -102,8 +102,9 @@ console.log(npc.speak('intro'))  // "Hello, traveler!"
 
 ## The Magic Trick
 
-**8 Phases = 8 Superpowers**
+**8 Phases + 5 Advanced Features = Complete Living Agents**
 
+### Core v5.0 (8 Phases)
 1. **Ontology:** Memory + emotion + relationships
 2. **World:** Physics simulation container
 3. **Renderer:** DOM/Canvas/WebGL/headless
@@ -113,7 +114,32 @@ console.log(npc.speak('intro'))  // "Hello, traveler!"
 7. **Cognitive:** Learning + skills + patterns
 8. **World Mind:** Collective intelligence
 
+### Advanced v5.2 (Phase 2: Core Gaps)
+9. **Similarity:** Semantic clustering (entities recognize "similar" others)
+10. **Crystallization:** Long-term memory (patterns become permanent)
+11. **Coupling:** Emotion affects physics (sadness slows, excitement speeds)
+12. **Reasoning:** Smart goal selection (context-aware intent)
+13. **Decay:** Realistic forgetting (relationships fade without interaction)
+
 **You pick which ones you need.**
+
+**New in v5.2:**
+```javascript
+// Entities cluster by similarity (not random proximity)
+const similar = await adapter.findSimilar(entity, others, 0.7)
+
+// Memories crystallize into long-term patterns
+const crystals = crystallizer.crystallize(memories, Date.now())
+
+// Emotions modulate movement speed/mass
+const physics = coupler.emotionToPhysics(entity.emotion)
+
+// Intent selection based on context (not random)
+const best = reasoner.suggest({ emotion, memories, relationships })
+
+// Relationships decay over time (not eternal)
+relationships = decayManager.decayBatch(relationships, Date.now())
+```
 
 ---
 

@@ -31,3 +31,27 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check circular dependencies
+        run: npx madge --circular --extensions ts src/
+
+      - name: Run core tests
+        run: npm run test
+
+      - name: Run API stability tests
+        run: npm run test:api
+
+      - name: Run MDM validator tests
+        run: npm run test:validator
+
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(stat -c%s dist/mds-core.esm.js)
+          MAX_SIZE=$((160 * 1024))  # 160 KB in bytes
+          echo "Bundle size: $(($BUNDLE_SIZE / 1024)) KB"
+          echo "Maximum allowed: 160 KB"
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Bundle size exceeds 160 KB limit!"
+            exit 1
+          fi
+          echo "✅ Bundle size within limits"
+

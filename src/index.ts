@@ -162,6 +162,49 @@ export type {
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
 export type { LlmBridge } from './io/bridge-llm'
+
+// Validation (v5.2)
+export { validateMaterial } from './core/mdm-validator'
+export type {
+  ValidationError,
+  ValidationResult,
+  ValidationOptions
+} from './core/mdm-validator'
+
+// Similarity (v5.2 Phase 2.1)
+export {
+  MockSimilarityProvider,
+  OpenAISimilarityProvider,
+  CohereSimilarityProvider,
+  createSimilarityProvider,
+  EntitySimilarityAdapter,
+  findSimilarEntities,
+  createSimilarityMatrix,
+  clusterBySimilarity
+} from './similarity'
+
+export type {
+  SimilarityProvider,
+  SimilarityProviderConfig,
+  BaseSimilarityProvider
+} from './similarity'
+
+// Coupling (v5.2 Phase 2.3)
+export type {
+  PhysicalProperties,
+  CouplingConfig
+} from './coupling'
+
+export {
+  SymbolicPhysicalCoupler,
+  createCoupler,
+  emotionToSpeed,
+  emotionToMass,
+  emotionToForce,
+  emotionToPhysicsColor,
+  COUPLING_PRESETS
+} from './coupling'
+
 export {
   enableLLM,
   setCreatorContext,
@@ -229,6 +272,9 @@ export type { CreatorContext } from './types'
 export {
   MemoryBuffer,
   createMemory,
+  MemoryCrystallizer,
+  createCrystallizer,
+  crystallizeMemories,
   blendEmotions,
   emotionDistance,
   applyEmotionalDelta,
@@ -239,21 +285,38 @@ export {
   IntentStack,
   createIntent,
   INTENT_TEMPLATES,
+  IntentReasoner,
+  createReasoner,
+  reasonAbout,
+  chooseBestIntent,
   createRelationship,
   updateRelationship,
   relationshipStrength,
   isBonded,
-  decayRelationship
+  decayRelationship,
+  RelationshipDecayManager,
+  createDecayManager,
+  applyDecay,
+  shouldPrune,
+  DECAY_PRESETS
 } from './ontology'
 
 export type {
   Memory,
   MemoryType,
   MemoryFilter,
+  CrystalMemory,
+  CrystallizationConfig,
   EmotionalState,
   EmotionalDelta,
   Intent,
   IntentGoal,
+  ReasonedIntent,
+  ReasoningContext,
+  ReasoningConfig,
   Relationship,
-  RelationshipEntry
+  RelationshipEntry,
+  DecayCurve,
+  DecayConfig,
+  DecayStats
 } from './ontology'

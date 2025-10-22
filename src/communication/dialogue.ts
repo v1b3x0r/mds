@@ -7,9 +7,11 @@
  * - Choices can have conditions (emotion, memory, relationships)
  * - Dialogues can be player-driven or AI-driven
  * - State is tracked per entity
+ *
+ * v5.2: Uses DialogueParticipant to avoid circular dependency with Entity
  */
 
-import type { Entity } from '../core/entity'
+import type { DialogueParticipant } from './types'
 
 /**
  * Dialogue choice
@@ -18,7 +20,7 @@ export interface DialogueChoice {
   id: string
   text: string
   nextNodeId: string
-  condition?: (speaker: Entity, listener: Entity) => boolean
+  condition?: (speaker: DialogueParticipant, listener: DialogueParticipant) => boolean
   emotion?: {
     valence?: number    // -1..1
     arousal?: number    // 0..1
@@ -33,14 +35,14 @@ export interface DialogueChoice {
 export interface DialogueNode {
   id: string
   speaker?: 'self' | 'other'  // undefined = narrator
-  text: string | ((speaker: Entity, listener: Entity) => string)
+  text: string | ((speaker: DialogueParticipant, listener: DialogueParticipant) => string)
   choices?: DialogueChoice[]
   autoAdvance?: {
     delay: number         // ms
     nextNodeId: string
   }
-  onEnter?: (speaker: Entity, listener: Entity) => void
-  onExit?: (speaker: Entity, listener: Entity) => void
+  onEnter?: (speaker: DialogueParticipant, listener: DialogueParticipant) => void
+  onExit?: (speaker: DialogueParticipant, listener: DialogueParticipant) => void
   metadata?: Record<string, any>
 }
 
@@ -62,8 +64,8 @@ export interface DialogueTree {
 export interface DialogueState {
   treeId: string
   currentNodeId: string
-  speaker: Entity
-  listener: Entity
+  speaker: DialogueParticipant
+  listener: DialogueParticipant
   history: string[]           // Node IDs visited
   variables: Map<string, any> // Dialogue-scoped variables
   startTime: number
@@ -87,7 +89,7 @@ export class DialogueManager {
   /**
    * Start dialogue between two entities
    */
-  startDialogue(treeId: string, speaker: Entity, listener: Entity): DialogueState | null {
+  startDialogue(treeId: string, speaker: DialogueParticipant, listener: DialogueParticipant): DialogueState | null {
     const tree = this.trees.get(treeId)
     if (!tree) {
       console.warn(`Dialogue tree "${treeId}" not found`)
@@ -126,7 +128,7 @@ export class DialogueManager {
   /**
    * Get current dialogue state
    */
-  getDialogueState(speaker: Entity, listener: Entity, treeId: string): DialogueState | null {
+  getDialogueState(speaker: DialogueParticipant, listener: DialogueParticipant, treeId: string): DialogueState | null {
     const dialogueKey = `${speaker.id}:${listener.id}:${treeId}`
     return this.activeDialogues.get(dialogueKey) || null
   }
@@ -339,7 +341,7 @@ export class DialogueBuilder {
  */
 export function createNode(
   id: string,
-  text: string | ((speaker: Entity, listener: Entity) => string),
+  text: string | ((speaker: DialogueParticipant, listener: DialogueParticipant) => string),
   choices?: DialogueChoice[]
 ): DialogueNode {
   return {
@@ -356,7 +358,7 @@ export function createChoice(
   id: string,
   text: string,
   nextNodeId: string,
-  condition?: (speaker: Entity, listener: Entity) => boolean
+  condition?: (speaker: DialogueParticipant, listener: DialogueParticipant) => boolean
 ): DialogueChoice {
   return {
     id,

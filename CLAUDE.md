@@ -55,10 +55,16 @@ Every code example shows:
 
 ---
 
-## Task Log (v5.0.0)
+## Task Log (v5.2.0)
 
 | Date | Update | Details |
 |------|--------|---------|
+| 2025-10-23 | **v5.2.0 RELEASE - Phase 2 Complete** | **Core Gaps Filled** - 5 advanced ontology systems implemented. Final bundle: 198.79 KB (45.08 KB gzipped), 192 tests (100% pass). New: Similarity (semantic clustering), Crystallization (long-term memory), Coupling (emotion→physics), Intent Reasoning (context-aware goals), Relationship Decay (time-based forgetting). Production ready. |
+| 2025-10-23 | Phase 2.5: Relationship Decay | Advanced time-based relationship deterioration with decay curves (linear/exponential/logarithmic/stepped), grace period, auto-pruning, batch processing, 25 tests (100% pass), +5.97 KB bundle |
+| 2025-10-23 | Phase 2.4: Intent Reasoning | Context-aware intent confidence scoring using emotion + memory + relationships, suggestion engine, re-evaluation & abandonment logic, 25 tests (100% pass), +10.46 KB bundle |
+| 2025-10-23 | Phase 2.3: Symbolic-Physical Coupling | Emotion → physics mapping (PAD model), memory → attraction, intent → movement bias, coupling presets, 25 tests (100% pass), +5.94 KB bundle |
+| 2025-10-23 | Phase 2.2: Memory Crystallization | Long-term memory consolidation with pattern recognition (occasional/repeated/frequent), crystal reinforcement, metadata aggregation, 20 tests (100% pass), +7.76 KB bundle |
+| 2025-10-23 | Phase 2.1: Similarity Provider | Pluggable semantic similarity system with OpenAI/Cohere/Mock providers, entity clustering, embedding caching with size limits, 25 tests (100% pass), +16.59 KB bundle |
 | 2025-10-21 | **v5.0.0 RELEASE** | **COMPLETE** - All 8 phases implemented (100% checklist complete). Final bundle: 132.53 KB (30.98 KB gzipped), 110 tests (100% pass). Phases: Ontology + World + Renderer + WorldFile + Physics + Communication + Cognitive + World Mind. Updated README.md and USE_CASES.md for v5. |
 | 2025-10-21 | Phase 8: World Mind | CollectiveIntelligence system (statistics aggregation, pattern detection, collective emotion), integrated into World tick loop, 31 tests (100% pass), +6 KB bundle |
 | 2025-10-21 | Phase 7: Cognitive Evolution | Learning system (Q-learning, pattern detection), memory consolidation (Ebbinghaus), skill proficiency system, 18 tests (100% pass), +16 KB bundle |
@@ -79,12 +85,12 @@ Every code example shows:
 
 ---
 
-## 1. PROJECT REALITY v4.2.1 (ความจริง - ไม่โม้)
+## 1. PROJECT REALITY v5.2.0 (ความจริง - ไม่โม้)
 
-นี่คือ **MDS v4.2.1** - info-physics engine for living materials with autonomous behavior (production-ready with comprehensive docs)
+นี่คือ **MDS v5.2.0** - Living world simulation engine with advanced agent behaviors (production-ready)
 
 **What we ship:**
-- `/dist/mds-core.esm.js` - **18.42 KB** minified (5.48 KB gzipped) ESM-only bundle
+- `/dist/mds-core.esm.js` - **198.79 KB** minified (45.08 KB gzipped) ESM-only bundle
 - `/materials/entities/` - Entity definitions (paper.shy, paper.curious, emotion.trust)
 - `/materials/fields/` - Field definitions (field.trust.core)
 - `/examples/01-basics/emoji-field.html` - Demo A: lifecycle hooks + save/load + deterministic mode

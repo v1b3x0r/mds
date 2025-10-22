@@ -8,9 +8,11 @@
  * - Cache responses to avoid repeated API calls
  * - Fallback to template-based generation when LLM unavailable
  * - Support multiple languages (essence can be in any language)
+ *
+ * v5.2: Uses DialogueParticipant to avoid circular dependency with Entity
  */
 
-import type { Entity } from '../core/entity'
+import type { DialogueParticipant } from './types'
 import type { Message } from './message'
 
 /**
@@ -28,10 +30,11 @@ export interface LanguageConfig {
 
 /**
  * Language generation request
+ * v5.2: Uses DialogueParticipant instead of Entity
  */
 export interface LanguageRequest {
-  speaker: Entity
-  listener?: Entity
+  speaker: DialogueParticipant & { essence?: string }
+  listener?: DialogueParticipant
   context?: string
   previousMessages?: Message[]
   intent?: string
@@ -150,10 +153,7 @@ export class LanguageGenerator {
     let prompt = 'You are generating dialogue for an entity in a living simulation.\n\n'
 
     // Entity essence
-    const essence = typeof speaker.m.essence === 'string'
-      ? speaker.m.essence
-      : speaker.m.essence?.en || speaker.m.essence?.th || 'an entity'
-
+    const essence = speaker.essence || 'an entity'
     prompt += `Entity essence: ${essence}\n`
 
     // Emotion state
@@ -170,10 +170,7 @@ export class LanguageGenerator {
 
     // Listener
     if (listener) {
-      const listenerEssence = typeof listener.m.essence === 'string'
-        ? listener.m.essence
-        : listener.m.essence?.en || listener.m.essence?.th || 'another entity'
-
+      const listenerEssence = (listener as any).essence || 'another entity'
       prompt += `Speaking to: ${listenerEssence}\n`
     }
 
@@ -186,7 +183,7 @@ export class LanguageGenerator {
     if (previousMessages && previousMessages.length > 0) {
       prompt += `\nRecent conversation:\n`
       for (const msg of previousMessages.slice(-5)) {
-        const senderName = msg.sender.m.material
+        const senderName = msg.sender.id
         prompt += `${senderName}: ${msg.content}\n`
       }
     }
@@ -313,9 +310,7 @@ export class LanguageGenerator {
    */
   private async generateMock(request: LanguageRequest): Promise<LanguageResponse> {
     const { speaker } = request
-    const essence = typeof speaker.m.essence === 'string'
-      ? speaker.m.essence
-      : speaker.m.essence?.en || speaker.m.essence?.th || 'entity'
+    const essence = speaker.essence || 'entity'
 
     // Simple template-based response
     const templates = [
@@ -342,9 +337,7 @@ export class LanguageGenerator {
   private async generateTemplate(request: LanguageRequest): Promise<LanguageResponse> {
     const { speaker, intent, tone } = request
 
-    const essence = typeof speaker.m.essence === 'string'
-      ? speaker.m.essence
-      : speaker.m.essence?.en || speaker.m.essence?.th || 'an entity'
+    const essence = speaker.essence || 'an entity'
 
     let text = ''
 
@@ -372,7 +365,7 @@ export class LanguageGenerator {
    */
   private getCacheKey(request: LanguageRequest): string {
     const { speaker, listener, context, intent, tone } = request
-    const essence = speaker.m.essence
+    const essence = speaker.essence || 'unknown'
     const emotion = speaker.emotion ? `${speaker.emotion.valence.toFixed(1)},${speaker.emotion.arousal.toFixed(1)}` : ''
     const listenerKey = listener ? listener.id : 'broadcast'
 

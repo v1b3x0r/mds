@@ -11,7 +11,7 @@
  */
 
 import type { MdsMaterial } from '../schema/mdspec'
-import type { Engine } from './engine'
+import type { ProximityCallback } from './types'  // v5.2: Break circular dependency
 import { clamp } from '../utils/math'
 import { applyRule } from '../utils/events'
 
@@ -29,6 +29,7 @@ import {
 
 // v5 Phase 6: Communication imports
 import type { MessageQueue, DialogueState, Message, MessageType, MessagePriority } from '../communication'
+import type { MessageParticipant } from '../communication/types'  // v5.2: For type compatibility
 import { MessageQueue as MsgQueue, createMessage } from '../communication'
 
 // v5 Phase 7: Cognitive imports
@@ -38,7 +39,11 @@ import type { LearningSystem, MemoryConsolidation, SkillSystem } from '../cognit
 import { parseMaterial, getDialoguePhrase } from '../io/mdm-parser'
 import type { TriggerContext } from '../io/mdm-parser'
 
-export class Entity {
+/**
+ * Entity class - Living material instance
+ * v5.2: Implements MessageParticipant for communication compatibility
+ */
+export class Entity implements MessageParticipant {
   // Material definition
   m: MdsMaterial
 
@@ -64,11 +69,11 @@ export class Entity {
   hoverCount = 0
   lastHoverTime = 0
 
-  // Proximity callback (set by engine)
-  onProximity?: (engine: Engine, other: Entity, dist: number) => void
+  // Proximity callback (set by engine) - v5.2: Uses ProximityCallback interface
+  onProximity?: ProximityCallback
 
-  // Lifecycle hooks (v4.1)
-  onSpawn?: (engine: Engine, entity: Entity) => void
+  // Lifecycle hooks (v4.1) - v5.2: Use unknown for engine to avoid circular import
+  onSpawn?: (engine: unknown, entity: Entity) => void
   onUpdate?: (dt: number, entity: Entity) => void
   onDestroy?: (entity: Entity) => void
 
@@ -99,6 +104,23 @@ export class Entity {
   private dialoguePhrases?: import('../io/mdm-parser').ParsedDialogue
   private emotionTriggers?: import('../io/mdm-parser').EmotionTrigger[]
   private triggerContext: import('../io/mdm-parser').TriggerContext = {}
+
+  /**
+   * Get essence string for LanguageGenerator (v5.2)
+   * Extracts essence from material definition
+   */
+  get essence(): string | undefined {
+    if (!this.m.essence) return undefined
+
+    // If essence is string, return it
+    if (typeof this.m.essence === 'string') {
+      return this.m.essence
+    }
+
+    // If essence is LangText, extract first available language
+    const langText = this.m.essence as any
+    return langText.en || langText.th || langText.ja || langText.es || langText.zh || undefined
+  }
 
   constructor(
     m: MdsMaterial,
