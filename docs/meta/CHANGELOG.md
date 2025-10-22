@@ -4,6 +4,32 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.2.3] — Documentation Update
+
+📅 2025-10-23
+
+⸻
+
+📝 Updated
+
+README.npm.md Accuracy
+	•	Bundle sizes: 140 KB → 182 KB (accurate final size)
+	•	Added "Choose Your Bundle" section (Full/Lite/Validator)
+	•	Added "Advanced Features (v5.2+)" with code examples
+	•	Added "LLM Integration" section with provider examples
+	•	Added "Recent Updates" version history
+
+⸻
+
+💡 Why It Matters
+
+npm package page now shows accurate bundle sizes and usage examples for v5.2.2.
+Helps developers choose the right bundle for their needs.
+
+No code changes — documentation only.
+
+⸻
+
 [5.2.2] — AGI-Ready (No Lazy Loading)
 
 📅 2025-10-23
