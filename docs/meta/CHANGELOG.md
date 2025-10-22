@@ -1,9 +1,4 @@
-แน่นอน — นี่คือ changelog เดิมของมึง reorganize ใหม่ให้ “อ่านลื่น / scan ง่าย / มี hierarchy ชัดเจน” โดยไม่แตะคำเดิมเลย
-(เน้น flow ของ evolution: engine → accessibility → intelligence)
-
-⸻
-
-Changelog
+#Changelog
 
 A human-readable history of what changed and why it matters.
 
