@@ -1,6 +1,6 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "Make JSON come alive. Entities that think, feel, learn — in any language. For curious minds ages 12+.",
   "sideEffects": false,
   "type": "module",
@@ -11,6 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/mds-core.esm.js"
+    },
+    "./lite": {
+      "types": "./dist/index-lite.d.ts",
+      "import": "./dist/mds-core-lite.esm.js"
+    },
+    "./validator": {
+      "types": "./dist/validator-entry.d.ts",
+      "import": "./dist/mds-validator.esm.js"
     }
   },
   "files": [
@@ -23,7 +31,7 @@
   "readme": "README.npm.md",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && BUILD_TARGET=lite vite build && BUILD_TARGET=validator vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "node tests/test-world.mjs && node tests/test-renderer.mjs && node tests/test-worldfile.mjs && node tests/test-heroblind.mjs",
