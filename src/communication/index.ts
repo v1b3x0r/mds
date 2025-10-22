@@ -1,7 +1,16 @@
 /**
  * MDS v5 Phase 6 - Communication Module
  * Entity-to-entity communication, dialogue, and language generation
+ *
+ * v5.2: Exports MessageParticipant types to break circular dependencies
  */
+
+// v5.2: Shared types (no circular dependency)
+export type {
+  MessageSender,
+  MessageReceiver,
+  MessageParticipant
+} from './types'
 
 // Message system
 export {

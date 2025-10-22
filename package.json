@@ -1,6 +1,6 @@
 {
   "name": "@v1b3x0r/mds-core",
-  "version": "5.0.0",
+  "version": "5.2.1",
   "description": "Make JSON come alive. Entities that think, feel, learn — in any language. For curious minds ages 12+.",
   "sideEffects": false,
   "type": "module",
@@ -11,6 +11,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/mds-core.esm.js"
+    },
+    "./lite": {
+      "types": "./dist/index-lite.d.ts",
+      "import": "./dist/mds-core-lite.esm.js"
+    },
+    "./validator": {
+      "types": "./dist/validator-entry.d.ts",
+      "import": "./dist/mds-validator.esm.js"
     }
   },
   "files": [
@@ -23,10 +31,20 @@
   "readme": "README.npm.md",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && BUILD_TARGET=lite vite build && BUILD_TARGET=validator vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "node tests/test-world.mjs && node tests/test-renderer.mjs && node tests/test-worldfile.mjs && node tests/test-heroblind.mjs",
+    "test:api": "node tests/api/stability.test.mjs",
+    "test:validator": "node tests/mdm-validator.test.mjs",
+    "test:similarity": "node tests/similarity.test.mjs",
+    "test:crystallization": "node tests/crystallization.test.mjs",
+    "test:coupling": "node tests/coupling.test.mjs",
+    "test:reasoning": "node tests/reasoning.test.mjs",
+    "test:decay": "node tests/relationship-decay.test.mjs",
+    "test:all": "npm run test && npm run test:api && npm run test:validator && npm run test:similarity && npm run test:crystallization && npm run test:coupling && npm run test:reasoning && npm run test:decay",
+    "check:stability": "./scripts/check-api-stability.sh",
+    "check:circular": "npx madge --circular --extensions ts src/",
     "prepublishOnly": "npm run build && test -f README.github.md || mv README.md README.github.md && cp README.npm.md README.md",
     "postpublish": "test -f README.github.md && mv README.github.md README.md || true"
   },

@@ -114,3 +114,48 @@ export interface ResolvedMaterial {
  * Material manifest (.mdm.json format)
  */
 export type MaterialManifest = Material
+
+// ─────────────────────────────────────────────────────────────────
+// v5.2 Addition: Shared Interfaces (Break Circular Dependencies)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Proximity callback interface
+ * Used by Entity to avoid importing Engine type
+ *
+ * @param engine - The engine instance (typed as unknown to avoid circular import)
+ * @param other - The other entity in proximity (typed as unknown)
+ * @param dist - Distance between entities
+ */
+export interface ProximityCallback {
+  (engine: unknown, other: unknown, dist: number): void
+}
+
+/**
+ * Entity-like interface for force calculations
+ * Minimal interface used by Engine without importing full Entity class
+ *
+ * This allows Engine to work with entity data without depending on Entity class,
+ * breaking the circular dependency.
+ */
+export interface EntityLike {
+  id: string
+  x: number
+  y: number
+  vx: number
+  vy: number
+  entropy: number
+  age: number
+}
+
+/**
+ * Field-like interface
+ * Minimal interface for field rendering
+ */
+export interface FieldLike {
+  id: string
+  x: number
+  y: number
+  radius: number
+  opacity: number
+}

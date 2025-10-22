@@ -7,9 +7,11 @@
  * - Messages have priority (urgent > normal > low)
  * - Messages can be direct (1-to-1) or broadcast (1-to-many)
  * - Message history is stored for memory
+ *
+ * v5.2: Uses MessageParticipant interface to avoid circular dependency with Entity
  */
 
-import type { Entity } from '../core/entity'
+import type { MessageParticipant } from './types'
 
 /**
  * Message types
@@ -28,13 +30,14 @@ export type MessagePriority = 'urgent' | 'normal' | 'low'
 
 /**
  * Message structure
+ * v5.2: Uses MessageParticipant instead of Entity to avoid circular dependency
  */
 export interface Message {
   id: string
   type: MessageType
   priority: MessagePriority
-  sender: Entity
-  receiver?: Entity         // undefined = broadcast
+  sender: MessageParticipant
+  receiver?: MessageParticipant  // undefined = broadcast
   content: string
   metadata?: Record<string, any>
   timestamp: number
@@ -44,11 +47,12 @@ export interface Message {
 
 /**
  * Message builder for fluent API
+ * v5.2: Uses MessageParticipant instead of Entity
  */
 export class MessageBuilder {
   private message: Partial<Message>
 
-  constructor(sender: Entity) {
+  constructor(sender: MessageParticipant) {
     this.message = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       sender,
@@ -64,7 +68,7 @@ export class MessageBuilder {
     return this
   }
 
-  to(receiver: Entity): this {
+  to(receiver: MessageParticipant): this {
     this.message.receiver = receiver
     return this
   }
@@ -178,7 +182,7 @@ export class MessageQueue {
   /**
    * Get messages from sender
    */
-  getFromSender(sender: Entity): Message[] {
+  getFromSender(sender: MessageParticipant): Message[] {
     return this.messages.filter(m => m.sender.id === sender.id)
   }
 
@@ -228,7 +232,7 @@ export class MessageDelivery {
   /**
    * Deliver message to receiver(s)
    */
-  static deliver(message: Message, entities: Entity[]): void {
+  static deliver(message: Message, entities: MessageParticipant[]): void {
     if (message.receiver) {
       // Direct message (1-to-1)
       this.deliverDirect(message, message.receiver)
@@ -241,29 +245,29 @@ export class MessageDelivery {
   /**
    * Deliver direct message
    */
-  private static deliverDirect(message: Message, receiver: Entity): void {
+  private static deliverDirect(message: Message, receiver: MessageParticipant): void {
     if (!receiver.inbox) {
-      receiver.inbox = new MessageQueue()
+      receiver.inbox = new MessageQueue() as any
     }
 
-    receiver.inbox.enqueue(message)
+    (receiver.inbox as MessageQueue).enqueue(message)
     message.delivered = true
   }
 
   /**
    * Deliver broadcast message (to all entities except sender)
    */
-  private static deliverBroadcast(message: Message, entities: Entity[]): void {
+  private static deliverBroadcast(message: Message, entities: MessageParticipant[]): void {
     for (const entity of entities) {
       if (entity.id === message.sender.id) continue
 
       if (!entity.inbox) {
-        entity.inbox = new MessageQueue()
+        entity.inbox = new MessageQueue() as any
       }
 
       // Clone message for each receiver
       const cloned = { ...message, receiver: entity }
-      entity.inbox.enqueue(cloned)
+      ;(entity.inbox as MessageQueue).enqueue(cloned)
     }
 
     message.delivered = true
@@ -272,11 +276,17 @@ export class MessageDelivery {
   /**
    * Deliver message to entities within radius (proximity broadcast)
    */
-  static deliverProximity(message: Message, entities: Entity[], radius: number): void {
+  static deliverProximity(message: Message, entities: MessageParticipant[], radius: number): void {
     const sender = message.sender
 
     for (const entity of entities) {
       if (entity.id === sender.id) continue
+
+      // Check if spatial data exists
+      if (entity.x === undefined || entity.y === undefined ||
+          sender.x === undefined || sender.y === undefined) {
+        continue
+      }
 
       const dx = entity.x - sender.x
       const dy = entity.y - sender.y
@@ -284,11 +294,11 @@ export class MessageDelivery {
 
       if (dist <= radius) {
         if (!entity.inbox) {
-          entity.inbox = new MessageQueue()
+          entity.inbox = new MessageQueue() as any
         }
 
         const cloned = { ...message, receiver: entity }
-        entity.inbox.enqueue(cloned)
+        ;(entity.inbox as MessageQueue).enqueue(cloned)
       }
     }
 
@@ -299,11 +309,15 @@ export class MessageDelivery {
 /**
  * Helper: Create message
  */
+/**
+ * Create a message (convenience function)
+ * v5.2: Uses MessageParticipant instead of Entity
+ */
 export function createMessage(
-  sender: Entity,
+  sender: MessageParticipant,
   type: MessageType,
   content: string,
-  receiver?: Entity,
+  receiver?: MessageParticipant,
   priority: MessagePriority = 'normal'
 ): Message {
   return new MessageBuilder(sender)

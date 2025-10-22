@@ -37,15 +37,11 @@ import {
 } from '../physics'
 import {
   DialogueManager,
-  LanguageGenerator,
   SemanticSimilarity,
   MessageDelivery
 } from '../communication'
-import {
-  CollectiveIntelligence,
-  WorldStats,
-  PatternDetection
-} from '../world-mind'
+// LanguageGenerator lazy-loaded (Step 4)
+// CollectiveIntelligence lazy-loaded (Step 5)
 
 /**
  * World configuration options
@@ -163,9 +159,9 @@ export class World {
   languageGenerator?: import('../communication').LanguageGenerator
   semanticSimilarity?: import('../communication').SemanticSimilarity
 
-  // Phase 8: World mind (optional)
-  private worldStats?: WorldStats
-  private patterns: PatternDetection[] = []
+  // Phase 8: World mind (optional) - lazy loaded
+  private worldStats?: any  // WorldStats loaded dynamically
+  private patterns: any[] = []  // PatternDetection[] loaded dynamically
   private statsUpdateInterval: number = 1000 // Update stats every 1 second
   private lastStatsUpdate: number = 0
 
@@ -199,8 +195,12 @@ export class World {
     }
 
     // Phase 6: Initialize communication systems (if enabled)
+    // Note: initializeCommunication is async for lazy loading, but we don't await in constructor
+    // Language generator loads on-demand when first used
     if (options.features?.communication) {
-      this.initializeCommunication(options)
+      this.initializeCommunication(options).catch(err => {
+        console.error('Failed to initialize communication:', err)
+      })
     }
   }
 
@@ -264,12 +264,13 @@ export class World {
   /**
    * Initialize communication systems (Phase 6)
    */
-  private initializeCommunication(options: WorldOptions): void {
+  private async initializeCommunication(options: WorldOptions): Promise<void> {
     // Create dialogue manager
     this.dialogueManager = new DialogueManager()
 
-    // Create language generator (if enabled)
+    // Lazy load language generator (if enabled) - Step 4 optimization
     if (options.features?.languageGeneration) {
+      const { LanguageGenerator } = await import('../communication/language')
       const provider = options.languageProvider ?? 'mock'
       this.languageGenerator = new LanguageGenerator({
         provider,
@@ -415,7 +416,10 @@ export class World {
     }
 
     // Phase 4: World mind update (Phase 8 - statistics & patterns)
-    this.updateWorldMind()
+    // Async but fire-and-forget (stats update is non-blocking)
+    this.updateWorldMind().catch(err => {
+      console.error('World mind update failed:', err)
+    })
 
     // Phase 5: Rendering update
     if (this.renderer.renderAll) {
@@ -739,12 +743,15 @@ export class World {
    * Phase 8: Update world mind
    * - Calculate world statistics
    * - Detect emergent patterns
+   * Lazy-loaded for bundle optimization (Step 5)
    */
-  private updateWorldMind(): void {
+  private async updateWorldMind(): Promise<void> {
     const now = Date.now()
 
     // Update stats at intervals (not every tick)
     if (now - this.lastStatsUpdate >= this.statsUpdateInterval) {
+      // Lazy load CollectiveIntelligence module
+      const { CollectiveIntelligence } = await import('../world-mind')
       this.worldStats = CollectiveIntelligence.calculateStats(this.entities)
       this.patterns = CollectiveIntelligence.detectPatterns(this.entities)
       this.lastStatsUpdate = now
@@ -754,21 +761,23 @@ export class World {
   /**
    * Get current world statistics
    */
-  getWorldStats(): WorldStats | undefined {
+  getWorldStats(): any | undefined {
     return this.worldStats
   }
 
   /**
    * Get detected emergent patterns
    */
-  getPatterns(): PatternDetection[] {
+  getPatterns(): any[] {
     return this.patterns
   }
 
   /**
    * Get collective emotion (world mood)
+   * Lazy-loaded for bundle optimization (Step 5)
    */
-  getCollectiveEmotion(): import('../ontology').EmotionalState | null {
+  async getCollectiveEmotion(): Promise<import('../ontology').EmotionalState | null> {
+    const { CollectiveIntelligence } = await import('../world-mind')
     return CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
   }
 

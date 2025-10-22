@@ -3,6 +3,8 @@
 ![npm version](https://img.shields.io/npm/v/%40v1b3x0r%2Fmds-core?label=npm)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![types](https://img.shields.io/badge/types-TypeScript-3178C6)
+![CI](https://github.com/v1b3x0r/mds/workflows/CI/badge.svg)
+![API Stability](https://github.com/v1b3x0r/mds/workflows/API%20Stability/badge.svg)
 
 > **NPCs that hold grudges. Ghosts that get lonely. JSON files with anxiety.**
 

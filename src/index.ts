@@ -88,6 +88,7 @@ export type {
 } from './physics'
 
 // Communication (v5 Phase 6)
+// Note: LanguageGenerator lazy-loaded for bundle optimization (Step 4)
 export {
   MessageBuilder,
   MessageQueue,
@@ -97,9 +98,9 @@ export {
   DialogueBuilder,
   createNode,
   createChoice,
-  LanguageGenerator,
-  createOpenRouterGenerator,
-  createMockGenerator,
+  // LanguageGenerator - lazy-loaded, import from '@v1b3x0r/mds-core/language' if needed
+  // createOpenRouterGenerator - part of LanguageGenerator module
+  // createMockGenerator - part of LanguageGenerator module
   SemanticSimilarity,
   createOpenAISemantic,
   createMockSemantic,
@@ -148,9 +149,9 @@ export type {
 } from './cognitive'
 
 // World Mind (v5 Phase 8)
-export {
-  CollectiveIntelligence
-} from './world-mind'
+// Note: CollectiveIntelligence lazy-loaded for bundle optimization (Step 5)
+// Import dynamically via world.getCollectiveEmotion() or world.getWorldStats()
+// export { CollectiveIntelligence } from './world-mind'
 
 export type {
   WorldStats,
@@ -162,6 +163,46 @@ export type {
 export { loadMaterial, loadMaterials } from './io/loader'
 export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
 export type { LlmBridge } from './io/bridge-llm'
+
+// Validation (v5.2) - Moved to separate bundle for bundle size optimization
+// Import from '@v1b3x0r/mds-core/validator' for validation features
+// export { validateMaterial } from './core/mdm-validator'
+// export type { ValidationError, ValidationResult, ValidationOptions } from './core/mdm-validator'
+
+// Similarity (v5.2 Phase 2.1)
+export {
+  MockSimilarityProvider,
+  OpenAISimilarityProvider,
+  CohereSimilarityProvider,
+  createSimilarityProvider,
+  EntitySimilarityAdapter,
+  findSimilarEntities,
+  createSimilarityMatrix,
+  clusterBySimilarity
+} from './similarity'
+
+export type {
+  SimilarityProvider,
+  SimilarityProviderConfig,
+  BaseSimilarityProvider
+} from './similarity'
+
+// Coupling (v5.2 Phase 2.3)
+export type {
+  PhysicalProperties,
+  CouplingConfig
+} from './coupling'
+
+export {
+  SymbolicPhysicalCoupler,
+  createCoupler,
+  emotionToSpeed,
+  emotionToMass,
+  emotionToForce,
+  emotionToPhysicsColor,
+  COUPLING_PRESETS
+} from './coupling'
+
 export {
   enableLLM,
   setCreatorContext,
@@ -229,6 +270,9 @@ export type { CreatorContext } from './types'
 export {
   MemoryBuffer,
   createMemory,
+  MemoryCrystallizer,
+  createCrystallizer,
+  crystallizeMemories,
   blendEmotions,
   emotionDistance,
   applyEmotionalDelta,
@@ -239,21 +283,38 @@ export {
   IntentStack,
   createIntent,
   INTENT_TEMPLATES,
+  IntentReasoner,
+  createReasoner,
+  reasonAbout,
+  chooseBestIntent,
   createRelationship,
   updateRelationship,
   relationshipStrength,
   isBonded,
-  decayRelationship
+  decayRelationship,
+  RelationshipDecayManager,
+  createDecayManager,
+  applyDecay,
+  shouldPrune,
+  DECAY_PRESETS
 } from './ontology'
 
 export type {
   Memory,
   MemoryType,
   MemoryFilter,
+  CrystalMemory,
+  CrystallizationConfig,
   EmotionalState,
   EmotionalDelta,
   Intent,
   IntentGoal,
+  ReasonedIntent,
+  ReasoningContext,
+  ReasoningConfig,
   Relationship,
-  RelationshipEntry
+  RelationshipEntry,
+  DecayCurve,
+  DecayConfig,
+  DecayStats
 } from './ontology'

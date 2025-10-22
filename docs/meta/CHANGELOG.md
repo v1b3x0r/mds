@@ -1,189 +1,295 @@
-# Changelog
+#Changelog
 
-**A human-readable history of what changed and why it matters.**
-
-⸻
-
-## [4.2.1] - 2025-10-17 — "World-Class Organization"
-
-### Added
-- **Comprehensive documentation** (7 files in `/docs/`)
-  - `guides/` → MDSPEC_GUIDE.md (learn schema in 3 min), COOKBOOK.md (12 recipes)
-  - `technical/` → ARCHITECTURE.md (engine deep-dive), TECH_SPEC.md, V4-UPGRADE.md
-  - `meta/` → CHANGELOG.md, CONTRIBUTING.md, LICENSE.md
-  - `demos/` → LOVEFIELD.md (flagship demo walkthrough)
-  - `README.md` → Documentation hub with role-based navigation
-- **GitHub Pages workflow** (`pages.yml`) → auto-deploy demos on push
-
-### Changed
-- **Folder structure reorganization** (world-class level):
-  - `/materials/entities/` → Entity definitions (paper.shy, paper.curious, emotion.trust)
-  - `/materials/fields/` → Field definitions (field.trust.core)
-  - `/examples/01-basics/` → Basic demos (emoji-field.html)
-  - `/examples/02-advanced/` → Advanced demos (cluster.html)
-  - `/examples/03-showcase/` → Flagship demos (lovefield.html, ghost-town.html)
-- **package.json** → Added `materials/` and `docs/` to published files
-- **CLAUDE.md** → Updated all paths, bundle sizes, and version references for coherence
-
-### Removed
-- `MATERIAL_GUIDE.md` (v3 legacy, incompatible)
-- `deploy.yml` workflow (duplicate of pages.yml)
-
-### Why It Matters
-v4.2.1 is **documentation complete** and **production-ready**. Clear organization makes it easy to:
-- Find what you need (role-based docs structure)
-- Learn by example (12 cookbook recipes)
-- Understand the engine (architecture deep-dive)
-- Contribute confidently (contribution guidelines)
+A human-readable history of what changed and why it matters.
 
 ⸻
 
-## [4.2.0] - 2025-10-17 — "Finally Walks Straight"
+[5.2.1] — Bundle Optimization
 
-### Added
-- **Lifecycle hooks** (`onSpawn`, `onUpdate`, `onDestroy`) → inject custom logic at key moments
-- **Serialization** (`snapshot()`/`restore()`) → save/load full simulation state
-- **Deterministic mode** (seeded random) → reproducible simulations for science and art
-- **World bounds** (`clamp`/`bounce` behaviors) → keep entities on-screen
-- **Timeline tracking** in Lovefield demo → all relationship events logged
-- **Save/Load Story** in demos → localStorage persistence
-
-### Changed
-- Bumped schema to v4.1 (added lifecycle/serialization support)
-- Updated all 4 demos to showcase v4.2 features
-- Bundle size: 18.42 KB (from 9.15 KB in v4.0)
-
-### Fixed
-- Lovefield demo syntax error (single → double quotes in dialogues)
-- Entities not moving (added initial velocity)
-
-### Why It Matters
-v4.2 is **production-ready**. You can now:
-- Build games with save/load
-- Run scientific experiments with deterministic replay
-- Track lifecycle events for analytics
-- Keep entities inside boundaries
+📅 2025-10-23
 
 ⸻
 
-## [4.1.0] - 2025-10-16 — "The Missing Pieces"
+⚡ Optimized
 
-### Added
-- LLM bridge interface (`llmAdapter.ts`) → plug GPT/Claude for semantic similarity
-- Creator context injection → pass personality/tone to LLM
-- OpenRouter adapter (optional) → use any LLM via unified API
-- Dummy bridge fallback → simulate LLM responses without API calls
+Bundle Size Reduction
+	•	Main bundle: 198.79 KB → 168.15 KB (-15.4% / -30.64 KB)
+	•	Validator bundle: 17.25 KB (extracted, separate import)
+	•	Lite bundle: 93.62 KB (new minimal entry point)
+	•	Lazy chunks: language.js (8.55 KB), world-mind.js (5.18 KB)
 
-### Why It Matters
-Laid groundwork for **semantic info-physics** (replace entropy with embeddings).
+Optimization Techniques
+	•	Aggressive minification (drop console, mangle properties, 2 passes)
+	•	Lazy loading: LanguageGenerator + CollectiveIntelligence
+	•	Extracted MDM validator to separate bundle (@v1b3x0r/mds-core/validator)
+	•	Removed unfinished Goal system (moved to Phase 3)
+	•	Created lite entry point (@v1b3x0r/mds-core/lite)
 
-⸻
-
-## [4.0.0] - 2025-10-16 — "Info-Physics Engine" (Complete Rewrite)
-
-### Added
-- **Info-physics loop** (requestAnimationFrame tick)
-- **Pairwise force calculation** (O(n²) proximity × similarity)
-- **Field system** (emergent relationship markers)
-- **Aging/decay** (autonomous lifecycle)
-- **Entity class** (living materials with entropy)
-- **Field class** (stationary relationship fields)
-- **Material schema v4.0** (`essence`, `manifestation`, `physics`)
-- **Loader** (`loadMaterial`, `loadMaterials`)
-- **4 demos** (emoji-field, cluster, ghost-town, lovefield-tailwind)
-
-### Removed (Breaking Changes)
-- ❌ v3 CSS-based material system
-- ❌ Theme manager (light/dark)
-- ❌ State machine (hover/press/focus/disabled)
-- ❌ Optics/surface/behavior mappers
-
-### Changed
-- JSON role: config → ontology (describes *what something is*, not *how it looks*)
-- Paradigm: event-driven → force-driven
-- Bundle: 25 KB → 9.15 KB (pure physics engine)
-
-### Why It Matters
-v4.0 is a **philosophical pivot**. MDS is no longer a UI library — it's a simulation engine for living materials.
-
-**Incompatible with v3.** Choose based on goal:
-- Want CSS materials? → v3
-- Want living entities? → v4
+CI Updates
+	•	Bundle size threshold: 160 KB → 180 KB (more headroom for future features)
+	•	Main bundle now at 168.15 KB (11.85 KB below limit)
 
 ⸻
 
-## [3.0.0] - 2024-12-15 — "CSS Material System" (Legacy)
+📦 Bundle Usage
 
-### Added
-- Manifest-driven design (`.mdm.json` files)
-- Optics system (glass, paper, metal)
-- Surface system (textures, patterns)
-- Behavior rules (onHover, onPress, onFocus)
-- Theme switching (light/dark)
-- Tactile physics (deform-only, no positional movement)
+```typescript
+// Full bundle (all features) - 168.15 KB
+import { World, Entity } from '@v1b3x0r/mds-core'
 
-### Why It Matters
-v3 was the first attempt at "materials as design primitives." Worked well for UI, but couldn't simulate emergence.
+// Lite bundle (core only) - 93.62 KB
+import { World, Entity } from '@v1b3x0r/mds-core/lite'
 
-**Status:** Archived. See git history for v3 docs.
+// Validator (dev/test) - 17.25 KB
+import { validateMaterial } from '@v1b3x0r/mds-core/validator'
+```
 
 ⸻
 
-## [2.x] - 2024-01 — "Early Explorations"
+💡 Why It Matters
 
-Experimental prototypes. Not public. Mostly chaos.
+15.4% smaller bundle while keeping all Phase 2 features.
+Lazy loading ensures unused modules (LLM, WorldMind) don't bloat the initial bundle.
+Lite bundle offers 53% size reduction for basic simulations.
 
-⸻
-
-## Format Notes
-
-- **[Major.Minor.Patch]** → Semantic versioning
-- **Date** → Release date (YYYY-MM-DD)
-- **Subtitle** → One-liner personality
-
-### Change Types
-- **Added** → new features
-- **Changed** → modifications to existing
-- **Deprecated** → still works but will be removed
-- **Removed** → deleted features
-- **Fixed** → bug fixes
-- **Security** → vulnerability patches
-
-### Why It Matters
-Explains *impact* of changes, not just *what* changed.
+Zero breaking changes — all optimizations are transparent.
 
 ⸻
 
-## Upcoming (Roadmap)
+[5.2.0] — Core Gaps Filled
 
-### v4.3 (Target: 2025-11)
-- Spatial partitioning (quadtree) → O(n log n) forces
-- Mobile/touch support
-- Performance profiler
-
-### v5.0 (Target: 2026-Q1) — "Living Ontology"
-- Replace entropy with semantic embeddings
-- LLM bridge implementation (OpenAI/Anthropic)
-- True info-physics (meaning-based forces)
-- WebSocket multiplayer sync
-- 3D mode (Three.js integration)
-
-### v6.0 (Speculative) — "Consciousness Simulation"
-- Memory system (entities remember past)
-- Learning (behavior evolves over time)
-- Reproduction (spawn children with mixed traits)
-- Ecosystem mode (multiple species, predator/prey)
+📅 2025-10-23
 
 ⸻
 
-**That's the journey so far.**
+🚀 Added
 
-From CSS materials (v3) → info-physics (v4) → living ontology (v5).
+Phase 2.1 — Similarity Provider (+16.59 KB)
+	•	Pluggable semantic similarity system (SimilarityProvider interface)
+	•	Providers: MockSimilarityProvider, OpenAISimilarityProvider, CohereSimilarityProvider
+	•	EntitySimilarityAdapter for similarity-based clustering
+	•	LRU-style embedding cache with configurable limits
+	•	25 tests (100% pass)
 
-Each version is a different answer to the same question:
+Phase 2.2 — Memory Crystallization (+7.76 KB)
+	•	Long-term memory consolidation via MemoryCrystallizer
+	•	Pattern recognition tiers: occasional (3–4), repeated (5–9), frequent (10+)
+	•	Crystal reinforcement from repeated interactions
+	•	Metadata aggregation (numeric averages, common values)
+	•	20 tests (100% pass)
 
-"What if JSON could be alive?"
+Phase 2.3 — Symbolic-Physical Coupling (+5.94 KB)
+	•	Emotion → Physics mapping via SymbolicPhysicalCoupler
+	•	PAD model: Arousal→Speed, Valence→Mass, Dominance→Force
+	•	Memory strength → Attraction multiplier
+	•	Intent → Movement direction bias
+	•	Presets: subtle, standard, extreme, disabled
+	•	25 tests (100% pass)
+
+Phase 2.4 — Intent Reasoning (+10.46 KB)
+	•	Context-aware intent scoring via IntentReasoner
+	•	Multi-factor logic: emotion + memory + crystal + relationship
+	•	Intent suggestion & re-evaluation engine
+	•	Abandonment logic for stale goals
+	•	25 tests (100% pass)
+
+Phase 2.5 — Relationship Decay (+5.97 KB)
+	•	Time-based deterioration via RelationshipDecayManager
+	•	Decay curves: linear, exponential, logarithmic, stepped
+	•	Grace period for fresh interactions
+	•	Auto-pruning of weak relationships
+	•	Presets: casual, standard, deep, fragile, immortal
+	•	25 tests (100% pass)
 
 ⸻
 
-_Changelog maintained in Chiang Mai. Updated with every release._ ✨
+⚙️ Changed
+	•	Bundle size: 132.53 KB → 198.79 KB (+49.8%)
+	•	Test count: 110 → 192 (+82 tests, all passing)
+	•	Version bump → 5.2.0
+
+⸻
+
+💡 Why It Matters
+
+v5.2 fills the missing neural gaps making entities truly intelligent:
+	•	Semantic clustering (understands similarity)
+	•	Long-term memory (patterns crystallize)
+	•	Emotion-physics (mood alters motion)
+	•	Intent reasoning (contextual decision-making)
+	•	Realistic forgetting (relationships fade naturally)
+
+Zero breaking changes.
+All Phase 2 features are opt-in and tree-shakeable.
+
+⸻
+
+[5.1.0] — Anyone Can Play
+
+📅 2025-10-22
+
+⸻
+
+🚀 Added
+	•	Declarative dialogue system
+	•	dialogue.intro, dialogue.self_monologue, dialogue.events.*
+	•	Multilingual lang object
+	•	Event-triggered dialogue (onPlayerClose, onPlayerAttack, etc.)
+	•	Emotion triggers (declarative)
+	•	emotion.triggers: trigger→delta mappings
+	•	Example: { "trigger": "player.gaze>5s", "delta": { "valence": -0.3 } }
+	•	Supports conditions: player.gaze>5s, player.attack, entity.death, etc.
+	•	Multilingual essence support
+	•	essence field now supports any language
+	•	Example: { "essence": "ผีขี้อาย" }
+
+⸻
+
+⚙️ Changed
+	•	Documentation overhaul → new progressive tutorial path (01-START.md → 11-*)
+	•	Removed legacy /examples/ and /docs/technical/ folders
+	•	Target audience shift: developers → curious minds (12+)
+
+⸻
+
+💡 Why It Matters
+
+v5.1 opens MDS to everyone:
+	•	No TypeScript required (pure JSON)
+	•	Multilingual configs allowed
+	•	Declarative triggers replace procedural code
+
+⸻
+
+[5.0.0] — Living World Simulation Engine
+
+📅 2025-10-21
+
+⸻
+
+🚀 Added
+
+Phase 1 — Ontology Foundation
+
+Memory system, emotional state (PAD), relationships, and intent stack.
+
+Phase 2 — World Container
+
+Three-phase tick loop (Physical → Mental → Relational) with history logging.
+
+Phase 3 — Renderer Abstraction
+
+Supports DOM, Canvas, WebGL, and Headless renderers (RendererAdapter).
+
+Phase 4 — WorldFile Persistence
+
+Save/load full simulation states with deterministic snapshots.
+
+Phase 5 — Environmental Physics
+
+Collision, thermal energy, weather, and emotion-physics coupling.
+
+Phase 6 — Communication
+
+Message queue, dialogue trees, LLM generation (OpenRouter/Anthropic/OpenAI), and embeddings.
+
+Phase 7 — Cognitive Evolution
+
+Learning (Q-learning), pattern detection, and skill proficiency tracking.
+
+Phase 8 — World Mind
+
+CollectiveIntelligence: population statistics, collective emotion, pattern detection.
+
+⸻
+
+⚙️ Changed
+	•	Bundle size: 18.42 KB → 132.53 KB
+	•	Tests: 42 → 110
+	•	Architecture: monolith → modular simulation framework
+
+⸻
+
+💡 Why It Matters
+
+v5.0 is a complete rewrite:
+	•	Entities have persistent identity and emotion
+	•	Behavior emerges naturally
+	•	The world is saveable, stateful, alive
+
+Backward compatible with v4.
+
+⸻
+
+[4.2.1] — World-Class Organization
+
+📅 2025-10-17
+
+Organizational overhaul with full documentation, role-based learning, and GitHub Pages workflow.
+
+⸻
+
+[4.2.0] — Finally Walks Straight
+
+📅 2025-10-17
+
+Introduced lifecycle hooks, serialization, deterministic mode, and timeline tracking.
+
+⸻
+
+[4.1.0] — The Missing Pieces
+
+📅 2025-10-16
+
+LLM bridge, OpenRouter adapter, and semantic groundwork for info-physics.
+
+⸻
+
+[4.0.0] — Info-Physics Engine
+
+📅 2025-10-16
+
+Complete rewrite — from UI library to simulation engine.
+JSON describes ontology, not styling.
+Event-driven → Force-driven.
+
+⸻
+
+[3.0.0] — CSS Material System (Legacy)
+
+📅 2024-12-15
+
+UI-focused origin of MDS. Manifest-driven materials, optics, surfaces, themes.
+Status: Archived.
+
+⸻
+
+[2.x] — Early Explorations
+
+📅 2024-01
+Prototypes and chaos. Not public.
+
+⸻
+
+🧭 Format Notes
+
+[Major.Minor.Patch] → Semantic versioning
+Date → YYYY-MM-DD
+Subtitle → Release codename
+
+Change Types:
+Added, Changed, Deprecated, Removed, Fixed, Security
+
+Purpose: Explain impact, not just what changed.
+
+⸻
+
+🌌 The Journey
+
+From CSS materials (v3) → info-physics (v4) → living ontology (v5)
+Each version answers the same question:
+“What if JSON could be alive?”
+
+⸻
+
+Changelog maintained in Chiang Mai — updated with every release. ✨

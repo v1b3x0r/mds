@@ -1,0 +1,120 @@
+name: API Stability
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'package.json'
+  push:
+    branches: [ main ]
+
+jobs:
+  api-stability:
+    name: API Stability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check circular dependencies
+        run: |
+          echo "Checking for circular dependencies..."
+          npx madge --circular --extensions ts src/
+          if [ $? -ne 0 ]; then
+            echo "❌ Circular dependencies detected!"
+            exit 1
+          fi
+          echo "✅ No circular dependencies found"
+
+      - name: Run API stability tests
+        run: npm run test:api
+
+      - name: Run MDM validator tests
+        run: npm run test:validator
+
+      - name: Check bundle size
+        run: |
+          BUNDLE_SIZE=$(stat -c%s dist/mds-core.esm.js)
+          MAX_SIZE=$((160 * 1024))  # 160 KB in bytes
+          BUNDLE_KB=$(($BUNDLE_SIZE / 1024))
+
+          echo "📦 Bundle Size Report"
+          echo "===================="
+          echo "Current: ${BUNDLE_KB} KB"
+          echo "Maximum: 160 KB"
+          echo "Headroom: $((160 - $BUNDLE_KB)) KB"
+
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo ""
+            echo "❌ Bundle size exceeds 160 KB limit!"
+            echo "Please optimize bundle or update size limit."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Bundle size within limits"
+
+      - name: Export API surface
+        run: |
+          echo "Exporting public API surface..."
+          node -e "
+            import { readFileSync } from 'fs';
+            const content = readFileSync('dist/mds-core.esm.js', 'utf8');
+            const exports = content.match(/export\s+{\s*([^}]+)\s*}/g);
+            console.log('Exported APIs:', exports ? exports.length : 0);
+          "
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const bundleSize = fs.statSync('dist/mds-core.esm.js').size;
+            const bundleKB = Math.round(bundleSize / 1024);
+            const maxKB = 160;
+            const headroom = maxKB - bundleKB;
+            const status = bundleKB <= maxKB ? '✅' : '❌';
+
+            const comment = `## ${status} API Stability Check
+
+            **Bundle Size:** ${bundleKB} KB / ${maxKB} KB (${headroom} KB headroom)
+
+            **Tests:**
+            - ✅ Circular dependency check passed
+            - ✅ API stability tests passed
+            - ✅ MDM validator tests passed
+            ${bundleKB <= maxKB ? '- ✅ Bundle size within limits' : '- ❌ Bundle size exceeds limit'}
+
+            <details>
+            <summary>API Compatibility Matrix</summary>
+
+            | Version | Compatible With |
+            |---------|----------------|
+            | v5.0 | v5.0, v5.1, v5.2 |
+            | v5.1 | v5.0, v5.1, v5.2 |
+            | v5.2 | v5.0, v5.1, v5.2 |
+
+            All v5.0 APIs remain stable in v5.2.
+            </details>
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

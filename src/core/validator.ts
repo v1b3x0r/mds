@@ -4,7 +4,7 @@
  */
 
 const RESERVED_SCOPES = ['@npm', '@node', '@official']  // @mds is our own scope
-const NAME_PATTERN = /^(@[a-z0-9-]+\/)?[a-z0-9-]+$/
+const NAME_PATTERN = /^(@[a-z0-9-]+\/)?[a-z0-9.-]+$/  // Allow dots for MDS naming (paper.shy, entity.heroblind)
 const MAX_LENGTH = 214
 
 /**
@@ -17,11 +17,11 @@ export function validateName(name: string): void {
     throw new Error(`Material name too long (max ${MAX_LENGTH} characters): "${name}"`)
   }
 
-  // Format check (lowercase, hyphens, optional scope)
+  // Format check (lowercase, hyphens, dots, optional scope)
   if (!NAME_PATTERN.test(name)) {
     throw new Error(
       `Invalid material name format: "${name}". ` +
-      `Use: @scope/name or name (lowercase letters, numbers, hyphens only)`
+      `Use: @scope/name or name (lowercase letters, numbers, dots, hyphens only)`
     )
   }
 
