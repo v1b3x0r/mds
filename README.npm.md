@@ -4,7 +4,7 @@
 [![TypeScript](https://img.shields.io/badge/types-TypeScript-3178C6)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 
-> **Entities with memory, emotion, and dialogue. 140 KB. Zero dependencies.**
+> **Entities with memory, emotion, and dialogue. 182 KB. Zero dependencies.**
 
 **MDS (Material Definition System)** — Write JSON that talks, remembers, and feels. No if-statements needed.
 
@@ -35,6 +35,62 @@ world.start()
 ```
 
 **That's it.** Ghost exists, speaks, gets lonelier, fades away.
+
+---
+
+## Choose Your Bundle
+
+MDS offers 3 sizes depending on what you need:
+
+### 🎯 Full Bundle (182 KB)
+**When:** You need everything (LLM, semantic similarity, advanced features)
+
+```javascript
+import { World, LanguageGenerator, CollectiveIntelligence } from '@v1b3x0r/mds-core'
+```
+
+**Includes:**
+- Memory, Emotion, Dialogue
+- LLM integration (OpenAI/Anthropic/OpenRouter)
+- Semantic similarity & clustering
+- Advanced reasoning & learning
+
+---
+
+### ⚡ Lite Bundle (107 KB)
+**When:** Simple NPCs, mobile games, prototypes
+
+```javascript
+import { World, Entity } from '@v1b3x0r/mds-core/lite'
+```
+
+**Includes:**
+- Memory, Emotion, Dialogue
+- Basic physics & rendering
+- 41% smaller than full
+
+**Missing:**
+- LLM features
+- Semantic similarity
+- Cognitive/learning systems
+
+---
+
+### 🔍 Validator (17 KB)
+**When:** You're building .mdm files and need validation
+
+```javascript
+import { validateMaterial } from '@v1b3x0r/mds-core/validator'
+
+const result = validateMaterial(yourJSON)
+if (!result.valid) {
+  console.error('Errors:', result.errors)
+}
+```
+
+---
+
+**Start with Lite** to learn basics, **upgrade to Full** when you need LLM or advanced features.
 
 ---
 
@@ -362,9 +418,144 @@ const material: MdsMaterial = {
 
 ---
 
+## Advanced Features (v5.2+)
+
+*(Available in Full bundle only)*
+
+### Semantic Similarity
+Find entities that are conceptually similar:
+
+```javascript
+import { MockSimilarityProvider, EntitySimilarityAdapter } from '@v1b3x0r/mds-core'
+
+const provider = new MockSimilarityProvider()
+const adapter = new EntitySimilarityAdapter(provider)
+
+const similar = await adapter.findSimilar(entity, world.entities)
+// Returns entities with similar essence
+```
+
+---
+
+### Memory Crystallization
+Turn repeated memories into long-term patterns:
+
+```javascript
+import { MemoryCrystallizer } from '@v1b3x0r/mds-core'
+
+const crystallizer = new MemoryCrystallizer()
+const crystals = crystallizer.crystallize(entity.memory.memories, Date.now())
+
+// Example: 10 "met:Alice" memories → 1 crystal "Alice is a friend"
+console.log('Patterns:', crystals.map(c => c.key))
+```
+
+---
+
+### Emotion Affects Physics
+Happy entities move faster, sad entities slower:
+
+```javascript
+import { SymbolicPhysicalCoupler, COUPLING_PRESETS } from '@v1b3x0r/mds-core'
+
+const coupler = new SymbolicPhysicalCoupler(COUPLING_PRESETS.standard)
+
+entity.emotion.valence = 0.8  // Happy
+const physics = coupler.emotionToPhysics(entity.emotion)
+console.log('Speed:', physics.speed)  // 1.24x faster when happy
+```
+
+---
+
+### Smart Goal Selection
+Entities reason about what to do next based on context:
+
+```javascript
+import { IntentReasoner } from '@v1b3x0r/mds-core'
+
+const reasoner = new IntentReasoner()
+const intent = { goal: 'explore', motivation: 0.5 }
+
+const reasoned = reasoner.reason(intent, {
+  emotion: entity.emotion,
+  memories: entity.memory.memories
+})
+
+console.log('Confidence:', reasoned.confidence)  // 0.5 → 0.73 (boosted by happy emotion)
+console.log('Reasoning:', reasoned.reasoning)    // ["Happy mood supports exploration"]
+```
+
+---
+
+### Relationships Fade Over Time
+Bonds weaken if entities don't interact:
+
+```javascript
+import { RelationshipDecayManager, DECAY_PRESETS } from '@v1b3x0r/mds-core'
+
+const decay = new RelationshipDecayManager(DECAY_PRESETS.standard)
+decay.tick(entity.relationships, Date.now())
+
+// Relationships decay naturally without interaction
+// trust: 0.9 → 0.7 (after 10 days of no contact)
+```
+
+---
+
+**Why these matter:** Make NPCs feel **alive** instead of scripted. They remember patterns, reason about goals, and relationships evolve naturally.
+
+---
+
+### LLM Integration
+
+Generate dynamic dialogue with AI:
+
+```javascript
+import { LanguageGenerator } from '@v1b3x0r/mds-core'
+
+const llm = new LanguageGenerator({
+  provider: 'openrouter',  // 'openrouter' | 'anthropic' | 'openai' | 'mock'
+  apiKey: process.env.OPENROUTER_API_KEY,
+  model: 'anthropic/claude-3.5-sonnet'
+})
+
+// Generate contextual dialogue
+const response = await llm.generate({
+  speaker: npcEntity,
+  listener: playerEntity,
+  context: 'Player just helped NPC escape from danger',
+  tone: 'grateful',
+  emotion: npcEntity.emotion
+})
+
+console.log(response.text)
+// → "Thank you, friend. I won't forget this kindness."
+
+// Dialogue adapts to emotion state automatically
+npcEntity.emotion.valence = -0.6  // Make NPC sad
+const sadResponse = await llm.generate({
+  speaker: npcEntity,
+  context: 'Player greets NPC',
+  tone: 'neutral'
+})
+
+console.log(sadResponse.text)
+// → "Oh... it's you. I'm not really in the mood to talk."
+```
+
+**Available Providers:**
+- `openrouter` — Access 200+ models (Claude, GPT-4, Llama, etc.)
+- `anthropic` — Direct Claude API
+- `openai` — GPT-4/GPT-3.5
+- `mock` — Local simulation (no API needed)
+
+---
+
 ## Bundle Size
 
-📦 **140 KB** minified (33 KB gzipped)
+📦 **182 KB** minified (42 KB gzipped) — Full bundle
+📦 **107 KB** minified (25 KB gzipped) — Lite bundle
+📦 **17 KB** minified (3 KB gzipped) — Validator
 ⚡ **60 FPS** for ~50 entities
 🌲 **Tree-shakeable** ESM
 
@@ -393,6 +584,29 @@ const material: MdsMaterial = {
 - ES2020+
 - Modern browsers (Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+)
 - Node.js 18+
+
+---
+
+## Recent Updates
+
+### v5.2.2 (Oct 2025)
+- ⚡ **LLM & WorldMind load instantly** — No async delays for real-time systems
+- 📦 Bundle: 182 KB (optimized for immediate feature access)
+
+### v5.2.1 (Oct 2025)
+- 🔧 **Bundle optimization** — Lazy loading, code splitting, validator extraction
+- 📦 Bundle: 168 KB → 182 KB (v5.2.2 reverted lazy loading)
+- 📁 New lite bundle (107 KB) for minimal use cases
+
+### v5.2.0 (Oct 2025)
+- 🧠 **Semantic similarity** — Find entities by conceptual closeness
+- 💎 **Memory crystallization** — Turn repeated memories into patterns
+- ⚡ **Emotion-physics coupling** — Mood affects movement
+- 🎯 **Intent reasoning** — Context-aware decision making
+- 💔 **Relationship decay** — Bonds weaken naturally over time
+- ✅ 192 tests (100% pass rate)
+
+See [full changelog](https://github.com/v1b3x0r/mds/blob/main/docs/meta/CHANGELOG.md) for complete history.
 
 ---
 
