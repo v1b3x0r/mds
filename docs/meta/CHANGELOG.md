@@ -4,6 +4,326 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.5.0] — P2P Cognition Foundation (Distributed Intelligence)
+
+📅 2025-10-25
+
+⸻
+
+🎯 Added
+
+P2P Cognition Systems (Phase 9)
+	•	ResonanceField — Cognitive signal propagation through entity networks
+	•	CognitiveLink — Entity-to-entity connections with strength parameter
+	•	MemoryLog (CRDT) — Distributed memory with vector clocks (conflict-free)
+	•	CognitiveNetwork — Small-World topology builder (Watts-Strogatz model)
+	•	TrustSystem — Privacy policies + reputation management
+	•	resonate() — Emotional resonance function (PAD model blending)
+
+Entity Cognitive API
+	•	entity.connectTo(target, { strength, bidirectional }) — Form cognitive links
+	•	entity.disconnectFrom(targetId) — Remove connections
+	•	entity.isConnectedTo(targetId) — Check link existence
+	•	entity.getLinkStrength(targetId) — Get connection strength
+	•	entity.reinforceLink(targetId) — Strengthen bonds on interaction
+	•	entity.decayCognitiveLinks(dt) — Natural forgetting over time
+	•	entity.getConnectedEntities() — List all connections
+	•	entity.cognitiveLinks — Map of CognitiveLink objects
+
+World Configuration
+	•	features.cognition — Enable P2P cognition systems
+	•	cognition.network — Small-world config (k, p)
+	•	cognition.trust — Trust system config (initialTrust, trustThreshold)
+	•	cognition.resonance — Signal propagation config (decayRate, minStrength)
+
+Tests
+	•	88 new tests for P2P systems (100% pass)
+	•	emotional-resonance.test.mjs — 30 tests
+	•	memory-crdt.test.mjs — 33 tests
+	•	cognitive-network.test.mjs — 25 tests
+
+⸻
+
+📝 Changed
+
+Ontology
+	•	emotion.ts — Added resonate() function for emotional contagion
+	•	Exported from src/index.ts for public API
+
+Bundle Size
+	•	Full: 221.01 KB (+27.18 KB from v5.4.0) — P2P cognition features
+	•	Lite: 133.71 KB (unchanged) — No P2P in lite bundle
+	•	Validator: 17.25 KB (unchanged)
+
+⸻
+
+⚙️ Technical Details
+
+Small-World Network
+	•	Each entity connects to k nearest neighbors (default: 8)
+	•	Edges rewired with probability p (default: 0.2)
+	•	Combines local clustering with long-range shortcuts
+	•	Periodic rewiring prevents knowledge stagnation
+
+CRDT Memory Log
+	•	Event-sourced append-only log
+	•	Vector clocks track causality
+	•	Deterministic merge (zero conflicts)
+	•	Eventual consistency across entities
+
+Resonance Field
+	•	Three signal types: memory, emotion, pattern
+	•	Strength decays per hop (configurable decay rate)
+	•	Breadth-first propagation through cognitive network
+	•	Minimum strength threshold for delivery
+
+Trust & Privacy
+	•	Four share policies: never, trust, contextual, public
+	•	Trust index based on interaction history (+/- deltas)
+	•	Deception capability (placeholder for future Byzantine tolerance)
+	•	Privacy settings per data type (memory, emotion, intent, location)
+
+⸻
+
+🎬 Philosophy
+
+"Physics of understanding in distributed systems" — Global coherence emerges from local interactions. Entities form cognitive networks, share experiences through resonance fields, and evolve collective intelligence without central control. Trust and privacy enable realistic minds with selective sharing.
+
+⸻
+
+[5.4.0] — Complete Core API (Event System + Reflection + Emotional Dialogue)
+
+📅 2025-10-24
+
+⸻
+
+🎯 Added
+
+World Event System
+	•	world.events — Alias for world.eventLog (clearer naming)
+	•	world.broadcastEvent(type, data, relay?) — Broadcast events to world + entities
+	•	world.listenForEvents(predicate) — Filter events by custom criteria
+	•	relay parameter sends system messages to all entities via communication system
+	•	Full integration with world history tracking
+
+Entity Reflection API
+	•	entity.reflect(stimulus?) — Trigger reasoning pattern (Stimulus → Reflection → Action)
+	•	Returns ReflectionResult { thought, emotionShift, newIntent, timestamp }
+	•	Uses Memory (recalls recent events), Emotion (influences reasoning), Learning (pattern matching), Intent (motivation check)
+	•	Simple rule-based synthesis (can be replaced with LLM later)
+	•	Example: entity.reflect('I see a stranger') → "I remember strangers can be dangerous... I see a stranger"
+
+Emotion-Aware Dialogue Tone
+	•	LanguageGenerator.modulateTone() — PAD model → LLM prompt modulation
+	•	Pleasure axis → warmth (warm/friendly vs cold/distant)
+	•	Arousal axis → energy (energetic/intense vs calm/subdued)
+	•	Dominance axis → assertiveness (commanding/assertive vs hesitant/submissive)
+	•	Automatic tone injection into LLM prompts based on entity.emotion state
+
+Documentation
+	•	NEW: docs/SYSTEM-MAPPING.md — Complete checklist → API mapping (88.3% → 94.7% coverage)
+	•	REFERENCE.md updated with System Checklist Coverage table
+	•	All 11 ontology categories documented with status indicators (✅/⚠️/🔄/❌)
+
+⸻
+
+📝 Changed
+
+Core APIs Enhanced
+	•	world.eventLog now accessible as world.events (clearer naming)
+	•	Communication system integrated with event broadcast (relay mode)
+	•	Entity reasoning loop now explicit via reflect() method
+
+⸻
+
+📦 Bundle Impact
+
+	•	Full bundle: 186.74 KB → ~190 KB (+3.26 KB, +1.7%)
+	•	Gzipped: 43.17 KB → ~44 KB (+0.83 KB)
+	•	Lite bundle: 120.42 KB (unchanged - no cognitive/communication in lite)
+	•	Validator: 17.25 KB (unchanged)
+
+New code additions:
+	•	world.events API wrapper: ~0.8 KB
+	•	entity.reflect() method: ~1.5 KB
+	•	emotion-aware dialogue tone: ~1 KB
+
+⸻
+
+💡 Why It Matters
+
+**Complete Ontology Checklist:**
+- Closes 3 critical gaps: world.events[], entity.reflect(), emotion-aware dialogue
+- Coverage: 88.3% → 94.7% (44.5/47 checklist items)
+- Only 3 future items remain (re-learn loop, dream mode, .world.mdm format)
+
+**Event-Driven Architecture:**
+```javascript
+// Broadcast sensor events
+world.broadcastEvent('motion_detected', { zone: 'living_room' }, true)
+
+// All entities receive system message
+entity.inbox.peek()  // → "[SYSTEM] motion_detected"
+```
+
+**Cognitive Reasoning:**
+```javascript
+// Claude entity reflects on world
+const claude = world.spawn({ essence: 'AI assistant' }, 100, 100)
+claude.enable('memory', 'learning')
+
+const thought = claude.reflect('Motion detected in living room')
+console.log(thought.thought)
+// → "I remember living_room (motion)... Motion detected in living room [2 patterns learned]"
+```
+
+**Emotional Dialogue:**
+```javascript
+// Emotion affects LLM tone
+entity.emotion.pleasure = -0.8
+entity.emotion.arousal = 0.9
+entity.emotion.dominance = -0.3
+
+const response = await languageGenerator.generate({ speaker: entity })
+// Tone modulation: "cold, intense, hesitant"
+```
+
+⸻
+
+🔄 Migration from v5.3
+
+Zero breaking changes. All new APIs are additive.
+
+```javascript
+// No code changes needed - old code still works
+// But you can now use:
+
+// Event system
+world.events  // Instead of world.eventLog
+world.broadcastEvent('sunrise', { intensity: 0.8 })
+
+// Reflection
+const reflection = entity.reflect('I see a stranger')
+
+// Emotion-aware dialogue (automatic - just ensure entity.emotion is set)
+entity.emotion.pleasure = 0.8  // Dialogue will be warm, friendly
+```
+
+⸻
+
+[5.3.0] — Developer Experience & API Unification
+
+📅 2025-10-24
+
+⸻
+
+🎯 Added
+
+Unified Feature Activation API
+	•	entity.enable(...features) — Enable multiple features in one call
+	•	entity.disable(...features) — Disable features
+	•	entity.isEnabled(feature) — Check if feature is enabled
+	•	entity.enableAll() / disableAll() — Convenience methods
+	•	Chainable API: world.spawn(material, x, y).enable('memory', 'learning')
+	•	Available features: 'memory', 'learning', 'relationships', 'skills'
+
+Simplified LLM Configuration
+	•	Single llm object at world level (replaces 5 scattered properties)
+	•	llm.provider: 'openrouter' | 'anthropic' | 'openai' (default: openrouter)
+	•	llm.apiKey: Auto-fallback to process.env.OPENROUTER_KEY
+	•	llm.languageModel: Model name (default: anthropic/claude-3.5-sonnet)
+	•	llm.embeddingModel: Optional embeddings (local fallback if omitted)
+	•	Automatic migration from old config (backward compatible)
+
+⸻
+
+📝 Changed
+
+Documentation Improvements
+	•	Complete REFERENCE.md overhaul (1,178 → 1,344 lines)
+	•	Progressive disclosure with difficulty tags (🟢🟡🔴)
+	•	Fixed 25+ incorrect API examples (old enableMemory/enableLearning → new unified API)
+	•	Merged duplicate sections (Lifecycle Hooks, LLM Config)
+	•	Added comprehensive Glossary (13 key terms)
+	•	Added Migration Guide for v5.0-5.2 → v5.3 upgrades
+
+Version-Agnostic Documentation
+	•	Removed version numbers from all user-facing docs (OVERVIEW, examples/*)
+	•	Updated all code examples to use v5.3 unified API
+	•	"Immortal docs" strategy — won't need updates on version bumps
+
+README Updates
+	•	Accurate bundle sizes (186.74 KB full, 120.42 KB lite)
+	•	10-second quick start example
+	•	TypeScript support highlighted
+	•	v5.3 unified API featured prominently
+	•	Migration guide link for v5.2 users
+
+⸻
+
+📦 Bundle Impact
+
+	•	Full bundle: 198.79 KB → 186.74 KB (-6.1% / -12.05 KB)
+	•	Gzipped: 45.08 KB → 43.17 KB (-4.2%)
+	•	Lite bundle: 120.42 KB (27.87 KB gzipped)
+	•	Validator: 17.25 KB (3.19 KB gzipped)
+
+⸻
+
+💡 Why It Matters
+
+**Consistent Developer Experience:**
+- One way to enable features (no more enableMemory vs enableLearning() vs enable('relationships'))
+- TypeScript autocomplete works perfectly
+- Copy-paste examples actually work
+
+**Simplified LLM Setup:**
+```javascript
+// Before (v5.2)
+const world = new World({
+  languageProvider: 'openrouter',
+  languageApiKey: 'sk-...',
+  languageModel: 'claude-3.5',
+  semanticProvider: 'openai',
+  semanticApiKey: 'sk-...'
+})
+
+// After (v5.3)
+const world = new World({
+  llm: {
+    apiKey: process.env.OPENROUTER_KEY
+  }
+})
+```
+
+**Better Onboarding:**
+- 10s quick start (vs 30s before)
+- Progressive learning path (basic → intermediate → advanced)
+- Clear migration path from v5.2
+
+⸻
+
+🔄 Migration from v5.2
+
+**Automatic (Zero Breaking Changes):**
+- Old LLM config automatically converts to new format
+- Console warnings guide you to new patterns
+- All old APIs still work (deprecated but functional)
+
+**Recommended Updates:**
+```javascript
+// Old API (still works)
+entity.enableMemory = true
+entity.enableLearning()
+
+// New API (recommended)
+entity.enable('memory', 'learning')
+```
+
+See [Migration Guide](./REFERENCE.md#migration-guide) for complete details.
+
+⸻
+
 [5.2.3] — Documentation Update
 
 📅 2025-10-23

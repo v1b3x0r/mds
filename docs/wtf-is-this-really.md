@@ -38,7 +38,7 @@ const data = { name: "Bob", mood: "happy" }
 - Has no inner life
 - Doesn't care if you delete him
 
-### MDS Programming (v5.1)
+### MDS Programming
 
 ```json
 {

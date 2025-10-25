@@ -206,6 +206,43 @@ export function emotionToHex(emotion: EmotionalState): string {
 }
 
 /**
+ * Apply emotional resonance (v5.5 P2P Cognition)
+ * Blends this emotion with another based on strength
+ *
+ * Formula: Δe = (other - self) × strength
+ *
+ * @param self - Current emotional state (mutated in-place)
+ * @param other - Emotion to resonate with
+ * @param strength - Resonance strength (0..1)
+ *
+ * @example
+ * const myEmotion = { valence: 0.2, arousal: 0.4, dominance: 0.5 }
+ * const theirEmotion = { valence: 0.8, arousal: 0.7, dominance: 0.6 }
+ *
+ * // 50% resonance
+ * resonate(myEmotion, theirEmotion, 0.5)
+ * // myEmotion is now blended 50% toward theirEmotion
+ */
+export function resonate(
+  self: EmotionalState,
+  other: EmotionalState,
+  strength: number
+): void {
+  // Clamp strength
+  strength = clamp(strength, 0, 1)
+
+  // Calculate delta
+  const dv = (other.valence - self.valence) * strength
+  const da = (other.arousal - self.arousal) * strength
+  const dd = (other.dominance - self.dominance) * strength
+
+  // Apply delta (mutate in-place)
+  self.valence = clamp(self.valence + dv, -1, 1)
+  self.arousal = clamp(self.arousal + da, 0, 1)
+  self.dominance = clamp(self.dominance + dd, 0, 1)
+}
+
+/**
  * Predefined emotional baselines
  */
 export const EMOTION_BASELINES = {

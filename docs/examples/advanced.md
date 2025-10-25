@@ -19,7 +19,7 @@ npm install @v1b3x0r/mds-core
 
 ---
 
-## Quick Start (v5.1 - JSON-Only Entities)
+## Quick Start (JSON-Only Entities)
 
 ```javascript
 import { World } from '@v1b3x0r/mds-core'
@@ -44,7 +44,7 @@ const entity = world.spawn({
 }, 200, 200)
 
 console.log(entity.speak('intro'))  // "Hello!"
-entity.enableMemory = true
+entity.enable('memory')
 world.start()
 ```
 
@@ -185,13 +185,12 @@ world.getCollectiveEmotion(): PAD
 ### Entity
 
 ```typescript
-entity.enableMemory: boolean
+entity.enable(...features): Entity  // v5.3 unified API
+entity.disable(...features): Entity
+entity.isEnabled(feature): boolean
 entity.remember(memory): void
 entity.setEmotion(pad): void
 entity.getEmotion(): PAD
-entity.enableLearning(): void
-entity.enableSkills(): void
-entity.enableRelationships(): void
 entity.addRelationship(id, type, strength): void
 entity.sendMessage(type, content, target): void
 ```

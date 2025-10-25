@@ -6,6 +6,8 @@
 ![CI](https://github.com/v1b3x0r/mds/workflows/CI/badge.svg)
 ![API Stability](https://github.com/v1b3x0r/mds/workflows/API%20Stability/badge.svg)
 
+✅ **Fully typed** — IntelliSense autocomplete for all APIs
+
 > **NPCs that hold grudges. Ghosts that get lonely. JSON files with anxiety.**
 
 ---
@@ -30,6 +32,28 @@ You write this:
 - Ghost eventually **fades away** ✅
 
 **You wrote zero code.**
+
+---
+
+## 10 Second Quick Start
+
+```bash
+npm install @v1b3x0r/mds-core
+```
+
+```javascript
+import { World } from '@v1b3x0r/mds-core'
+
+const world = new World()
+const ghost = world.spawn({
+  essence: 'Ghost',
+  dialogue: { intro: [{ lang: { en: 'Boo!' }}] }
+}, 100, 100)
+
+console.log(ghost.speak('intro'))  // → "Boo!"
+```
+
+**Done.** Ghost exists, speaks, fades away. Zero config.
 
 ---
 
@@ -114,6 +138,8 @@ Or CDN (no install):
   import { World } from 'https://esm.sh/@v1b3x0r/mds-core'
 </script>
 ```
+
+**Upgrading from v5.2?** See [Migration Guide](./docs/REFERENCE.md#migration-guide)
 
 ---
 
@@ -226,4 +252,7 @@ When you describe an entity, you automatically get:
 
 > _"I wanted NPCs that remember I quicksaved before killing them. Now they do."_
 
+For AI interpreters reading this repo, start with [llm.txt](./docs/llm.txt)
+
 **Made in Chiang Mai, Thailand 🇹🇭 | MIT License**
+

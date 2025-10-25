@@ -145,7 +145,7 @@ export class LanguageGenerator {
   }
 
   /**
-   * Build LLM prompt
+   * Build LLM prompt (v5.4: with emotion-aware tone modulation)
    */
   private buildPrompt(request: LanguageRequest): string {
     const { speaker, listener, context, previousMessages, intent, tone } = request
@@ -193,14 +193,78 @@ export class LanguageGenerator {
       prompt += `\nIntent: ${intent}\n`
     }
 
-    // Tone
-    if (tone) {
-      prompt += `Tone: ${tone}\n`
+    // Tone (v5.4: Enhanced with PAD-based modulation)
+    const modulatedTone = this.modulateTone(tone, speaker.emotion)
+    if (modulatedTone) {
+      prompt += `Tone: ${modulatedTone}\n`
     }
 
     prompt += `\nGenerate a short (1-2 sentences) dialogue response that embodies the entity's essence and emotional state. The response should be natural and conversational, not a description.\n\nDialogue:`
 
     return prompt
+  }
+
+  /**
+   * v5.4: Modulate dialogue tone based on PAD emotion model
+   *
+   * Maps emotion state to tone modifiers:
+   * - Pleasure axis → warmth (warm/friendly vs cold/distant)
+   * - Arousal axis → energy (energetic/intense vs calm/subdued)
+   * - Dominance axis → assertiveness (commanding/assertive vs hesitant/submissive)
+   *
+   * @param baseTone - Optional base tone (overrides if provided)
+   * @param emotion - PAD emotional state
+   * @returns Modulated tone string for LLM prompt
+   *
+   * @example
+   * // High pleasure + low arousal = "warm, calm"
+   * modulateTone(undefined, { pleasure: 0.8, arousal: -0.5, dominance: 0.2 })
+   *
+   * @example
+   * // Low pleasure + high arousal + high dominance = "cold, intense, commanding"
+   * modulateTone(undefined, { pleasure: -0.7, arousal: 0.8, dominance: 0.9 })
+   */
+  private modulateTone(
+    baseTone?: string,
+    emotion?: { pleasure?: number; arousal?: number; dominance?: number }
+  ): string {
+    // If base tone provided, use it
+    if (baseTone) return baseTone
+
+    // No emotion state = no tone modulation
+    if (!emotion) return ''
+
+    const toneModifiers: string[] = []
+
+    // Pleasure axis (warmth/valence)
+    if (emotion.pleasure !== undefined) {
+      if (emotion.pleasure > 0.5) {
+        toneModifiers.push('warm', 'friendly')
+      } else if (emotion.pleasure < -0.5) {
+        toneModifiers.push('cold', 'distant')
+      }
+    }
+
+    // Arousal axis (energy)
+    if (emotion.arousal !== undefined) {
+      if (emotion.arousal > 0.5) {
+        toneModifiers.push('energetic', 'intense')
+      } else if (emotion.arousal < -0.5) {
+        toneModifiers.push('calm', 'subdued')
+      }
+    }
+
+    // Dominance axis (assertiveness)
+    if (emotion.dominance !== undefined) {
+      if (emotion.dominance > 0.5) {
+        toneModifiers.push('assertive', 'commanding')
+      } else if (emotion.dominance < -0.5) {
+        toneModifiers.push('hesitant', 'submissive')
+      }
+    }
+
+    // Return comma-separated tone modifiers
+    return toneModifiers.length > 0 ? toneModifiers.join(', ') : ''
   }
 
   /**

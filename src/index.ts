@@ -41,6 +41,7 @@
 export { Engine } from './core/engine'
 export type { EngineOptions, WorldBounds, BoundaryBehavior } from './core/engine'
 export { Entity } from './core/entity'
+export type { ReflectionResult } from './core/entity'  // v5.4
 export { Field } from './core/field'
 
 // World container (v5 recommended)
@@ -278,6 +279,7 @@ export {
   driftToBaseline,
   emotionToColor,
   emotionToHex,
+  resonate,  // v5.5: P2P emotional resonance
   EMOTION_BASELINES,
   IntentStack,
   createIntent,
@@ -317,3 +319,34 @@ export type {
   DecayConfig,
   DecayStats
 } from './ontology'
+
+// v5.5: P2P Cognition (Phase 9)
+export {
+  ResonanceField,
+  CognitiveLinkManager,
+  MemoryLog,
+  createMemoryLog,
+  mergeLogs,
+  CognitiveNetwork,
+  createCognitiveNetwork,
+  TrustSystem,
+  createTrustSystem,
+  deceive
+} from './cognition'
+
+export type {
+  SignalType,
+  CognitiveSignal,
+  PropagationResult,
+  CognitiveLink,
+  CognitiveLinkOptions,
+  VectorClock,
+  MemoryEvent,
+  MergeResult,
+  NetworkConfig,
+  NetworkStats,
+  SharePolicy,
+  TrustConfig,
+  PrivacySettings,
+  TrustEntry
+} from './cognition'

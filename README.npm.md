@@ -4,314 +4,346 @@
 [![TypeScript](https://img.shields.io/badge/types-TypeScript-3178C6)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://opensource.org/licenses/MIT)
 
-> **Entities with memory, emotion, and dialogue. 182 KB. Zero dependencies.**
+> **Entities that think together, feel together, evolve together. 221 KB. Zero dependencies.**
 
-**MDS (Material Definition System)** — Write JSON that talks, remembers, and feels. No if-statements needed.
-
----
-
-## Quick Start
+NPCs form networks, share memories, and spread emotions like viruses. No if-statements, no central control.
 
 ```bash
 npm install @v1b3x0r/mds-core
 ```
 
-```javascript
-import { World } from '@v1b3x0r/mds-core'
-
-const world = new World({ features: { ontology: true } })
-
-const ghost = world.spawn({
-  essence: 'Lonely ghost',
-  dialogue: {
-    intro: [{ lang: { en: 'Why am I alone?' } }]
-  }
-})
-
-// Ghost speaks!
-console.log(ghost.speak('intro'))  // → "Why am I alone?"
-
-world.start()
-```
-
-**That's it.** Ghost exists, speaks, gets lonelier, fades away.
-
 ---
 
-## Choose Your Bundle
-
-MDS offers 3 sizes depending on what you need:
-
-### 🎯 Full Bundle (182 KB)
-**When:** You need everything (LLM, semantic similarity, advanced features)
-
-```javascript
-import { World, LanguageGenerator, CollectiveIntelligence } from '@v1b3x0r/mds-core'
-```
-
-**Includes:**
-- Memory, Emotion, Dialogue
-- LLM integration (OpenAI/Anthropic/OpenRouter)
-- Semantic similarity & clustering
-- Advanced reasoning & learning
-
----
-
-### ⚡ Lite Bundle (107 KB)
-**When:** Simple NPCs, mobile games, prototypes
-
-```javascript
-import { World, Entity } from '@v1b3x0r/mds-core/lite'
-```
-
-**Includes:**
-- Memory, Emotion, Dialogue
-- Basic physics & rendering
-- 41% smaller than full
-
-**Missing:**
-- LLM features
-- Semantic similarity
-- Cognitive/learning systems
-
----
-
-### 🔍 Validator (17 KB)
-**When:** You're building .mdm files and need validation
-
-```javascript
-import { validateMaterial } from '@v1b3x0r/mds-core/validator'
-
-const result = validateMaterial(yourJSON)
-if (!result.valid) {
-  console.error('Errors:', result.errors)
-}
-```
-
----
-
-**Start with Lite** to learn basics, **upgrade to Full** when you need LLM or advanced features.
-
----
-
-## Tutorial: Zero to Mindfuck in 10 Minutes
-
-### 1. It Speaks (2 min)
+## Game Dev: NPC That Remembers Everything
 
 ```javascript
 import { World } from '@v1b3x0r/mds-core'
 
-const world = new World({ features: { ontology: true } })
-
-const entity = world.spawn({
-  essence: 'Curious shadow',
-  dialogue: {
-    intro: [{
-      lang: {
-        en: 'You see me, but do you remember me?',
-        th: 'เธอเห็นฉัน... แต่เธอจำฉันได้ไหม?'
-      }
-    }]
-  }
-}, 200, 200)
-
-// Speak (auto-detects browser language)
-console.log(entity.speak('intro'))
-// → "You see me, but do you remember me?" (or Thai if browser is th-TH)
-
-// Force language
-console.log(entity.speak('intro', 'th'))
-// → "เธอเห็นฉัน... แต่เธอจำฉันได้ไหม?"
-
-world.start()
-```
-
-**Mindfuck:** Multilingual dialogue with **zero translation libraries**. JSON only.
-
----
-
-### 2. It Remembers & Reacts (5 min)
-
-```javascript
 const world = new World({ features: { ontology: true } })
 
 const npc = world.spawn({
-  essence: 'NPC who hates violence',
+  essence: 'Blacksmith who holds grudges',
   emotion: {
     transitions: [
-      {
-        trigger: 'player.attack',
-        to: 'anger',
-        intensity: 0.9
-      }
+      { trigger: 'player.attack', to: 'anger', intensity: 0.9 }
     ]
   },
   dialogue: {
-    intro: [{ lang: { en: 'Hello, traveler.' } }],
-    onPlayerAttack: [{ lang: { en: 'So you choose violence?' } }]
+    intro: [{ lang: { en: 'What do you want?' } }],
+    onPlayerAttack: [{ lang: { en: 'You dare?!' } }]
   }
-}, 400, 300)
+}, 200, 200)
 
 // Before attack
-console.log(npc.speak('intro'))
-// → "Hello, traveler."
+console.log(npc.speak('intro'))  // → "What do you want?"
 
-// Simulate player attack
+// Player attacks
 npc.updateTriggerContext({ playerAction: 'attack' })
 npc.checkEmotionTriggers()
 
 // After attack
-console.log('Emotion:', npc.emotion.valence)  // → -0.54 (angry!)
-console.log(npc.speak('onPlayerAttack'))      // → "So you choose violence?"
+console.log('Mood:', npc.emotion.valence)  // → -0.54 (angry!)
+console.log(npc.speak('onPlayerAttack'))   // → "You dare?!"
 
-// NPC remembers forever (memory is automatic)
+// Next session (saved/loaded)
 const memories = npc.memory.recall({ type: 'interaction' })
 console.log('NPC remembers', memories.length, 'interactions')
+// NPC still remembers. Forever.
 
 world.start()
 ```
 
-**Mindfuck:**
-- Emotion changed automatically (trigger-based)
-- Dialogue context-aware
-- Memory persists forever
+**What you get:**
+- Memory system (Ebbinghaus decay, high-salience retention)
+- Emotion system (PAD model: Pleasure-Arousal-Dominance)
+- Trigger-based state transitions (declarative in JSON)
+- Automatic persistence (memories survive save/load)
+- 60 FPS for ~50 NPCs
 
-**All from JSON config.**
+**Bundle:** 134 KB lite (no LLM), 221 KB full (with P2P cognition)
 
 ---
 
-### 3. Multiple Entities Talk to Each Other (8 min)
+## Educator: Simulate Emotional Contagion
 
 ```javascript
-const world = new World({ features: { ontology: true, communication: true } })
+import { World, resonate } from '@v1b3x0r/mds-core'
 
-// Spawn 2 entities with different emotions
-const alice = world.spawn({
-  essence: 'Happy person',
-  dialogue: {
-    self_monologue: [{
-      lang: { en: 'What a beautiful day!' }
-    }]
-  }
-}, 100, 200)
+const world = new World({ features: { ontology: true } })
 
-const bob = world.spawn({
-  essence: 'Sad person',
-  dialogue: {
-    self_monologue: [{
-      lang: { en: 'Why does everything hurt...' }
-    }]
-  }
-}, 150, 200)  // Nearby (50px away)
+// Classroom simulation: 1 happy student, 2 neutral
+const alice = world.spawn({ $schema: 'mdspec/v5.0', essence: 'Happy student' }, 100, 100)
+const bob = world.spawn({ $schema: 'mdspec/v5.0', essence: 'Neutral student' }, 150, 100)
+const charlie = world.spawn({ $schema: 'mdspec/v5.0', essence: 'Neutral student' }, 200, 100)
 
-// Set emotions
 alice.emotion.valence = 0.8   // Happy
-bob.emotion.valence = -0.7    // Sad
+bob.emotion.valence = 0.0     // Neutral
+charlie.emotion.valence = 0.0 // Neutral
 
-// Watch them affect each other
+// Form social network (students sitting near each other)
+alice.connectTo(bob, { strength: 0.9 })
+bob.connectTo(charlie, { strength: 0.8 })
+
+// Simulate classroom session (happiness spreads over time)
 setInterval(() => {
-  console.log('Alice:', alice.speak('self_monologue'), '| valence:', alice.emotion.valence.toFixed(2))
-  console.log('Bob:', bob.speak('self_monologue'), '| valence:', bob.emotion.valence.toFixed(2))
-}, 3000)
+  resonate(bob.emotion, alice.emotion, 0.1)      // Bob catches Alice's mood
+  resonate(charlie.emotion, bob.emotion, 0.1)    // Charlie catches Bob's mood
+
+  console.log('Alice:', alice.emotion.valence.toFixed(2))    // 0.80 (stays happy)
+  console.log('Bob:', bob.emotion.valence.toFixed(2))        // 0.45 (gets happier)
+  console.log('Charlie:', charlie.emotion.valence.toFixed(2)) // 0.23 (also affected)
+}, 1000)
 
 world.start()
 
-// After 30s:
-// Alice: "What a beautiful day!" | valence: 0.60 (getting sadder)
-// Bob: "Why does everything hurt..." | valence: -0.45 (getting happier)
+// After 30 seconds:
+// Alice: 0.80 (source of happiness)
+// Bob: 0.45 (infected by Alice)
+// Charlie: 0.23 (secondary infection)
 ```
 
-**Mindfuck:** **Emotional contagion** happens automatically. Bob's sadness "infects" Alice. Alice's happiness helps Bob.
+**Teaching concepts:**
+- Emotional contagion (psychology)
+- Network effects (sociology)
+- Signal propagation with decay (physics)
+- No formulas needed — just observe
 
-**No "if Alice near Bob then..." code needed.**
+**Works offline.** No API keys. Students can fork and experiment.
 
 ---
 
-## Load from .mdm Files
+## Researcher: CRDT for Distributed Agents
 
 ```javascript
-import { World, loadMaterial } from '@v1b3x0r/mds-core'
+import { MemoryLog } from '@v1b3x0r/mds-core'
 
-// Load heroblind.mdm (example entity)
-const heroblind = await fetch('/materials/entities/heroblind.mdm')
-  .then(res => res.json())
+// Agent A observes sunrise
+const agentA = new MemoryLog('agent-a')
+agentA.append({
+  timestamp: 0,
+  type: 'observation',
+  subject: 'world',
+  content: { event: 'sunrise', beauty: 0.9 },
+  salience: 0.8
+})
 
-const world = new World({ features: { ontology: true, communication: true } })
-const entity = world.spawn(heroblind, 400, 300)
+// Agent B observes Agent A
+const agentB = new MemoryLog('agent-b')
+agentB.append({
+  timestamp: 1,
+  type: 'interaction',
+  subject: 'agent-a',
+  content: { greeting: 'Hello!' },
+  salience: 0.7
+})
 
-// Speak intro (multilingual)
-console.log(entity.speak('intro'))
-// → "You see me, but do you *remember* me?" (or TH/JA/ES depending on browser)
+// CRDT merge (zero conflicts, deterministic)
+const result = agentA.merge(agentB)
 
-// Simulate player gazing for 6 seconds
-entity.updateTriggerContext({ playerGazeDuration: 6 })
-entity.checkEmotionTriggers()
+console.log('Agent A memories:', agentA.size())  // → 2
+console.log('Conflicts:', result.conflicts)      // → 0 (always!)
+console.log('Added:', result.added)              // → 1
 
-// Emotion changed automatically!
-console.log('Emotion:', entity.emotion.valence)  // → -0.12 (uneasy)
+// Merge 100 times → same result (idempotent)
+for (let i = 0; i < 100; i++) {
+  agentA.merge(agentB)
+}
+console.log('Agent A memories:', agentA.size())  // → 2 (still!)
+
+// Causal ordering preserved (vector clocks)
+const memories = agentA.getMemories()
+console.log(memories.map(m => m.content))
+// → [{ event: 'sunrise', beauty: 0.9 }, { greeting: 'Hello!' }]
+```
+
+**Why CRDT matters:**
+- Eventual consistency without coordination
+- Conflict-free by design (not resolution)
+- Vector clocks for causality tracking
+- Perfect for multi-agent systems, P2P networks, offline-first apps
+
+**Use cases:** Distributed AI, swarm robotics, collaborative simulations, blockchain off-chain data
+
+---
+
+## Indie Hacker: Prototype Social Network in 5 Minutes
+
+```javascript
+import { World, CognitiveNetwork } from '@v1b3x0r/mds-core'
+
+const world = new World({ features: { ontology: true } })
+
+// Spawn 50 users
+const users = []
+for (let i = 0; i < 50; i++) {
+  const user = world.spawn({
+    $schema: 'mdspec/v5.0',
+    essence: `User ${i}`
+  }, Math.random() * 800, Math.random() * 600)
+  users.push(user)
+}
+
+// Build Small-World network (Watts-Strogatz)
+const network = new CognitiveNetwork({ k: 6, p: 0.15 })
+network.build(users)
+
+// Each user connects to 6 neighbors + occasional long-range shortcuts
+users.forEach(user => {
+  console.log(`${user.m.essence}: ${user.getCognitiveLinksCount()} connections`)
+})
+
+// Get network stats
+const stats = network.getStats()
+console.log('Network size:', stats.nodeCount)
+console.log('Total edges:', stats.edgeCount)
+console.log('Avg degree:', stats.averageDegree)
+console.log('Clustering:', stats.clusteringCoefficient)
+
+// Periodic rewiring (simulate friend dynamics)
+setInterval(() => {
+  network.rewire(0.1)  // Rewire 10% of edges
+  console.log('Network reshuffled!')
+}, 30000)
 
 world.start()
 ```
 
-See [heroblind.mdm](https://github.com/v1b3x0r/mds/blob/main/materials/entities/heroblind.mdm) for full example (277 lines of JSON, zero code).
+**Why Small-World?**
+- Local clustering (friend groups stick together)
+- Global reachability (6 degrees of separation)
+- Same algorithm that models Facebook, Twitter, neural networks
+
+**MVP features you get for free:**
+- Friend networks with realistic topology
+- Information propagation (via `ResonanceField`)
+- Privacy controls (via `TrustSystem`)
+- Offline-first (save/load entire network state)
+
+**Build a chat app, game leaderboard, or collaborative tool in hours, not weeks.**
+
+---
+
+## AI Enthusiast: Trust & Privacy for AGI
+
+```javascript
+import { TrustSystem } from '@v1b3x0r/mds-core'
+
+const trust = new TrustSystem({
+  initialTrust: 0.5,
+  trustThreshold: 0.6
+})
+
+// Entity decides what to share (privacy policies)
+trust.setSharePolicy('memory', 'trust')    // Only share memories with trusted entities
+trust.setSharePolicy('emotion', 'public')  // Share emotions freely
+trust.setSharePolicy('intent', 'contextual') // Share goals only if important
+trust.setSharePolicy('location', 'never')   // Never share location
+
+// Interaction loop
+trust.updateTrust('alice', +0.1)  // Positive interaction
+trust.updateTrust('eve', -0.2)    // Negative interaction (deception detected)
+
+// Check if should share data
+console.log(trust.shouldShare('memory', 'alice'))  // → true (trust >= 0.6)
+console.log(trust.shouldShare('memory', 'eve'))    // → false (trust < 0.6)
+console.log(trust.shouldShare('emotion', 'eve'))   // → true (public policy)
+console.log(trust.shouldShare('location', 'alice')) // → false (never policy)
+
+// Get reputation stats
+const stats = trust.getStats()
+console.log('Trusted entities:', stats.trustedCount)
+console.log('Untrusted entities:', stats.untrustedCount)
+console.log('Average trust:', stats.averageTrust)
+
+// Trust decays naturally over time (no interaction = forgot)
+trust.decayTrust(10)  // 10 seconds passed
+```
+
+**Byzantine tolerance (future):**
+- `deceive()` function (entities can lie about state)
+- Privacy-preserving protocols (zero-knowledge proofs)
+- Reputation systems (sybil attack resistance)
+
+**For AGI research:** Entities need selective sharing to be realistic. Not all thoughts should be shared. Trust enables emergent cooperation without hardcoded rules.
 
 ---
 
 ## Core API
 
-### World
-
 ```javascript
-import { World } from '@v1b3x0r/mds-core'
-
+// World
 const world = new World({
   features: {
-    ontology: true,        // Enable memory/emotion/intent
-    communication: true,   // Enable dialogue/messages
-    cognitive: true,       // Enable learning/skills
-    rendering: 'dom'       // 'dom' | 'canvas' | 'headless'
+    ontology: true,      // Memory/Emotion/Intent
+    communication: true, // Dialogue/Messages
+    cognitive: true,     // Learning/Skills
+    cognition: true      // P2P systems (NEW v5.5)
   },
-  seed: 12345              // Deterministic random
+  cognition: {
+    network: { k: 8, p: 0.2 },         // Small-World config
+    trust: { initialTrust: 0.5 },      // Trust config
+    resonance: { decayRate: 0.2 }      // Signal decay
+  }
 })
 
-// Spawn entity
-const entity = world.spawn(material, { x: 200, y: 200 })
+// Entity
+const entity = world.spawn(material, x, y)
+entity.enable('memory', 'learning', 'relationships')  // Unified API
+entity.speak('intro')                                 // Multilingual
+entity.remember({ type: 'interaction', ... })         // Memory
+entity.connectTo(other, { strength: 0.8 })           // Cognitive link
+entity.reinforceLink(other.id, 0.1)                  // Strengthen bond
+entity.decayCognitiveLinks(dt, 0.01)                 // Natural forgetting
 
-// Start simulation
-world.start()
+// P2P Cognition (v5.5)
+import { CognitiveNetwork, ResonanceField, TrustSystem, MemoryLog, resonate } from '@v1b3x0r/mds-core'
 
-// Save/load
+const network = new CognitiveNetwork({ k: 8, p: 0.2 })
+network.build(entities)
+network.rewire(0.1)
+
+const field = new ResonanceField({ decayRate: 0.2, minStrength: 0.1 })
+field.propagate(signal, source, entities)
+
+const trust = new TrustSystem()
+trust.setSharePolicy('memory', 'trust')
+trust.shouldShare('memory', targetId)
+
+const log = new MemoryLog(entityId)
+log.append(memory)
+log.merge(otherLog)
+
+resonate(self.emotion, other.emotion, 0.5)  // Emotional contagion
+
+// Save/Load
 const snapshot = world.saveWorldFile()
-localStorage.setItem('world', snapshot)
-
-// Restore
-const loaded = World.loadWorldFile(localStorage.getItem('world'))
-loaded.start()
+const restored = World.loadWorldFile(snapshot)
 ```
 
-### Entity
+---
 
-```javascript
-// Dialogue
-entity.speak('intro')              // Auto-detect language
-entity.speak('onPlayerClose', 'th') // Force Thai
+## TypeScript Support
 
-// Emotion
-entity.updateTriggerContext({ playerAction: 'attack' })
-entity.checkEmotionTriggers()
-console.log(entity.emotion.valence)  // -1..1 (negative = bad mood)
+```typescript
+import type {
+  World,
+  Entity,
+  MdsMaterial,
+  CognitiveNetwork,
+  MemoryLog,
+  TrustSystem,
+  EmotionalState
+} from '@v1b3x0r/mds-core'
 
-// Memory
-entity.remember({
-  type: 'interaction',
-  subject: 'player',
-  timestamp: world.worldTime,
-  salience: 1.0
-})
-
-const memories = entity.memory.recall({ type: 'interaction' })
-console.log('Remembered', memories.length, 'interactions')
+const material: MdsMaterial = {
+  essence: 'Typed entity',
+  dialogue: {
+    intro: [{ lang: { en: 'TypeScript knows me!' } }]
+  }
+}
 ```
+
+Full type definitions included. IntelliSense works out of the box.
 
 ---
 
@@ -322,26 +354,18 @@ import { useEffect, useRef } from 'react'
 import { World } from '@v1b3x0r/mds-core'
 
 function MDSWorld() {
-  const containerRef = useRef(null)
   const worldRef = useRef(null)
 
   useEffect(() => {
     const world = new World({ features: { ontology: true } })
     worldRef.current = world
 
-    const ghost = world.spawn({
-      essence: 'React ghost',
-      dialogue: {
-        intro: [{ lang: { en: 'Hello from React!' } }]
-      }
+    const npc = world.spawn({
+      essence: 'React NPC',
+      dialogue: { intro: [{ lang: { en: 'Hello from React!' } }] }
     }, 100, 100)
 
-    console.log(ghost.speak('intro'))  // → "Hello from React!"
-
-    if (containerRef.current && ghost.el) {
-      containerRef.current.appendChild(ghost.el)
-    }
-
+    console.log(npc.speak('intro'))
     world.start()
 
     return () => {
@@ -354,259 +378,142 @@ function MDSWorld() {
 }
 ```
 
+Works with React, Vue, Svelte, Solid. Also Node.js (headless mode).
+
 ---
 
-## TypeScript
+## Bundle Sizes
 
-Full type definitions included:
+**Full (221 KB)** — Everything (P2P cognition, LLM, semantic similarity)
+**Lite (134 KB)** — Core only (memory, emotion, dialogue, physics)
+**Validator (17 KB)** — Schema validation for .mdm files
 
-```typescript
-import type {
-  World,
-  Entity,
-  MdsMaterial,
-  MdsDialogueConfig,
-  MdsEmotionConfig
-} from '@v1b3x0r/mds-core'
-
-const material: MdsMaterial = {
-  essence: 'Typed entity',
-  dialogue: {
-    intro: [{ lang: { en: 'TypeScript knows me!' } }]
-  },
-  emotion: {
-    transitions: [
-      { trigger: 'player.attack', to: 'anger', intensity: 0.9 }
-    ]
-  }
-}
-```
+All tree-shakeable ESM. Gzipped: 51 KB (full), 31 KB (lite), 3 KB (validator).
 
 ---
 
 ## Features
 
-### 🧠 Memory System
-- Ebbinghaus forgetting curve (memories decay naturally)
-- High-salience events remembered longer
-- Recall by type, subject, time range
-
-### 💚 Emotion System
-- PAD model: Valence (happy/sad), Arousal (calm/excited), Dominance (control)
-- **Trigger-based transitions** (declarative in JSON)
-- Emotional contagion (proximity-based)
-
-### 💬 Dialogue System
-- **Multilingual support** (EN, TH, JA, ES, ZH, AR, or any language)
-- Auto-detects browser language
-- Event-driven phrases (intro, onPlayerClose, self_monologue, etc.)
-
-### 🎓 Learning System
-- Q-learning reinforcement
-- Skill progression
-- Pattern detection
-
-### 💾 Save/Load
-- WorldFile format (save entire simulation state)
-- Memories + emotions + relationships persist
-- Deterministic replay with seeded random
-
-### 🌍 Info-Physics
-- Entities move based on **semantic similarity**
-- Emotion-based attraction/repulsion
-- Environmental effects (temperature, weather)
+**Memory** — Ebbinghaus decay, high-salience retention, recall filters
+**Emotion** — PAD model, trigger-based transitions, emotional contagion
+**P2P Cognition (v5.5)** — Cognitive links, resonance fields, small-world networks, trust/privacy, CRDT memory
+**Dialogue** — Multilingual (any language), auto-detect browser locale
+**Learning** — Q-learning, skill progression, pattern detection
+**Physics** — Semantic attraction/repulsion, emotion-affects-speed
+**Save/Load** — WorldFile format, deterministic replay
 
 ---
 
-## Advanced Features (v5.2+)
-
-*(Available in Full bundle only)*
-
-### Semantic Similarity
-Find entities that are conceptually similar:
+## LLM Integration (Optional)
 
 ```javascript
-import { MockSimilarityProvider, EntitySimilarityAdapter } from '@v1b3x0r/mds-core'
+import { World, LanguageGenerator } from '@v1b3x0r/mds-core'
 
-const provider = new MockSimilarityProvider()
-const adapter = new EntitySimilarityAdapter(provider)
-
-const similar = await adapter.findSimilar(entity, world.entities)
-// Returns entities with similar essence
-```
-
----
-
-### Memory Crystallization
-Turn repeated memories into long-term patterns:
-
-```javascript
-import { MemoryCrystallizer } from '@v1b3x0r/mds-core'
-
-const crystallizer = new MemoryCrystallizer()
-const crystals = crystallizer.crystallize(entity.memory.memories, Date.now())
-
-// Example: 10 "met:Alice" memories → 1 crystal "Alice is a friend"
-console.log('Patterns:', crystals.map(c => c.key))
-```
-
----
-
-### Emotion Affects Physics
-Happy entities move faster, sad entities slower:
-
-```javascript
-import { SymbolicPhysicalCoupler, COUPLING_PRESETS } from '@v1b3x0r/mds-core'
-
-const coupler = new SymbolicPhysicalCoupler(COUPLING_PRESETS.standard)
-
-entity.emotion.valence = 0.8  // Happy
-const physics = coupler.emotionToPhysics(entity.emotion)
-console.log('Speed:', physics.speed)  // 1.24x faster when happy
-```
-
----
-
-### Smart Goal Selection
-Entities reason about what to do next based on context:
-
-```javascript
-import { IntentReasoner } from '@v1b3x0r/mds-core'
-
-const reasoner = new IntentReasoner()
-const intent = { goal: 'explore', motivation: 0.5 }
-
-const reasoned = reasoner.reason(intent, {
-  emotion: entity.emotion,
-  memories: entity.memory.memories
+const world = new World({
+  features: { communication: true, languageGeneration: true },
+  llm: {
+    provider: 'openrouter',  // or 'anthropic' | 'openai' | 'mock'
+    apiKey: process.env.OPENROUTER_KEY,
+    languageModel: 'anthropic/claude-3.5-sonnet'
+  }
 })
-
-console.log('Confidence:', reasoned.confidence)  // 0.5 → 0.73 (boosted by happy emotion)
-console.log('Reasoning:', reasoned.reasoning)    // ["Happy mood supports exploration"]
-```
-
----
-
-### Relationships Fade Over Time
-Bonds weaken if entities don't interact:
-
-```javascript
-import { RelationshipDecayManager, DECAY_PRESETS } from '@v1b3x0r/mds-core'
-
-const decay = new RelationshipDecayManager(DECAY_PRESETS.standard)
-decay.tick(entity.relationships, Date.now())
-
-// Relationships decay naturally without interaction
-// trust: 0.9 → 0.7 (after 10 days of no contact)
-```
-
----
-
-**Why these matter:** Make NPCs feel **alive** instead of scripted. They remember patterns, reason about goals, and relationships evolve naturally.
-
----
-
-### LLM Integration
-
-Generate dynamic dialogue with AI:
-
-```javascript
-import { LanguageGenerator } from '@v1b3x0r/mds-core'
 
 const llm = new LanguageGenerator({
-  provider: 'openrouter',  // 'openrouter' | 'anthropic' | 'openai' | 'mock'
-  apiKey: process.env.OPENROUTER_API_KEY,
-  model: 'anthropic/claude-3.5-sonnet'
+  provider: world.llm?.provider,
+  apiKey: world.llm?.apiKey,
+  model: world.llm?.languageModel
 })
 
-// Generate contextual dialogue
 const response = await llm.generate({
-  speaker: npcEntity,
-  listener: playerEntity,
-  context: 'Player just helped NPC escape from danger',
+  speaker: npc,
+  listener: player,
+  context: 'Player helped NPC escape danger',
   tone: 'grateful',
-  emotion: npcEntity.emotion
+  emotion: npc.emotion
 })
 
 console.log(response.text)
 // → "Thank you, friend. I won't forget this kindness."
-
-// Dialogue adapts to emotion state automatically
-npcEntity.emotion.valence = -0.6  // Make NPC sad
-const sadResponse = await llm.generate({
-  speaker: npcEntity,
-  context: 'Player greets NPC',
-  tone: 'neutral'
-})
-
-console.log(sadResponse.text)
-// → "Oh... it's you. I'm not really in the mood to talk."
 ```
 
-**Available Providers:**
-- `openrouter` — Access 200+ models (Claude, GPT-4, Llama, etc.)
-- `anthropic` — Direct Claude API
-- `openai` — GPT-4/GPT-3.5
-- `mock` — Local simulation (no API needed)
-
----
-
-## Bundle Size
-
-📦 **182 KB** minified (42 KB gzipped) — Full bundle
-📦 **107 KB** minified (25 KB gzipped) — Lite bundle
-📦 **17 KB** minified (3 KB gzipped) — Validator
-⚡ **60 FPS** for ~50 entities
-🌲 **Tree-shakeable** ESM
+**Providers:** OpenRouter (200+ models), Anthropic (Claude), OpenAI (GPT), Mock (local)
 
 ---
 
 ## Examples
 
-- [heroblind.mdm](https://github.com/v1b3x0r/mds/blob/main/materials/entities/heroblind.mdm) — Full entity with multilingual dialogue + emotion triggers
-- [Gaming Guide](https://github.com/v1b3x0r/mds/blob/main/docs/examples/gaming.md) — NPCs that hold grudges
-- [Education Guide](https://github.com/v1b3x0r/mds/blob/main/docs/examples/education.md) — Classroom simulations
-- [Advanced Integration](https://github.com/v1b3x0r/mds/blob/main/docs/examples/advanced.md) — React/Svelte/Node
+**Game dev:** [heroblind.mdm](https://github.com/v1b3x0r/mds/blob/main/materials/entities/heroblind.mdm) — 277 lines of JSON, zero code, fully functional NPC
+**Education:** [Classroom simulation](https://github.com/v1b3x0r/mds/blob/main/docs/examples/education.md) — Emotional contagion demo
+**Research:** [Advanced integration](https://github.com/v1b3x0r/mds/blob/main/docs/examples/advanced.md) — React/Svelte/Node.js patterns
 
 ---
 
 ## Documentation
 
-- [GitHub README](https://github.com/v1b3x0r/mds#readme) — User-friendly overview
-- [API Reference](https://github.com/v1b3x0r/mds/blob/main/docs/REFERENCE.md) — Full API docs
-- [MDSpec Guide](https://github.com/v1b3x0r/mds/blob/main/docs/guides/MDSPEC_GUIDE.md) — JSON schema reference
-- [Philosophy](https://github.com/v1b3x0r/mds/blob/main/docs/wtf-is-this-really.md) — Why this exists
-
----
-
-## Browser Support
-
-- ES2020+
-- Modern browsers (Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+)
-- Node.js 18+
+[GitHub README](https://github.com/v1b3x0r/mds#readme) — Overview
+[API Reference](https://github.com/v1b3x0r/mds/blob/main/docs/REFERENCE.md) — Full docs
+[MDSpec Guide](https://github.com/v1b3x0r/mds/blob/main/docs/guides/MDSPEC_GUIDE.md) — JSON schema
+[Philosophy](https://github.com/v1b3x0r/mds/blob/main/docs/wtf-is-this-really.md) — Why this exists
 
 ---
 
 ## Recent Updates
 
-### v5.2.2 (Oct 2025)
-- ⚡ **LLM & WorldMind load instantly** — No async delays for real-time systems
-- 📦 Bundle: 182 KB (optimized for immediate feature access)
+**v5.5.0** — P2P Cognition Foundation
+- Cognitive links (`entity.connectTo()`, `entity.reinforceLink()`)
+- Resonance fields (signal propagation with decay)
+- CRDT memory logs (conflict-free distributed memory)
+- Emotional resonance (`resonate()` function)
+- Small-World networks (Watts-Strogatz model)
+- Trust & privacy systems (selective sharing)
+- 88 new tests (100% pass)
 
-### v5.2.1 (Oct 2025)
-- 🔧 **Bundle optimization** — Lazy loading, code splitting, validator extraction
-- 📦 Bundle: 168 KB → 182 KB (v5.2.2 reverted lazy loading)
-- 📁 New lite bundle (107 KB) for minimal use cases
+**v5.4.0** — World events, entity reflection, emotion-aware dialogue
+**v5.3.0** — Unified API, simplified LLM config
 
-### v5.2.0 (Oct 2025)
-- 🧠 **Semantic similarity** — Find entities by conceptual closeness
-- 💎 **Memory crystallization** — Turn repeated memories into patterns
-- ⚡ **Emotion-physics coupling** — Mood affects movement
-- 🎯 **Intent reasoning** — Context-aware decision making
-- 💔 **Relationship decay** — Bonds weaken naturally over time
-- ✅ 192 tests (100% pass rate)
+[Full changelog](https://github.com/v1b3x0r/mds/blob/main/docs/meta/CHANGELOG.md)
 
-See [full changelog](https://github.com/v1b3x0r/mds/blob/main/docs/meta/CHANGELOG.md) for complete history.
+---
+
+## Philosophy
+
+**"Cultivation, not Control"** — You describe essence, behavior emerges.
+
+**Traditional NPC:**
+```javascript
+if (player.near(npc) && npc.remembers(player) && player.attackedBefore) {
+  npc.mood = "angry"
+  npc.say("You again?!")
+}
+// 500 lines of if-statements
+```
+
+**MDS:**
+```json
+{
+  "essence": "NPC who remembers violence",
+  "emotion": {
+    "transitions": [{ "trigger": "player.attack", "to": "anger" }]
+  }
+}
+// 12 lines. NPC remembers. Forever. Automatically.
+```
+
+**Result:** NPCs that feel alive. Not scripted. Not predictable. Emergent.
+
+---
+
+**NEW in v5.5:** NPCs evolve together. Form networks. Share experiences. Spread emotions. Build trust. Deceive each other.
+
+No central control. Just local interactions → global coherence.
+
+Like real social systems. Like real minds.
+
+---
+
+## Browser Support
+
+ES2020+, Chrome 80+, Firefox 74+, Safari 13.1+, Edge 80+, Node.js 18+
 
 ---
 

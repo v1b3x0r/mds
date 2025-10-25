@@ -152,7 +152,7 @@ fs.writeFileSync('experiment_state.json', JSON.stringify(snapshot, null, 2))
 
 **Example citation:**
 ```
-Simulation: MDS v5.0.0
+Simulation: MDS Core (@v1b3x0r/mds-core)
 Seed: 42069
 Population: 50 agents
 Duration: 10,000 ticks

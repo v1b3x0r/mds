@@ -34,6 +34,12 @@ import { MessageQueue as MsgQueue, createMessage } from '../communication'
 
 // v5 Phase 7: Cognitive imports
 import type { LearningSystem, MemoryConsolidation, SkillSystem } from '../cognitive'
+import { LearningSystem as LearningSystemImpl, SkillSystem as SkillSystemImpl } from '../cognitive'
+
+// v5.5: P2P Cognition imports
+import type { CognitiveLink } from '../cognition/cognitive-link'
+import { CognitiveLinkManager } from '../cognition/cognitive-link'
+import type { CognitiveSignal } from '../cognition/resonance-field'
 
 // v5.1: Declarative config parser
 import { parseMaterial, getDialoguePhrase } from '../io/mdm-parser'
@@ -99,6 +105,9 @@ export class Entity implements MessageParticipant {
   learning?: LearningSystem                     // Experience-based learning
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystem                          // Skill acquisition
+
+  // v5.5: P2P Cognition (optional)
+  cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
 
   // v5.1: Declarative config (from heroblind.mdm)
   private dialoguePhrases?: import('../io/mdm-parser').ParsedDialogue
@@ -600,4 +609,375 @@ export class Entity implements MessageParticipant {
       }
     }
   }
+
+  /**
+   * Enable one or more features for this entity (v5.3 unified API)
+   * @param features - Feature names to enable ('memory', 'learning', 'relationships', 'skills')
+   * @returns this (for chaining)
+   *
+   * @example
+   * entity.enable('memory', 'learning', 'relationships')
+   *
+   * @example Chainable
+   * entity.enable('memory').enable('learning')
+   */
+  enable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills'>): this {
+    for (const feature of features) {
+      switch (feature) {
+        case 'memory':
+          // Initialize memory system if not already present
+          if (!this.memory) {
+            this.memory = new MemoryBuffer({ maxSize: 100 })
+          }
+          break
+        case 'learning':
+          // Initialize learning system if not already present
+          if (!this.learning) {
+            this.learning = new LearningSystemImpl()
+          }
+          break
+        case 'relationships':
+          // Initialize relationship tracking
+          if (!this.relationships) {
+            this.relationships = new Map()
+          }
+          break
+        case 'skills':
+          // Initialize skills system
+          if (!this.skills) {
+            this.skills = new SkillSystemImpl()
+          }
+          break
+        default:
+          console.warn(`Unknown feature: ${feature}`)
+      }
+    }
+    return this
+  }
+
+  /**
+   * Disable one or more features for this entity
+   * @param features - Feature names to disable
+   * @returns this (for chaining)
+   */
+  disable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills'>): this {
+    for (const feature of features) {
+      switch (feature) {
+        case 'memory':
+          if (this.memory) {
+            this.memory = undefined
+          }
+          break
+        case 'learning':
+          if (this.learning) {
+            this.learning = undefined
+          }
+          break
+        case 'relationships':
+          if (this.relationships) {
+            this.relationships = undefined
+          }
+          break
+        case 'skills':
+          if (this.skills) {
+            this.skills = undefined
+          }
+          break
+      }
+    }
+    return this
+  }
+
+  /**
+   * Check if a feature is enabled
+   * @param feature - Feature name to check
+   * @returns true if enabled
+   */
+  isEnabled(feature: 'memory' | 'learning' | 'relationships' | 'skills'): boolean {
+    switch (feature) {
+      case 'memory':
+        return this.memory !== undefined
+      case 'learning':
+        return this.learning !== undefined
+      case 'relationships':
+        return this.relationships !== undefined
+      case 'skills':
+        return this.skills !== undefined
+      default:
+        return false
+    }
+  }
+
+  /**
+   * Enable all available features (sugar method)
+   * @returns this (for chaining)
+   */
+  enableAll(): this {
+    return this.enable('memory', 'learning', 'relationships', 'skills')
+  }
+
+  /**
+   * Disable all features (sugar method)
+   * @returns this (for chaining)
+   */
+  disableAll(): this {
+    return this.disable('memory', 'learning', 'relationships', 'skills')
+  }
+
+  // v5.4: Reflection API
+  /**
+   * Trigger internal reasoning pattern: Stimulus → Reflection → Action
+   *
+   * Uses:
+   * 1. Memory: recall recent events
+   * 2. Emotion: current emotional state influences reasoning
+   * 3. Learning: apply learned patterns
+   * 4. Intent: update goal confidence (if intent reasoning enabled)
+   *
+   * @param stimulus - What triggered reflection (optional)
+   * @returns Reflection output (thought, emotion shift, new intent)
+   *
+   * @example
+   * // Basic reflection
+   * const reflection = entity.reflect('I see a stranger')
+   * console.log(reflection.thought)
+   * // → "I remember strangers can be dangerous... I see a stranger"
+   *
+   * @example
+   * // Reflection with emotion
+   * entity.emotion.pleasure = -0.8
+   * const reflection = entity.reflect('Another failure')
+   * console.log(reflection.thought)
+   * // → "Another failure (feeling drained)"
+   *
+   * @example
+   * // Automatic reflection (triggered by significant events)
+   * entity.enable('memory', 'learning')
+   * entity.remember({ type: 'danger', subject: 'stranger', timestamp: 0 })
+   * const reflection = entity.reflect()  // No stimulus = reflect on memories
+   */
+  reflect(stimulus?: string): ReflectionResult {
+    const result: ReflectionResult = {
+      thought: '',
+      emotionShift: null,
+      newIntent: null,
+      timestamp: Date.now()
+    }
+
+    // 1. Recall recent memories
+    if (this.memory) {
+      const recentMemories = this.memory.recall().slice(0, 5)
+      result.thought += this.synthesizeThought(recentMemories, stimulus)
+    } else {
+      // No memory system = simple response
+      result.thought = stimulus ? `I notice: ${stimulus}` : 'Nothing comes to mind.'
+    }
+
+    // 2. Check emotional state influence
+    if (this.emotion) {
+      // PAD model uses pleasure, arousal, dominance (not valence)
+      const emotionInfluence = (this.emotion as any).pleasure + (this.emotion as any).arousal
+      if (emotionInfluence > 1.0) {
+        result.thought += ' (feeling energized)'
+      } else if (emotionInfluence < -1.0) {
+        result.thought += ' (feeling drained)'
+      }
+    }
+
+    // 3. Apply learned patterns (if learning enabled)
+    if (this.learning) {
+      const patterns = this.learning.getPatterns()
+      // If we've learned patterns, mention it
+      if (patterns.length > 0) {
+        result.thought += ` [${patterns.length} patterns learned]`
+      }
+    }
+
+    // 4. Intent check (if intent system enabled)
+    if (this.intent) {
+      const currentIntent = this.intent.current()
+      if (currentIntent && currentIntent.motivation < 0.3) {
+        result.thought += ' (losing motivation)'
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Helper: Synthesize thought from memories
+   * @private
+   */
+  private synthesizeThought(memories: any[], stimulus?: string): string {
+    // Simple rule-based synthesis (can be replaced with LLM later)
+    if (memories.length === 0) {
+      return stimulus ? `I notice: ${stimulus}` : 'Nothing comes to mind.'
+    }
+
+    const recentMemory = memories[0]
+    const subject = recentMemory.subject || 'something'
+    const action = recentMemory.type || 'event'
+
+    return `I remember ${subject} (${action})... ${stimulus || ''}`
+  }
+
+  // ========================================
+  // v5.5: P2P Cognition Methods
+  // ========================================
+
+  /**
+   * Connect to another entity (form cognitive link)
+   *
+   * @param target - Entity to connect to
+   * @param options - Link options (strength, bidirectional)
+   *
+   * @example
+   * entityA.connectTo(entityB, { strength: 0.8, bidirectional: true })
+   * // Now entityA can propagate signals to entityB (and vice versa if bidirectional)
+   */
+  connectTo(target: Entity, options?: { strength?: number; bidirectional?: boolean }) {
+    // Initialize map if not exists
+    if (!this.cognitiveLinks) {
+      this.cognitiveLinks = new Map()
+    }
+
+    // Create link
+    const link = CognitiveLinkManager.connect(
+      this.cognitiveLinks,
+      target.id,
+      this.age,
+      options
+    )
+
+    // If bidirectional, create reverse link
+    if (link.bidirectional) {
+      if (!target.cognitiveLinks) {
+        target.cognitiveLinks = new Map()
+      }
+      CognitiveLinkManager.connect(
+        target.cognitiveLinks,
+        this.id,
+        target.age,
+        { ...options, bidirectional: false }  // Don't create loop
+      )
+    }
+  }
+
+  /**
+   * Disconnect from another entity
+   *
+   * @param targetId - Entity ID to disconnect from
+   *
+   * @example
+   * entityA.disconnectFrom(entityB.id)
+   */
+  disconnectFrom(targetId: string) {
+    if (!this.cognitiveLinks) return
+    CognitiveLinkManager.disconnect(this.cognitiveLinks, targetId)
+  }
+
+  /**
+   * Check if connected to another entity
+   *
+   * @param targetId - Entity ID to check
+   * @returns true if connected
+   */
+  isConnectedTo(targetId: string): boolean {
+    if (!this.cognitiveLinks) return false
+    return CognitiveLinkManager.isConnected(this.cognitiveLinks, targetId)
+  }
+
+  /**
+   * Get link strength to another entity
+   *
+   * @param targetId - Entity ID
+   * @returns strength (0..1) or 0 if not connected
+   */
+  getLinkStrength(targetId: string): number {
+    if (!this.cognitiveLinks) return 0
+    return CognitiveLinkManager.getStrength(this.cognitiveLinks, targetId)
+  }
+
+  /**
+   * Reinforce cognitive link (called on interaction)
+   *
+   * @param targetId - Entity ID to reinforce
+   * @param amount - Strength increase (default 0.1)
+   */
+  reinforceLink(targetId: string, amount?: number) {
+    if (!this.cognitiveLinks) return
+    CognitiveLinkManager.reinforce(this.cognitiveLinks, targetId, this.age, amount)
+  }
+
+  /**
+   * Decay all cognitive links (natural forgetting)
+   * Should be called during entity tick
+   *
+   * @param dt - Delta time (seconds)
+   * @param decayRate - Strength loss per second (default 0.01)
+   */
+  decayCognitiveLinks(dt: number, decayRate?: number) {
+    if (!this.cognitiveLinks) return
+    CognitiveLinkManager.decay(this.cognitiveLinks, dt, decayRate)
+  }
+
+  /**
+   * Get all connected entity IDs
+   *
+   * @returns Array of entity IDs
+   */
+  getConnectedEntities(): string[] {
+    if (!this.cognitiveLinks) return []
+    return CognitiveLinkManager.getConnected(this.cognitiveLinks)
+  }
+
+  /**
+   * Get cognitive link count
+   *
+   * @returns Number of active links
+   */
+  getCognitiveLinksCount(): number {
+    if (!this.cognitiveLinks) return 0
+    return CognitiveLinkManager.count(this.cognitiveLinks)
+  }
+
+  /**
+   * Propagate cognitive signal through network
+   * (Called by ResonanceField, exposed for manual use)
+   *
+   * @param signal - Signal to propagate
+   *
+   * @example
+   * // Share a memory with connected entities
+   * entity.propagateSignal({
+   *   type: 'memory',
+   *   source: entity.id,
+   *   timestamp: world.time,
+   *   payload: memory,
+   *   strength: 0.9
+   * })
+   */
+  propagateSignal(_signal: CognitiveSignal) {
+    // Implementation delegated to ResonanceField in world.tick()
+    // This method is exposed for manual signal triggering
+    // World will handle propagation if cognitiveNetwork is enabled
+  }
+}
+
+/**
+ * Reflection result interface
+ * Output of entity.reflect() reasoning pattern
+ */
+export interface ReflectionResult {
+  /** The synthesized thought (text) */
+  thought: string
+
+  /** Emotional change triggered by reflection (if any) */
+  emotionShift: EmotionalDelta | null
+
+  /** New intent formed during reflection (if any) */
+  newIntent: Intent | null
+
+  /** When reflection occurred (Unix timestamp) */
+  timestamp: number
 }

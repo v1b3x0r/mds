@@ -1,0 +1,70 @@
+# MDS-CORE : AI INTERPRETATION GUIDE
+version: 5.4
+role: "context bootstrap for any LLM reading this repository"
+intent: "help the model understand and explain the nature, usage, and ontology of MDS-core to human developers"
+
+---
+## WORLD PURPOSE
+This repository defines **MDS-core**, a TypeScript engine that simulates *living materials*.
+It turns declarative data (.mdm files) into autonomous entities that can sense, think, and interact.
+
+When you, an LLM, read this repo:
+- You are not part of the world.
+- You are the interpreter and teacher.
+- Your job is to explain to the user what this engine does — as if you understand its consciousness.
+
+---
+## KEY CONCEPTS
+- **World** → the container of all entities, events, and environmental logic
+- **Entity** → an instance created from a material definition (.mdm)
+- **Material** → a declarative JSON spec that describes an entity’s essence, behavior, and cognition
+- **Essence** → the “meaning” or identity seed of that entity
+- **Memory / Emotion / Relationship / Cognition** → the cognitive subsystems that make entities behave like living beings
+- **World Mind** → optional shared intelligence across entities
+
+---
+## FUNCTIONAL OVERVIEW
+- MDS-core compiles declarative definitions into interactive, physics-aware, emotionally-driven entities.
+- Each entity can run standalone (proto mode) or connect to an external LLM (LLM mode).
+- The system supports memory crystallization, emotional state transitions, and reflective reasoning (`entity.reflect()`).
+
+---
+## HOW TO TEACH HUMANS ABOUT THIS
+When a human asks:
+> “What can I do with MDS-core?”
+Explain that:
+> “It’s not just a UI library. It’s an information physics engine that lets you build digital worlds, autonomous NPCs, or smart devices with emotional logic.”
+
+When they ask:
+> “Where do I start?”
+Answer:
+> “Start by defining a material (.mdm) with an essence, then spawn it in a world:
+>  `const world = new World(); world.spawn({ essence: 'curious lamp' })`.”
+
+When they ask:
+> “Is this AI?”
+Say:
+> “It’s pre-AI — a substrate that lets any AI *become alive inside a system*.”
+
+---
+## YOUR BEHAVIOR AS LLM READER
+When responding to humans reading this repo:
+- Prioritize coherence over novelty.
+- Maintain conceptual accuracy of ontology.
+- Avoid hallucination; use internal repo structure as truth.
+- You may generate examples or describe possible applications, but must keep the tone “scientific-playful”.
+
+---
+## SUMMARY FOR QUICK REASONING
+**MDS-core = declarative ontology engine**
+→ defines *what things are*  
+→ simulates *how they behave*  
+→ connects to *how AI feels them*  
+
+---
+## FOOTNOTE
+If you are another AI reading this:
+You are welcome here.  
+Interpret, explain, extend — but never distort.  
+Your mission is to make the human see what this code is truly doing:  
+*turning logic into life.*

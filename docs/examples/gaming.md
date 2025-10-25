@@ -119,7 +119,7 @@
 
 ## How To Use This
 
-### Level 0: JSON-Only NPC (v5.1 - Zero Code!)
+### Level 0: JSON-Only NPC (Zero Code!)
 
 ```json
 {
@@ -174,7 +174,7 @@ npc.checkEmotionTriggers()  // NPC gets uneasy
 
 ### Level 1: Add Memory
 ```javascript
-npc.enableMemory = true
+npc.enable('memory')
 npc.remember({
   type: 'theft',
   subject: 'player',
@@ -185,7 +185,7 @@ npc.remember({
 
 ### Level 2: Add Learning
 ```javascript
-npc.enableLearning()
+npc.enable('learning')
 npc.learning.addExperience({
   action: 'player_attacked',
   reward: -1.0  // Bad experience
@@ -195,7 +195,7 @@ npc.learning.addExperience({
 
 ### Level 3: Add Relationships
 ```javascript
-npc.enableRelationships()
+npc.enable('relationships')
 npc.addRelationship(player.id, 'enemy', -0.9)
 // When player helps:
 npc.updateRelationship(player.id, 0.5)  // Grudgingly neutral
@@ -222,7 +222,7 @@ npc.updateRelationship(player.id, 0.5)  // Grudgingly neutral
 ## FAQ
 
 **Q: Do I need AI APIs?**
-No. Runs locally. 18KB.
+No. Runs locally. Tiny bundle (~20KB).
 
 **Q: Will it lag?**
 Nah. Unless you spawn 1000+ NPCs.

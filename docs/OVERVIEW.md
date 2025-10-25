@@ -36,7 +36,7 @@ if (player.near(npc)) {
 ```
 You write 500 if-statements. NPC still has amnesia next chapter.
 
-### MDS v5.2 (Just JSON)
+### MDS (Just JSON)
 ```json
 {
   "essence": "Friendly NPC who remembers kindness",
@@ -102,9 +102,9 @@ console.log(npc.speak('intro'))  // "Hello, traveler!"
 
 ## The Magic Trick
 
-**8 Phases + 5 Advanced Features = Complete Living Agents**
+**Core Features + Advanced Features = Complete Living Agents**
 
-### Core v5.0 (8 Phases)
+### Core Features
 1. **Ontology:** Memory + emotion + relationships
 2. **World:** Physics simulation container
 3. **Renderer:** DOM/Canvas/WebGL/headless
@@ -114,7 +114,7 @@ console.log(npc.speak('intro'))  // "Hello, traveler!"
 7. **Cognitive:** Learning + skills + patterns
 8. **World Mind:** Collective intelligence
 
-### Advanced v5.2 (Phase 2: Core Gaps)
+### Advanced Features
 9. **Similarity:** Semantic clustering (entities recognize "similar" others)
 10. **Crystallization:** Long-term memory (patterns become permanent)
 11. **Coupling:** Emotion affects physics (sadness slows, excitement speeds)
@@ -123,7 +123,7 @@ console.log(npc.speak('intro'))  // "Hello, traveler!"
 
 **You pick which ones you need.**
 
-**New in v5.2:**
+**Available features:**
 ```javascript
 // Entities cluster by similarity (not random proximity)
 const similar = await adapter.findSimilar(entity, others, 0.7)
@@ -183,7 +183,7 @@ relationships = decayManager.decayBatch(relationships, Date.now())
 
 ## Do I Need To Code?
 
-**v5.1 update:** Now you can create NPCs with dialogue + emotion triggers using **just JSON**. No code required.
+You can create NPCs with dialogue + emotion triggers using **just JSON**. No code required.
 
 **Level 0:** Just try examples → see things move → get it
 **Level 1:** Edit .mdm files (change dialogue text, emotion triggers)

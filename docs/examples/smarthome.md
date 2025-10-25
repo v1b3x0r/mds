@@ -101,8 +101,7 @@ IF time = 7pm AND day = weekend THEN temp = 23
 const thermostat = world.spawn({
   essence: 'Thermostat that learns preferences'
 })
-thermostat.enableMemory = true
-thermostat.enableLearning()
+thermostat.enable('memory', 'learning')
 
 // That's it. Use it normally. It observes and learns.
 ```
@@ -113,9 +112,9 @@ thermostat.enableLearning()
 
 ```javascript
 // Morning routine entities
-alarm.enableRelationships()
-coffeemaker.enableRelationships()
-lights.enableRelationships()
+alarm.enable('relationships')
+coffeemaker.enable('relationships')
+lights.enable('relationships')
 
 // They discover the connection themselves:
 // Alarm goes off → Coffee should start

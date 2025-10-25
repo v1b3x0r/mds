@@ -41,6 +41,7 @@ export {
   driftToBaseline,
   emotionToColor,
   emotionToHex,
+  resonate,  // v5.5: P2P emotional resonance
   EMOTION_BASELINES
 } from './emotion'
 

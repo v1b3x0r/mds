@@ -66,6 +66,23 @@ export interface WorldOptions {
     communication?: boolean   // Enable message system (Phase 6)
     languageGeneration?: boolean  // Enable LLM-powered dialogue (Phase 6)
     cognitive?: boolean       // Enable learning/skills (Phase 7)
+    cognition?: boolean       // Enable P2P cognition (Phase 9 / v5.5)
+  }
+
+  // v5.5: P2P Cognition configuration
+  cognition?: {
+    network?: {
+      k?: number              // Small-world: neighbors per node (default: 8)
+      p?: number              // Small-world: rewiring probability (default: 0.2)
+    }
+    trust?: {
+      initialTrust?: number   // Starting trust level (default: 0.5)
+      trustThreshold?: number // Minimum trust for sharing (default: 0.6)
+    }
+    resonance?: {
+      decayRate?: number      // Signal decay per hop (default: 0.2)
+      minStrength?: number    // Minimum signal strength (default: 0.1)
+    }
   }
 
   // Phase 5: Environmental physics configuration
@@ -73,11 +90,66 @@ export interface WorldOptions {
   weather?: WeatherConfig | 'calm' | 'stormy' | 'dry' | 'variable'
   collision?: boolean         // Enable collision detection
 
-  // Phase 6: Communication configuration
+  /**
+   * LLM configuration for language generation and semantic similarity (v5.3)
+   *
+   * @example
+   * // Basic (OpenRouter + Claude)
+   * llm: {
+   *   apiKey: process.env.OPENROUTER_KEY
+   * }
+   *
+   * @example
+   * // With embeddings
+   * llm: {
+   *   apiKey: process.env.OPENROUTER_KEY,
+   *   languageModel: 'anthropic/claude-3.5-sonnet',
+   *   embeddingModel: 'openai/text-embedding-3-small'
+   * }
+   *
+   * @example
+   * // Direct provider
+   * llm: {
+   *   provider: 'anthropic',
+   *   apiKey: process.env.ANTHROPIC_KEY
+   * }
+   */
+  llm?: {
+    /**
+     * LLM provider
+     * @default 'openrouter'
+     */
+    provider?: 'openrouter' | 'anthropic' | 'openai'
+
+    /**
+     * API key for the provider
+     * Falls back to process.env.OPENROUTER_KEY if not provided
+     */
+    apiKey?: string
+
+    /**
+     * Model for language generation (dialogue, text)
+     * @default 'anthropic/claude-3.5-sonnet'
+     */
+    languageModel?: string
+
+    /**
+     * Model for embeddings (semantic similarity)
+     * If not provided, falls back to local similarity (Jaccard/Levenshtein)
+     */
+    embeddingModel?: string
+  }
+
+  // DEPRECATED: Old LLM config (v5.0-5.2) - kept for backward compatibility
+  /** @deprecated Use llm.provider instead */
   languageProvider?: 'openrouter' | 'anthropic' | 'openai' | 'mock'
+  /** @deprecated Use llm.apiKey instead */
   languageApiKey?: string
+  /** @deprecated Use llm.languageModel instead */
   languageModel?: string
+  /** @deprecated Use llm.embeddingModel instead (or omit for local) */
   semanticProvider?: 'openai' | 'mock'
+  /** @deprecated Use llm.embeddingModel instead */
   semanticApiKey?: string
 }
 
@@ -169,6 +241,10 @@ export class World {
   private statsUpdateInterval: number = 1000 // Update stats every 1 second
   private lastStatsUpdate: number = 0
 
+  // Phase 9 / v5.5: P2P Cognition (optional)
+  cognitiveNetwork?: import('../cognition').CognitiveNetwork
+  resonanceField?: import('../cognition').ResonanceField
+
   // Options
   options: WorldOptions
 
@@ -176,6 +252,9 @@ export class World {
     this.id = this.generateUUID()
     this.createdAt = Date.now()
     this.options = options
+
+    // Migrate old LLM config to new format (backward compatibility)
+    this.migrateLLMConfig(options)
 
     // Create v4 engine (delegate tick logic)
     this.engine = new Engine({
@@ -201,6 +280,70 @@ export class World {
     // Phase 6: Initialize communication systems (if enabled)
     if (options.features?.communication) {
       this.initializeCommunication(options)
+    }
+  }
+
+  /**
+   * Migrate old LLM config to new format (backward compatibility)
+   */
+  private migrateLLMConfig(options: WorldOptions): void {
+    // Auto-migrate old config to new format
+    if (options.languageProvider || options.languageApiKey || options.semanticProvider) {
+      if (!options.llm) {
+        options.llm = {}
+      }
+
+      // Migrate language provider (skip 'mock')
+      if (options.languageProvider && options.languageProvider !== 'mock') {
+        options.llm.provider = options.languageProvider
+      }
+
+      // Migrate API keys
+      if (options.languageApiKey) {
+        options.llm.apiKey = options.languageApiKey
+      }
+
+      // Migrate models
+      if (options.languageModel) {
+        options.llm.languageModel = options.languageModel
+      }
+
+      // Migrate semantic config (OpenAI → embedding model)
+      if (options.semanticProvider === 'openai' && options.semanticApiKey) {
+        // Assume embedding model if semantic was enabled
+        if (!options.llm.embeddingModel) {
+          options.llm.embeddingModel = 'text-embedding-3-small'
+        }
+        // If API key differs, warn (can't support 2 keys in new format)
+        if (options.llm.apiKey && options.llm.apiKey !== options.semanticApiKey) {
+          console.warn('Migration: semanticApiKey differs from languageApiKey. Using languageApiKey for both.')
+        }
+      }
+    }
+
+    // Set defaults and env fallback
+    if (options.llm) {
+      // Default provider
+      options.llm.provider = options.llm.provider ?? 'openrouter'
+
+      // API key fallback to env (Node.js only)
+      if (!options.llm.apiKey) {
+        try {
+          // @ts-ignore - process may not be defined in browser
+          const envKey = typeof process !== 'undefined' && process.env ? process.env.OPENROUTER_KEY : undefined
+          if (envKey) {
+            options.llm.apiKey = envKey
+            console.info('LLM: Using OPENROUTER_KEY from environment')
+          }
+        } catch (e) {
+          // process.env not available (browser environment)
+        }
+      }
+
+      // Default language model
+      options.llm.languageModel = options.llm.languageModel ?? 'anthropic/claude-3.5-sonnet'
+
+      // embeddingModel remains undefined if not specified (local fallback)
     }
   }
 
@@ -270,20 +413,43 @@ export class World {
 
     // Create language generator (if enabled)
     if (options.features?.languageGeneration) {
-      const provider = options.languageProvider ?? 'mock'
+      // Use new llm config if available, fall back to old
+      const provider = options.llm?.provider ?? 'openrouter'
+      const apiKey = options.llm?.apiKey
+      const model = options.llm?.languageModel ?? 'anthropic/claude-3.5-sonnet'
+
+      if (!apiKey) {
+        console.warn('LLM: languageGeneration enabled but no apiKey provided. Falling back to mock provider.')
+      }
+
       this.languageGenerator = new LanguageGenerator({
-        provider,
-        apiKey: options.languageApiKey,
-        model: options.languageModel
+        provider: apiKey ? provider : 'mock',
+        apiKey,
+        model
       })
     }
 
     // Create semantic similarity system
-    const semProvider = options.semanticProvider ?? 'mock'
-    this.semanticSimilarity = new SemanticSimilarity({
-      provider: semProvider,
-      apiKey: options.semanticApiKey
-    })
+    const embeddingModel = options.llm?.embeddingModel
+    const llmProvider = options.llm?.provider ?? 'openrouter'
+    const apiKey = options.llm?.apiKey
+
+    if (embeddingModel && apiKey) {
+      // Use external embeddings (only openrouter/openai support embeddings)
+      const semanticProvider = (llmProvider === 'openrouter' || llmProvider === 'openai') ? llmProvider : 'openrouter'
+      console.info(`LLM: Using ${semanticProvider} embeddings (${embeddingModel}) for semantic similarity`)
+      this.semanticSimilarity = new SemanticSimilarity({
+        provider: semanticProvider,
+        apiKey,
+        model: embeddingModel
+      })
+    } else {
+      // Fallback to local similarity
+      console.info('LLM: Using local similarity methods (Jaccard/Levenshtein) for semantic clustering')
+      this.semanticSimilarity = new SemanticSimilarity({
+        provider: 'mock'
+      })
+    }
   }
 
   /**
@@ -815,6 +981,98 @@ export class World {
 
     // Clear engine state
     this.engine.clear()
+  }
+
+  // v5.4: World Event System API
+  /**
+   * Event log access (alias for eventLog)
+   * Provides broadcast + listen + relay semantics
+   *
+   * @example
+   * // Access event history
+   * console.log(world.events)  // Same as world.eventLog
+   *
+   * @example
+   * // Filter events
+   * const spawnEvents = world.events.filter(e => e.type === 'spawn')
+   */
+  get events(): WorldEvent[] {
+    return this.eventLog
+  }
+
+  /**
+   * Broadcast event to world and optionally relay to all entities
+   *
+   * @param type - Event type (e.g., 'sunrise', 'alarm', 'sensor_reading')
+   * @param data - Event payload (any JSON-serializable data)
+   * @param relay - If true, send message to all entities via communication system
+   *
+   * @example
+   * // Simple event broadcast
+   * world.broadcastEvent('sunrise', { intensity: 0.8 })
+   *
+   * @example
+   * // Broadcast with relay to entities
+   * world.broadcastEvent('alarm', { zone: 'living_room' }, true)
+   */
+  broadcastEvent(type: string, data?: any, relay: boolean = false): void {
+    const event: WorldEvent = {
+      time: this.worldTime,
+      type,
+      data
+    }
+
+    // Add to event log if history enabled
+    if (this.historyEnabled) {
+      this.eventLog.push(event)
+    }
+
+    // Relay to all entities via communication system
+    if (relay && this.options.features?.communication) {
+      for (const entity of this.entities) {
+        if (entity.inbox) {
+          // Create system message
+          const systemMessage = {
+            id: `sys_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'signal' as const,
+            priority: 'normal' as const,
+            sender: { id: 'world', x: 0, y: 0 }, // System sender
+            content: `[SYSTEM] ${type}`,
+            metadata: { eventData: data },
+            timestamp: Date.now(),
+            delivered: true,
+            read: false
+          }
+          entity.inbox.enqueue(systemMessage)
+        }
+      }
+    }
+  }
+
+  /**
+   * Listen for events matching predicate
+   *
+   * @param predicate - Filter function (returns true to include event)
+   * @returns Array of matching events
+   *
+   * @example
+   * // Get all sunrise events
+   * const sunEvents = world.listenForEvents(e => e.type === 'sunrise')
+   *
+   * @example
+   * // Get events in last 10 seconds
+   * const recentEvents = world.listenForEvents(e =>
+   *   world.worldTime - e.time < 10
+   * )
+   *
+   * @example
+   * // Complex filtering
+   * const criticalEvents = world.listenForEvents(e =>
+   *   e.type.includes('alarm') && e.data?.severity === 'high'
+   * )
+   */
+  listenForEvents(predicate: (event: WorldEvent) => boolean): WorldEvent[] {
+    return this.eventLog.filter(predicate)
   }
 
   /**

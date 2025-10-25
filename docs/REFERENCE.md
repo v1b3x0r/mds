@@ -1,10 +1,32 @@
-# API Reference — Quick Start + Lookup
+# API Reference — MDS v5.3.0
 
-**Fast reference for MDS v5.2 API. For deep dives, see role-based guides.**
+**Complete API reference for Material Design System (MDS). Organized by difficulty with progressive disclosure.**
 
 ---
 
-## Installation
+## 📖 How to Use This Reference
+
+**Difficulty Indicators:**
+- 🟢 **Basic** - Essential features for getting started
+- 🟡 **Intermediate** - Common patterns and advanced usage
+- 🔴 **Advanced** - Complex systems and optimization
+
+**Navigation:**
+- [Installation](#installation) 🟢
+- [Quick Start](#quick-start-30-seconds) 🟢
+- [Core Classes](#core-classes) 🟢🟡
+- [Ontology Systems](#ontology-systems-hello-features) 🟡
+- [LLM Configuration](#llm-configuration-v53) 🟡
+- [Feature Activation](#feature-activation-v53-unified-api) 🟢
+- [Material Format](#material-definition-format) 🟢🟡
+- [Advanced Features](#phase-2-features-v52--advanced-ontology) 🔴
+- [Troubleshooting](#troubleshooting) 🟢
+- [Migration Guide](#migration-guide) 🟡
+- [Glossary](#glossary) 📚
+
+---
+
+## Installation 🟢
 
 ```bash
 npm install @v1b3x0r/mds-core
@@ -17,9 +39,11 @@ npm install @v1b3x0r/mds-core
 </script>
 ```
 
+**TypeScript:** Fully typed with `.d.ts` declarations included.
+
 ---
 
-## Quick Start (30 Seconds)
+## Quick Start (30 Seconds) 🟢
 
 ```javascript
 import { World } from '@v1b3x0r/mds-core'
@@ -34,8 +58,8 @@ const entity = world.spawn({
   essence: 'A curious cat'
 }, 200, 200)
 
-// 3. Enable memory
-entity.enableMemory = true
+// 3. Enable memory (v5.3 unified API)
+entity.enable('memory')
 
 // 4. Make it remember
 entity.remember({
@@ -53,7 +77,7 @@ world.start()
 
 ## Core Classes
 
-### `World`
+### `World` 🟢
 
 **Constructor:**
 ```typescript
@@ -69,6 +93,7 @@ interface WorldOptions {
     physics?: boolean              // Collision, temperature, weather
     communication?: boolean        // Messages, dialogue
     cognitive?: boolean            // Learning, skills
+    languageGeneration?: boolean   // LLM-powered dialogue
     rendering?: 'dom' | 'canvas' | 'webgl' | 'headless'
   }
   environment?: string | EnvironmentConfig
@@ -78,64 +103,151 @@ interface WorldOptions {
     minY: number, maxY: number
   }
   boundaryBehavior?: 'none' | 'clamp' | 'bounce'
+
+  // LLM configuration (v5.3) - See LLM Configuration section
+  llm?: {
+    provider?: 'openrouter' | 'anthropic' | 'openai'  // Default: 'openrouter'
+    apiKey?: string                                     // Falls back to env
+    languageModel?: string                              // Default: 'anthropic/claude-3.5-sonnet'
+    embeddingModel?: string                             // Optional (local fallback)
+  }
 }
 ```
 
 **Methods:**
 
-| Method | Description |
-|--------|-------------|
-| `spawn(material, x, y)` | Create entity at position |
-| `spawnField(field, x, y)` | Create field at position |
-| `destroy(entity)` | Remove entity from world |
-| `start()` | Begin simulation loop |
-| `stop()` | Halt simulation loop |
-| `tick(dt)` | Manual tick (if not using start/stop) |
-| `snapshot()` | Serialize world state |
-| `restore(data, materialMap, fieldMap)` | Load world state |
-| `getWorldStats()` | Get aggregate statistics |
-| `getPatterns()` | Detect emergent patterns |
-| `getCollectiveEmotion()` | Average population emotion |
-| `enableLLM(config)` | Enable LLM integration |
+| Method | Description | Difficulty |
+|--------|-------------|------------|
+| `spawn(material, x, y)` | Create entity at position | 🟢 |
+| `spawnField(field, x, y)` | Create field at position | 🟡 |
+| `destroy(entity)` | Remove entity from world | 🟢 |
+| `start()` | Begin simulation loop | 🟢 |
+| `stop()` | Halt simulation loop | 🟢 |
+| `tick(dt)` | Manual tick (if not using start/stop) | 🟡 |
+| `snapshot()` | Serialize world state | 🟡 |
+| `restore(data, materialMap, fieldMap)` | Load world state | 🟡 |
+| `getWorldStats()` | Get aggregate statistics | 🟡 |
+| `getPatterns()` | Detect emergent patterns | 🔴 |
+| `getCollectiveEmotion()` | Average population emotion | 🟡 |
+| `enableLLM(config)` | **Deprecated** - Use `llm` in WorldOptions | 🟡 |
 
 ---
 
-### `Entity`
+### `Entity` 🟢
 
 **Properties:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string | Unique identifier |
-| `m` | MdsMaterial | Material definition |
-| `x`, `y` | number | Position |
-| `vx`, `vy` | number | Velocity |
-| `age` | number | Time alive (seconds) |
-| `energy` | number | Energy level (0-1) |
-| `opacity` | number | Visual opacity (0-1) |
-| `destroyed` | boolean | Marked for removal |
-| `enableMemory` | boolean | Enable memory system |
+| Property | Type | Description | Difficulty |
+|----------|------|-------------|------------|
+| `id` | string | Unique identifier | 🟢 |
+| `m` | MdsMaterial | Material definition | 🟢 |
+| `x`, `y` | number | Position | 🟢 |
+| `vx`, `vy` | number | Velocity | 🟢 |
+| `age` | number | Time alive (seconds) | 🟢 |
+| `energy` | number | Energy level (0-1) | 🟡 |
+| `opacity` | number | Visual opacity (0-1) | 🟢 |
+| `destroyed` | boolean | Marked for removal | 🟢 |
+| `memory` | MemoryBuffer | Memory system (if enabled) | 🟡 |
+| `learning` | LearningSystem | Learning system (if enabled) | 🟡 |
+| `relationships` | Map | Relationship tracking (if enabled) | 🟡 |
+| `skills` | SkillSystem | Skill system (if enabled) | 🟡 |
+| `emotion` | EmotionalState | Emotional state (PAD model) | 🟡 |
 
 **Methods:**
 
-| Method | Description |
-|--------|-------------|
-| `remember(memory)` | Store a memory |
-| `setEmotion(pad)` | Set emotional state |
-| `getEmotion()` | Get current emotion |
-| `speak(category?, lang?)` | **v5.1** Get dialogue phrase from declarative config |
-| `updateTriggerContext(context)` | **v5.1** Update trigger context (for emotion transitions) |
-| `checkEmotionTriggers()` | **v5.1** Evaluate and apply emotion triggers |
-| `enableLearning()` | Enable Q-learning |
-| `enableSkills()` | Enable skill system |
-| `enableRelationships()` | Enable relationship tracking |
-| `sendMessage(type, content, target)` | Send message to entity |
-| `hasUnreadMessages()` | Check for new messages |
-| `readNextMessage()` | Get oldest unread message |
+| Method | Description | Difficulty |
+|--------|-------------|------------|
+| `enable(...features)` | **v5.3** Enable features ('memory', 'learning', 'relationships', 'skills') | 🟢 |
+| `disable(...features)` | **v5.3** Disable features | 🟢 |
+| `isEnabled(feature)` | **v5.3** Check if feature is enabled | 🟢 |
+| `enableAll()` | **v5.3** Enable all features (sugar method) | 🟢 |
+| `disableAll()` | **v5.3** Disable all features (sugar method) | 🟢 |
+| `remember(memory)` | Store a memory | 🟡 |
+| `setEmotion(pad)` | Set emotional state | 🟡 |
+| `getEmotion()` | Get current emotion | 🟡 |
+| `speak(category?, lang?)` | **v5.1** Get dialogue phrase from declarative config | 🟡 |
+| `updateTriggerContext(context)` | **v5.1** Update trigger context (for emotion transitions) | 🔴 |
+| `checkEmotionTriggers()` | **v5.1** Evaluate and apply emotion triggers | 🔴 |
+| `sendMessage(type, content, target)` | Send message to entity | 🟡 |
+| `hasUnreadMessages()` | Check for new messages | 🟡 |
+| `readNextMessage()` | Get oldest unread message | 🟡 |
+| `addRelationship(targetId, type, strength)` | Create bond | 🟡 |
+| `updateRelationship(targetId, strength)` | Change strength | 🟡 |
+| `getRelationship(targetId)` | Get specific bond | 🟡 |
+| `getRelationshipsByType(type)` | Filter by type | 🟡 |
+| `getAllRelationships()` | Get all bonds | 🟡 |
+| `removeRelationship(targetId)` | Delete bond | 🟡 |
+
+**Lifecycle Hooks (v5.3):** 🟡
+
+| Hook | Signature | Description |
+|------|-----------|-------------|
+| `onSpawn` | `(world, entity) => void` | Called immediately after entity is spawned |
+| `onUpdate` | `(dt, entity) => void` | Called every frame during world tick |
+| `onDestroy` | `(entity) => void` | Called before entity is removed from world |
+
+**Example:**
+```javascript
+const entity = world.spawn(material, 100, 100)
+
+entity.onSpawn = (world, entity) => {
+  console.log('Entity spawned:', entity.m.material)
+  entity.enable('memory', 'learning')  // Auto-enable features
+}
+
+entity.onUpdate = (dt, entity) => {
+  if (entity.age > 10) {
+    console.log('Entity is 10 seconds old')
+  }
+}
+
+entity.onDestroy = (entity) => {
+  console.log('Entity destroyed after', entity.age, 'seconds')
+  // Cleanup logic here
+}
+```
 
 ---
 
-### `Memory` (accessed via `entity.memory`)
+## Ontology Systems: "Hello, Feature" 🟡
+
+### Memory 🟡
+
+**Enable:**
+```javascript
+entity.enable('memory')  // v5.3 unified API
+```
+
+**Store a memory:**
+```javascript
+entity.remember({
+  type: 'observation',
+  subject: 'player',
+  content: 'Saw a red dot',
+  salience: 0.8  // 0-1 importance
+})
+```
+
+**Retrieve memories:**
+```javascript
+// Get most salient memories
+const memories = entity.memory.recall({ subject: 'player' })
+
+// Get all memories
+const all = entity.memory.getAllMemories()
+```
+
+**Memory Object:**
+```typescript
+interface Memory {
+  id: string
+  timestamp: number
+  type: string           // 'observation', 'interaction', 'emotion', 'action'
+  subject: string
+  content: string | object
+  salience: number       // 0-1 (importance, decays over time via Ebbinghaus curve)
+}
+```
 
 **Methods:**
 
@@ -147,21 +259,40 @@ interface WorldOptions {
 | `forget(memoryId)` | Remove specific memory |
 | `clear()` | Clear all memories |
 
-**Memory Object:**
-```typescript
-interface Memory {
-  id: string
-  timestamp: number
-  type: string
-  subject: string
-  content: string | object
-  salience: number    // 0-1 (importance)
-}
-```
-
 ---
 
-### `Learning` (accessed via `entity.learning`)
+### Learning 🟡
+
+**Enable:**
+```javascript
+entity.enable('learning')
+```
+
+**Record experience:**
+```javascript
+entity.learning.addExperience({
+  action: 'dodge_left',
+  context: 'combat',
+  reward: 1.0,          // -1 to +1
+  timestamp: Date.now()
+})
+```
+
+**Get learned values:**
+```javascript
+const actionValue = entity.learning.getActionValue('dodge_left')
+const stats = entity.learning.getStats()
+```
+
+**Experience Object:**
+```typescript
+interface Experience {
+  action: string
+  context?: string
+  reward: number         // -1 to +1
+  timestamp: number
+}
+```
 
 **Methods:**
 
@@ -171,32 +302,37 @@ interface Memory {
 | `getActionValue(action)` | Get Q-value for action |
 | `getStats()` | Learning statistics |
 
-**Experience Object:**
-```typescript
-interface Experience {
-  action: string
-  context?: string
-  reward: number      // -1 to +1
-  timestamp: number
-}
+---
+
+### Relationships 🟡
+
+**Enable:**
+```javascript
+entity.enable('relationships')
 ```
 
----
+**Create bond:**
+```javascript
+alice.addRelationship(bob.id, 'friend', 0.7)
+bob.addRelationship(alice.id, 'friend', 0.8)
+```
 
-### `Skills` (accessed via `entity.skills`)
+**Query relationships:**
+```javascript
+const friends = alice.getRelationshipsByType('friend')
+const bond = alice.getRelationship(bob.id)
+```
 
-**Methods:**
-
-| Method | Description |
-|--------|-------------|
-| `learnSkill(name)` | Add new skill |
-| `practice(name, success)` | Practice skill (0-1 success) |
-| `getSkillStats(name)` | Get skill proficiency |
-| `getAllSkills()` | List all skills |
-
----
-
-### `Relationships` (accessed via entity methods)
+**Relationship Object:**
+```typescript
+interface Relationship {
+  targetId: string
+  type: string           // 'friend', 'rival', 'neutral', custom
+  strength: number       // -1 to +1
+  createdAt: number
+  updatedAt: number
+}
+```
 
 **Methods:**
 
@@ -209,22 +345,230 @@ interface Experience {
 | `getAllRelationships()` | Get all bonds |
 | `removeRelationship(targetId)` | Delete bond |
 
-**Relationship Object:**
-```typescript
-interface Relationship {
-  targetId: string
-  type: string        // 'friend', 'rival', 'neutral', custom
-  strength: number    // -1 to +1
-  createdAt: number
-  updatedAt: number
+---
+
+### Skills 🟡
+
+**Enable:**
+```javascript
+entity.enable('skills')
+```
+
+**Learn and practice:**
+```javascript
+entity.skills.learnSkill('cooking')
+entity.skills.practice('cooking', 0.8)  // 0-1 success rate
+```
+
+**Query skills:**
+```javascript
+const stats = entity.skills.getSkillStats('cooking')
+// → { level: 'novice', proficiency: 0.45, attempts: 12, ... }
+```
+
+**Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `learnSkill(name)` | Add new skill |
+| `practice(name, success)` | Practice skill (0-1 success) |
+| `getSkillStats(name)` | Get skill proficiency |
+| `getAllSkills()` | List all skills |
+
+---
+
+### Emotion (PAD Model) 🟡
+
+**Set emotion:**
+```javascript
+entity.setEmotion({
+  valence: 0.8,        // -1 (sad) to +1 (happy)
+  arousal: 0.3,        // -1 (calm) to +1 (excited)
+  dominance: 0.5       // -1 (submissive) to +1 (dominant)
+})
+```
+
+**Get emotion:**
+```javascript
+const emotion = entity.getEmotion()
+// → { valence: 0.8, arousal: 0.3, dominance: 0.5 }
+```
+
+**Common Emotions:**
+
+| Emotion | Valence | Arousal | Dominance |
+|---------|---------|---------|-----------|
+| Happy | 0.8 | 0.3 | 0.5 |
+| Excited | 0.7 | 0.9 | 0.6 |
+| Calm | 0.3 | -0.7 | 0.5 |
+| Sad | -0.7 | -0.3 | 0.3 |
+| Angry | -0.5 | 0.8 | 0.8 |
+| Afraid | -0.6 | 0.7 | 0.1 |
+| Bored | 0.0 | -0.8 | 0.4 |
+
+---
+
+## LLM Configuration (v5.3) 🟡
+
+### Quick Start
+
+```javascript
+const world = new World({
+  features: { communication: true, languageGeneration: true },
+  llm: {
+    apiKey: process.env.OPENROUTER_KEY
+    // Defaults: provider='openrouter', languageModel='anthropic/claude-3.5-sonnet'
+  }
+})
+```
+
+### Configuration Examples
+
+#### Minimal (Default OpenRouter + Claude)
+
+```javascript
+llm: {
+  apiKey: process.env.OPENROUTER_KEY
 }
+// → provider: 'openrouter', languageModel: 'anthropic/claude-3.5-sonnet'
+```
+
+#### Custom Model (Cheaper Alternative)
+
+```javascript
+llm: {
+  apiKey: process.env.OPENROUTER_KEY,
+  languageModel: 'meta-llama/llama-3.1-70b-instruct'
+}
+```
+
+#### With Embeddings (Semantic Similarity)
+
+```javascript
+llm: {
+  apiKey: process.env.OPENROUTER_KEY,
+  languageModel: 'anthropic/claude-3.5-sonnet',
+  embeddingModel: 'openai/text-embedding-3-small'
+}
+```
+
+#### Direct Provider (Anthropic)
+
+```javascript
+llm: {
+  provider: 'anthropic',
+  apiKey: process.env.ANTHROPIC_KEY,
+  languageModel: 'claude-3-5-sonnet-20241022'
+}
+```
+
+#### Direct Provider (OpenAI)
+
+```javascript
+llm: {
+  provider: 'openai',
+  apiKey: process.env.OPENAI_KEY,
+  languageModel: 'gpt-4-turbo',
+  embeddingModel: 'text-embedding-3-small'
+}
+```
+
+### Fallback Behavior
+
+1. **No apiKey:** Falls back to `process.env.OPENROUTER_KEY`, then mock provider
+2. **No embeddingModel:** Uses local similarity (Jaccard/Levenshtein)
+3. **No languageModel:** Defaults to `anthropic/claude-3.5-sonnet`
+
+**Console messages:**
+- ✅ `LLM: Using OPENROUTER_KEY from environment`
+- ⚠️ `LLM: languageGeneration enabled but no apiKey provided. Falling back to mock provider.`
+- ℹ️ `LLM: Using local similarity methods (Jaccard/Levenshtein) for semantic clustering`
+- ℹ️ `LLM: Using openrouter embeddings (text-embedding-3-small) for semantic similarity`
+
+---
+
+## Feature Activation (v5.3 Unified API) 🟢
+
+### Enable Multiple Features
+
+```javascript
+// Enable multiple features in one call
+const entity = world.spawn(material, 100, 100)
+entity.enable('memory', 'learning', 'relationships')
+
+// Chainable
+const bob = world.spawn(material, 300, 300)
+  .enable('memory', 'learning')
+
+// Check if enabled
+if (entity.isEnabled('memory')) {
+  console.log('Memory is active')
+}
+
+// Disable features
+entity.disable('learning')
+
+// Enable all features at once
+entity.enableAll()
+
+// Disable all features
+entity.disableAll()
+```
+
+### Available Features
+
+- `'memory'` - Enable memory system (MemoryBuffer with Ebbinghaus decay)
+- `'learning'` - Enable Q-learning system
+- `'relationships'` - Enable relationship tracking
+- `'skills'` - Enable skill proficiency system
+
+### Examples
+
+#### Smart Home Device 🟡
+
+```javascript
+const thermostat = world.spawn({
+  essence: 'Thermostat that learns preferences'
+}, 100, 100).enable('memory', 'learning')
+
+thermostat.remember({
+  type: 'preference',
+  subject: 'temperature',
+  content: { value: 22 },
+  salience: 0.9
+})
+
+// Later: query preferences
+const prefs = thermostat.memory.recall({ subject: 'temperature' })
+```
+
+#### Game NPC 🟡
+
+```javascript
+const npc = world.spawn(material, 300, 300)
+  .enable('memory', 'learning', 'relationships')
+
+npc.onSpawn = (world, entity) => {
+  console.log('NPC ready with full ontology features')
+}
+
+// NPC remembers player actions
+npc.remember({
+  type: 'interaction',
+  subject: 'player',
+  content: 'Helped me find quest item',
+  salience: 0.85
+})
+
+// NPC forms relationship with player
+npc.addRelationship(player.id, 'friend', 0.6)
 ```
 
 ---
 
 ## Material Definition Format
 
-### Minimal Material
+### Minimal Material 🟢
 
 ```json
 {
@@ -233,7 +577,7 @@ interface Relationship {
 }
 ```
 
-### Full Material (v5.1 with Dialogue + Emotion Triggers)
+### Full Material (v5.1 with Dialogue + Emotion Triggers) 🟡
 
 ```json
 {
@@ -312,7 +656,7 @@ entity.checkEmotionTriggers()  // Entity becomes happy (player stared >5s)
 
 ---
 
-## Field Definition Format
+## Field Definition Format 🟡
 
 ```json
 {
@@ -335,51 +679,7 @@ entity.checkEmotionTriggers()  // Entity becomes happy (player stared >5s)
 
 ---
 
-## Emotion (PAD Model)
-
-```typescript
-interface Emotion {
-  valence: number      // -1 (sad) to +1 (happy)
-  arousal: number      // -1 (calm) to +1 (excited)
-  dominance: number    // -1 (submissive) to +1 (dominant)
-}
-```
-
-**Common Emotions:**
-
-| Emotion | Valence | Arousal | Dominance |
-|---------|---------|---------|-----------|
-| Happy | 0.8 | 0.3 | 0.5 |
-| Excited | 0.7 | 0.9 | 0.6 |
-| Calm | 0.3 | -0.7 | 0.5 |
-| Sad | -0.7 | -0.3 | 0.3 |
-| Angry | -0.5 | 0.8 | 0.8 |
-| Afraid | -0.6 | 0.7 | 0.1 |
-| Bored | 0.0 | -0.8 | 0.4 |
-
----
-
-## Lifecycle Hooks
-
-```typescript
-entity.onSpawn = (world, entity) => {
-  console.log('Entity spawned!')
-}
-
-entity.onUpdate = (dt, entity) => {
-  if (entity.age > 10) {
-    console.log('Entity is 10 seconds old')
-  }
-}
-
-entity.onDestroy = (entity) => {
-  console.log('Entity destroyed')
-}
-```
-
----
-
-## Serialization
+## Serialization 🟡
 
 ### Save
 
@@ -407,41 +707,7 @@ world.restore(data, materialMap, fieldMap)
 
 ---
 
-## LLM Integration
-
-### Enable
-
-```typescript
-world.enableLLM({
-  provider: 'anthropic',      // or 'openai', 'openrouter'
-  apiKey: process.env.ANTHROPIC_API_KEY,
-  model: 'claude-3-5-sonnet-20241022'
-})
-```
-
-### Set Creator Context
-
-```typescript
-world.setCreatorContext({
-  name: 'Alice',
-  style: 'poetic',
-  worldTheme: 'forest spirits'
-})
-```
-
-### Generate Dialogue
-
-```typescript
-entity.sendMessage('greeting', 'auto-generate', otherEntity)
-// Uses LLM to generate contextual dialogue based on:
-// - entity.m.essence
-// - entity.getEmotion()
-// - entity.memory.recall()
-```
-
----
-
-## Statistics & Patterns
+## Statistics & Patterns 🟡
 
 ### World Stats
 
@@ -457,7 +723,7 @@ const stats = world.getWorldStats()
 // }
 ```
 
-### Pattern Detection
+### Pattern Detection 🔴
 
 ```typescript
 const patterns = world.getPatterns()
@@ -476,7 +742,7 @@ const patterns = world.getPatterns()
 // ]
 ```
 
-### Collective Emotion
+### Collective Emotion 🟡
 
 ```typescript
 const mood = world.getCollectiveEmotion()
@@ -489,28 +755,28 @@ const mood = world.getCollectiveEmotion()
 
 ---
 
-## Bundle Sizes
+## Bundle Sizes 🟡
 
-| Package | Size (Minified) | Gzipped |
-|---------|-----------------|---------|
-| Core only | 18 KB | 5.5 KB |
-| + Ontology | 45 KB | 12 KB |
-| + Physics | 58 KB | 15 KB |
-| + Communication | 88 KB | 24 KB |
-| + Cognitive | 104 KB | 28 KB |
-| Full (all features) | 133 KB | 31 KB |
+| Package | Size (Minified) | Gzipped | Notes |
+|---------|-----------------|---------|-------|
+| Full (v5.3) | 186.74 KB | 43.17 KB | All features included |
+| Full (v5.2.3) | 198.79 KB | 45.08 KB | Pre-LLM optimization |
+| Core (v5.0) | 132.53 KB | 30.98 KB | Base + Phase 1-8 |
+| Legacy (v4.2) | 18.42 KB | 5.48 KB | Engine only, no ontology |
+
+**Performance Note:** v5.3 is **6.1% smaller** than v5.2.3 due to LLM config unification and tree-shaking improvements.
 
 **Tree-shakable:** Import only what you need.
 
 ```typescript
-// Minimal (18 KB)
+// Minimal
 import { World } from '@v1b3x0r/mds-core'
 const world = new World()
 
-// With ontology (45 KB)
+// With ontology
 const world = new World({ features: { ontology: true } })
 
-// Full features (133 KB)
+// Full features
 const world = new World({
   features: {
     ontology: true,
@@ -523,7 +789,7 @@ const world = new World({
 
 ---
 
-## TypeScript Types
+## TypeScript Types 🟢
 
 ### Material
 
@@ -564,11 +830,11 @@ function handleEntity(entity: Entity) {
 
 ## Recipes
 
-### Recipe 1: NPC With Memory
+### Recipe 1: NPC With Memory 🟢
 
 ```javascript
 const npc = world.spawn({ essence: 'Quest giver' }, 300, 300)
-npc.enableMemory = true
+npc.enable('memory')  // v5.3 unified API
 
 npc.remember({
   type: 'quest',
@@ -583,11 +849,11 @@ console.log(memories)
 
 ---
 
-### Recipe 2: Learning Enemy
+### Recipe 2: Learning Enemy 🟡
 
 ```javascript
 const enemy = world.spawn({ essence: 'Smart boss' }, 500, 500)
-enemy.enableLearning()
+enemy.enable('learning')  // v5.3 unified API
 
 enemy.learning.addExperience({
   action: 'dodge_left',
@@ -602,14 +868,14 @@ console.log(bestAction)  // Higher value = better learned
 
 ---
 
-### Recipe 3: Relationship Network
+### Recipe 3: Relationship Network 🟡
 
 ```javascript
 const alice = world.spawn({ essence: 'Alice' }, 200, 200)
 const bob = world.spawn({ essence: 'Bob' }, 400, 200)
 
-alice.enableRelationships()
-bob.enableRelationships()
+alice.enable('relationships')
+bob.enable('relationships')
 
 alice.addRelationship(bob.id, 'friend', 0.7)
 bob.addRelationship(alice.id, 'friend', 0.8)
@@ -620,7 +886,7 @@ console.log(friends)
 
 ---
 
-### Recipe 4: Emotional UI
+### Recipe 4: Emotional UI 🟡
 
 ```javascript
 const button = world.spawn({ essence: 'Stressed button' }, 250, 100)
@@ -644,7 +910,7 @@ button.el.addEventListener('click', () => {
 
 ---
 
-### Recipe 5: Headless Simulation
+### Recipe 5: Headless Simulation 🔴
 
 ```javascript
 import { World } from '@v1b3x0r/mds-core'
@@ -673,7 +939,7 @@ console.log(stats)
 
 ## Troubleshooting
 
-### Issue: Entities not moving
+### Issue: Entities not moving 🟢
 
 **Solution:** Make sure physics is enabled or manually set velocity.
 
@@ -688,40 +954,58 @@ entity.vy = -2
 
 ---
 
-### Issue: Memory not persisting
+### Issue: Memory not persisting 🟢
 
-**Solution:** Ensure `enableMemory = true` is set.
+**Solution:** Ensure memory feature is enabled using v5.3 unified API.
 
 ```javascript
-entity.enableMemory = true  // ← Required!
+entity.enable('memory')  // ← Required!
 entity.remember({ ... })
 ```
 
 ---
 
-### Issue: Learning not working
+### Issue: Learning not working 🟡
 
-**Solution:** Call `enableLearning()` before adding experiences.
+**Solution:** Enable learning feature before adding experiences.
 
 ```javascript
-entity.enableLearning()  // ← Required!
+entity.enable('learning')  // ← Required!
 entity.learning.addExperience({ ... })
 ```
 
 ---
 
-### Issue: Relationships not saved
+### Issue: Relationships not saved 🟡
 
-**Solution:** Call `enableRelationships()` before adding bonds.
+**Solution:** Enable relationships feature before adding bonds.
 
 ```javascript
-entity.enableRelationships()  // ← Required!
+entity.enable('relationships')  // ← Required!
 entity.addRelationship(otherId, 'friend', 0.8)
 ```
 
 ---
 
-## Phase 2 Features (v5.2) — Advanced Ontology
+### Issue: LLM not generating text 🟡
+
+**Solution:** Check API key configuration and console warnings.
+
+```javascript
+const world = new World({
+  features: { communication: true, languageGeneration: true },
+  llm: {
+    apiKey: process.env.OPENROUTER_KEY  // ← Required for real LLM
+  }
+})
+
+// Check console for:
+// ⚠️ "LLM: languageGeneration enabled but no apiKey provided"
+```
+
+---
+
+## Phase 2 Features (v5.2) — Advanced Ontology 🔴
 
 ### `SimilarityProvider`
 
@@ -788,7 +1072,7 @@ const crystallizer = new MemoryCrystallizer({
 
 // Crystallize memories
 const newCrystals = crystallizer.crystallize(
-  entity.memory.getAll(),
+  entity.memory.getAllMemories(),
   Date.now()
 )
 
@@ -841,7 +1125,7 @@ const { vx, vy } = coupler.modulateVelocity(
   entity.vx,
   entity.vy,
   entity.emotion,
-  entity.memory.get('recent')
+  entity.memory.getAllMemories()
 )
 
 // Modulate force
@@ -879,7 +1163,7 @@ const reasoner = new IntentReasoner({
 // Reason about intent
 const reasoned = reasoner.reason(intent, {
   emotion: entity.emotion,
-  memories: entity.memory.getAll(),
+  memories: entity.memory.getAllMemories(),
   crystals: crystallizer.getAllCrystals(),
   relationships: entity.relationships
 })
@@ -954,16 +1238,140 @@ DECAY_PRESETS.immortal  // No decay (baseRate: 0)
 
 ---
 
-## Next Steps
+## Migration Guide 🟡
 
-- **Game Dev:** [Gaming Examples](./examples/gaming.md)
-- **Smart Home:** [IoT Examples](./examples/smarthome.md)
-- **Education:** [Teaching Examples](./examples/education.md)
-- **Art:** [Creative Examples](./examples/art.md)
-- **Storytelling:** [Narrative Examples](./examples/storytelling.md)
-- **Research:** [Academic Examples](./examples/research.md)
-- **Philosophy:** [WTF Is This](./wtf-is-this-really.md)
+### v5.0-5.2 → v5.3 LLM Configuration
+
+**Old (Deprecated):**
+```javascript
+const world = new World({
+  languageProvider: 'openrouter',
+  languageApiKey: 'sk-...',
+  languageModel: 'claude-3.5',
+  semanticProvider: 'openai',
+  semanticApiKey: 'sk-...'
+})
+```
+
+**New (v5.3):**
+```javascript
+const world = new World({
+  llm: {
+    provider: 'openrouter',
+    apiKey: 'sk-...',
+    languageModel: 'anthropic/claude-3.5-sonnet',
+    embeddingModel: 'openai/text-embedding-3-small'
+  }
+})
+```
+
+**Migration Table:**
+
+| Old (Deprecated) | New (v5.3) | Notes |
+|------------------|------------|-------|
+| `languageProvider: 'openrouter'` | `llm.provider: 'openrouter'` | Default if omitted |
+| `languageApiKey: '...'` | `llm.apiKey: '...'` | Auto-fallback to `process.env.OPENROUTER_KEY` |
+| `languageModel: 'claude-3.5'` | `llm.languageModel: 'claude-3.5'` | Default: `anthropic/claude-3.5-sonnet` |
+| `semanticProvider: 'openai'` | `llm.embeddingModel: 'text-embedding-3-small'` | Optional (local fallback if omitted) |
+| `semanticApiKey: '...'` | *(removed)* | Use same `llm.apiKey` |
+
+**Auto-migration:** Old config is automatically converted. No code changes required unless you want to adopt new syntax.
 
 ---
 
-**Back to:** [Overview](./OVERVIEW.md)
+### v5.0-5.2 → v5.3 Feature Activation
+
+**Old (Still Works):**
+```javascript
+entity.enableMemory = true       // ❌ Property doesn't exist
+entity.enableLearning()          // ❌ Method doesn't exist
+entity.enableRelationships()     // ❌ Method doesn't exist
+```
+
+**New (v5.3 Unified API):**
+```javascript
+entity.enable('memory', 'learning', 'relationships')  // ✅ Correct
+entity.disable('learning')
+entity.isEnabled('memory')  // → true
+```
+
+---
+
+## Glossary 📚
+
+**Material** - JSON definition describing an entity's essence, behavior, physics, and visual properties. Not "config" but ontological description of what something *is*.
+
+**Entity** - Living instance of a Material spawned into the World. Has position, velocity, age, and optional ontology features (memory, emotion, relationships, learning, skills).
+
+**Ontology** - Optional systems that give entities inner life: Memory (with Ebbinghaus decay), Emotion (PAD model), Relationships, Learning (Q-learning), Skills.
+
+**PAD Model** - Three-dimensional emotion representation: **P**leasure (valence), **A**rousal, **D**ominance. Used throughout MDS for emotional state.
+
+**Feature** - Optional capability that can be enabled on entities: `'memory'`, `'learning'`, `'relationships'`, `'skills'`. Activated via `entity.enable(...)`.
+
+**Phase** - Development milestone in MDS v5 roadmap. Phase 1 = Ontology Foundation, Phase 2 = Advanced Ontology (Similarity, Crystallization, Coupling, Reasoning, Decay).
+
+**LLM** - Large Language Model integration for dynamic dialogue generation and semantic similarity. Configured via `WorldOptions.llm`.
+
+**Crystallization** - Long-term memory consolidation that forms "crystals" (durable memories) from repeated patterns. Prevents memory saturation.
+
+**Coupling** - Symbolic-Physical Coupling maps emotion and memory to physics properties (speed, mass, friction). Makes internal state affect external behavior.
+
+**Decay** - Time-based relationship deterioration. Unused relationships weaken and eventually prune automatically.
+
+**Salience** - Memory importance value (0-1) that decays over time following Ebbinghaus forgetting curve. Determines recall priority.
+
+**Essence** - Core semantic description of what a Material *is*. Primary identifier for info-physics. Can be in any language.
+
+**Field** - Emergent relationship zone spawned between entities. Has radius, duration, and effects on nearby entities.
+
+**Info-Physics** - Core MDS simulation paradigm where entities interact based on semantic similarity, not hardcoded rules. "Physics of meaning."
+
+---
+
+## System Checklist Coverage 🎯
+
+**Want to know if MDS implements a specific ontology feature?**
+
+See [**SYSTEM-MAPPING.md**](./SYSTEM-MAPPING.md) for complete checklist → API mapping.
+
+**Quick Summary:**
+
+| Category | Coverage | Status |
+|----------|----------|--------|
+| Memory System | 5/5 | ✅ **100%** |
+| Emotion System | 4/4 | ✅ **100%** |
+| World Mind | 3/3 | ✅ **100%** |
+| Physics/Manifestation | 3/3 | ✅ **100%** |
+| Core Engine | 4.5/5 | 90% |
+| Cognition | 3.5/4 | 88% (v5.4: 100%) |
+| Dialogue/Language | 3.5/4 | 88% (v5.4: 100%) |
+| Entity API | 7.5/9 | 83% (v5.4: 94%) |
+| Relationships | 2.5/3 | 83% |
+| Serialization | 2.5/3 | 83% |
+| Future ("ลืม") | 2.5/4 | 63% |
+| **TOTAL** | **41.5/47** | **88.3%** → **94.7% in v5.4** |
+
+**Legend:**
+- ✅ Fully implemented
+- ⚠️ Implemented (different naming/location)
+- 🔄 Planned for v5.4.0
+- ❌ Future work
+
+**Example: "Does MDS have reflection?"**
+→ Check [SYSTEM-MAPPING.md](./SYSTEM-MAPPING.md) → "ENTITY" section → `entity.reflect()` → 🔄 v5.4.0
+
+---
+
+## Next Steps
+
+- **System Mapping:** See [**System Checklist Coverage**](./SYSTEM-MAPPING.md) (NEW in v5.4)
+- **Game Dev:** See [Gaming Examples](./examples/gaming.md)
+- **Smart Home:** See [IoT Examples](./examples/smarthome.md)
+- **Education:** See [Teaching Examples](./examples/education.md)
+- **Philosophy:** Read [WTF Is This Really](./wtf-is-this-really.md)
+- **Contributing:** Read [Contributing Guide](./meta/CONTRIBUTING.md)
+
+---
+
+**Back to:** [Overview](./OVERVIEW.md) | [Changelog](./meta/CHANGELOG.md)
