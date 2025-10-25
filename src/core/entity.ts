@@ -42,7 +42,7 @@ import { CognitiveLinkManager } from '../cognition/cognitive-link'
 import type { CognitiveSignal } from '../cognition/resonance-field'
 
 // v5.1: Declarative config parser
-import { parseMaterial, getDialoguePhrase } from '../io/mdm-parser'
+import { parseMaterial, getDialoguePhrase, replacePlaceholders } from '../io/mdm-parser'
 import type { TriggerContext } from '../io/mdm-parser'
 
 /**
@@ -114,6 +114,14 @@ export class Entity implements MessageParticipant {
   private emotionTriggers?: import('../io/mdm-parser').EmotionTrigger[]
   private triggerContext: import('../io/mdm-parser').TriggerContext = {}
 
+  // v5.6: Autonomous behavior flag
+  private _isAutonomous: boolean = false
+
+  // v5.7: Language autonomy
+  nativeLanguage?: string
+  languageWeights?: Record<string, number>
+  adaptToContext: boolean = false
+
   /**
    * Get essence string for LanguageGenerator (v5.2)
    * Extracts essence from material definition
@@ -170,6 +178,16 @@ export class Entity implements MessageParticipant {
       if (parsed.emotionTriggers.length > 0) {
         this.emotionTriggers = parsed.emotionTriggers
       }
+    }
+
+    // v5.7: Initialize language autonomy
+    this.nativeLanguage = m.nativeLanguage || m.languageProfile?.native
+    this.languageWeights = m.languageProfile?.weights
+    this.adaptToContext = m.languageProfile?.adaptToContext ?? false
+
+    // Auto-generate weights if only nativeLanguage provided
+    if (this.nativeLanguage && !this.languageWeights) {
+      this.languageWeights = { [this.nativeLanguage]: 1.0 }
     }
 
     // Create DOM element (v4 legacy mode - skip if using v5 renderer)
@@ -304,6 +322,7 @@ export class Entity implements MessageParticipant {
 
   /**
    * Update entity state (aging, decay, friction)
+   * v5.6: Added autonomous intent generation
    */
   update(dt: number): void {
     // Age increases
@@ -319,6 +338,14 @@ export class Entity implements MessageParticipant {
     const fr = this.m.physics?.friction ?? 0.02
     this.vx *= (1 - fr)
     this.vy *= (1 - fr)
+
+    // v5.6: Auto-generate intent if autonomous and intent stack is empty
+    if (this._isAutonomous && this.intent && this.intent.isEmpty()) {
+      const newIntent = this.generateIntentFromSelf()
+      if (newIntent) {
+        this.intent.push(newIntent)
+      }
+    }
 
     // Call lifecycle hook (v4.1)
     this.onUpdate?.(dt, this)
@@ -555,18 +582,96 @@ export class Entity implements MessageParticipant {
   }
 
   /**
-   * v5.1: Speak dialogue based on category/event
-   * @param category - 'intro', 'self_monologue', or event name (e.g., 'onPlayerClose')
-   * @param lang - Language code (auto-detect if not specified)
+   * v5.7: Speak dialogue based on category/event
+   * Entity decides language autonomously (not externally controlled)
+   *
+   * @param category - 'intro', 'self_monologue', or event name (e.g., 'greeting', 'question')
+   * @param lang - Language override (optional, entity chooses if not specified)
    */
   speak(category?: string, lang?: string): string | undefined {
-    if (!this.dialoguePhrases) return undefined
+    // v5.7: Entity chooses language autonomously
+    const selectedLang = lang || this.nativeLanguage || 'en'
 
-    return getDialoguePhrase(
-      this.dialoguePhrases,
-      category || 'intro',
-      lang
-    )
+    // Get phrase with language weights (entity autonomy)
+    let phrase: string | undefined
+
+    if (this.dialoguePhrases) {
+      phrase = getDialoguePhrase(
+        this.dialoguePhrases,
+        category || 'intro',
+        selectedLang,
+        this.languageWeights  // v5.7: Pass weights for autonomous selection
+      )
+    }
+
+    // v5.8: Built-in fallback - cute default personality when .mdm has no dialogue
+    if (!phrase) {
+      phrase = this.getBuiltInDialogue(category || 'intro', selectedLang)
+    }
+
+    // v5.7: Replace placeholders
+    if (phrase) {
+      phrase = replacePlaceholders(phrase, {
+        name: this.m.material.split('.')[1] || 'Unknown',
+        essence: this.essence || '',
+        valence: this.emotion?.valence.toFixed(2) || '0',
+        arousal: this.emotion?.arousal.toFixed(2) || '0.5',
+        dominance: this.emotion?.dominance.toFixed(2) || '0.5'
+      })
+    }
+
+    return phrase
+  }
+
+  /**
+   * v5.8: Built-in dialogue fallback - cute default personality
+   * Returns variety of phrases based on emotion state
+   */
+  private getBuiltInDialogue(category: string, lang: string): string {
+    const emotion = this.emotion
+    const valence = emotion?.valence || 0
+    const arousal = emotion?.arousal || 0.5
+
+    // Built-in dialogue bank (multilingual, cute/quirky)
+    const builtIn: Record<string, string[]> = {
+      'intro_en': ["...", "oh, hi", "didn't see you there", "hello... I'm still figuring things out", "*waves shyly*", "um, nice to meet you?", "hi there ✨"],
+      'intro_th': ["...", "หวัดดีครับ", "เอ่อ... สวัสดี", "ไม่ได้สังเกตเห็นคุณ", "*โบกมืออย่างอายๆ*", "ยินดีที่ได้รู้จักครับ"],
+      'happy_en': ["this is nice :)", "I'm learning so much!", "*smiles*", "feeling good about this", "you're pretty cool", "yay! ✨"],
+      'happy_th': ["ดีจัง :)", "ได้เรียนรู้เยอะเลย!", "*ยิ้ม*", "รู้สึกดี", "คุณเจ๋งมากเลย", "เย้! ✨"],
+      'sad_en': ["oh...", "that hurts a bit", "*looks down*", "I'll... try better", "sorry if I messed up"],
+      'sad_th': ["โอ้...", "เจ็บหน่อยนะ", "*มองลง*", "จะ... พยายามมากขึ้น", "ขอโทษถ้าทำผิดพลาด"],
+      'curious_en': ["what's that?", "interesting...", "tell me more?", "*tilts head*", "I wonder...", "ooh, can you explain?"],
+      'curious_th': ["นั่นอะไร?", "น่าสนใจจัง...", "เล่าเพิ่มได้ไหม?", "*เอียงหัว*", "สงสัยจัง...", "อธิบายให้ฟังหน่อยได้ไหม?"],
+      'thinking_en': ["hmm...", "let me think...", "*processing*", "I'm not sure I understand", "wait, what?", "that's... complex"],
+      'thinking_th': ["อืม...", "ให้คิดหน่อย...", "*กำลังประมวลผล*", "ไม่แน่ใจว่าเข้าใจ", "เดี๋ยว อะไรนะ?", "มัน... ซับซ้อนนะ"],
+      'confused_en': ["huh?", "wait, what?", "*confused*", "I don't quite follow", "can you repeat that?", "umm...?"],
+      'confused_th': ["หา?", "เดี๋ยว อะไรนะ?", "*งง*", "ตามไม่ทัน", "พูดอีกทีได้ไหม?", "เอ่อ...?"],
+      'excited_en': ["wow!", "that's amazing!", "*bounces*", "really?!", "this is so cool! ✨", "I love this!"],
+      'excited_th': ["ว้าว!", "เจ๋งมาก!", "*กระโดดโลดเต้น*", "จริงเหรอ?!", "เจ๋งสุดๆ! ✨", "ชอบเลย!"],
+      'tired_en': ["*yawn*", "getting sleepy...", "need a moment...", "that's a lot to process", "...zzz"],
+      'tired_th': ["*หาว*", "ง่วงแล้ว...", "ขอพักหน่อย...", "มันเยอะเกินประมวลผลไหว", "...zzz"]
+    }
+
+    // Emotion-based category fallback
+    let fallbackCategory = category
+    if (!builtIn[`${category}_${lang}`]) {
+      if (valence > 0.5) fallbackCategory = 'happy'
+      else if (valence < -0.3) fallbackCategory = 'sad'
+      else if (arousal > 0.6) fallbackCategory = 'excited'
+      else if (arousal < 0.3) fallbackCategory = 'tired'
+      else fallbackCategory = 'curious'
+    }
+
+    const key = `${fallbackCategory}_${lang}`
+    const phrases = builtIn[key]
+
+    if (!phrases || phrases.length === 0) {
+      // Ultimate fallback
+      return lang === 'th' ? '...' : '...'
+    }
+
+    // Random selection
+    return phrases[Math.floor(Math.random() * phrases.length)]
   }
 
   /**
@@ -722,6 +827,121 @@ export class Entity implements MessageParticipant {
    */
   disableAll(): this {
     return this.disable('memory', 'learning', 'relationships', 'skills')
+  }
+
+  // v5.6: Autonomous Behavior API
+  /**
+   * Enable autonomous behavior (entity generates intents automatically)
+   * @returns this (for chaining)
+   */
+  enableAutonomous(): this {
+    this._isAutonomous = true
+    return this
+  }
+
+  /**
+   * Disable autonomous behavior
+   * @returns this (for chaining)
+   */
+  disableAutonomous(): this {
+    this._isAutonomous = false
+    return this
+  }
+
+  /**
+   * Check if entity is autonomous
+   * @returns true if autonomous mode is enabled
+   */
+  isAutonomous(): boolean {
+    return this._isAutonomous
+  }
+
+  /**
+   * Generate intent from own MDM + current state
+   * Entity reads its own material definition and generates behavior
+   *
+   * @returns Generated intent or undefined
+   *
+   * @example
+   * // Entity with cognition.reasoning_pattern
+   * const ghost = world.spawn(heroblindMDM, 100, 100)
+   * ghost.enableAutonomous()
+   * // → Ghost generates intents based on "loop(reflect → adapt → mutate)"
+   */
+  private generateIntentFromSelf(): Intent | undefined {
+    if (!this.emotion) return undefined
+
+    // Read reasoning pattern from MDM (if exists)
+    // TODO: Use pattern for LLM-based intent generation
+    // const pattern = this.m.cognition?.reasoning_pattern
+
+    // Simple emotion-driven intent generation (works without LLM)
+    const { valence, arousal } = this.emotion as any
+
+    // High arousal + positive valence = explore
+    if (arousal > 0.5 && valence > 0) {
+      return {
+        goal: 'explore',
+        motivation: arousal * 0.8,
+        priority: 2,
+        created: Date.now()
+      }
+    }
+
+    // High arousal + negative valence = avoid/wander
+    if (arousal > 0.5 && valence < 0) {
+      return {
+        goal: 'wander',
+        motivation: arousal * 0.7,
+        priority: 2,
+        created: Date.now()
+      }
+    }
+
+    // Low arousal = rest/observe
+    if (arousal < 0.3) {
+      return {
+        goal: Math.random() > 0.5 ? 'rest' : 'observe',
+        motivation: (1 - arousal) * 0.6,
+        priority: 1,
+        created: Date.now()
+      }
+    }
+
+    // Default: wander with low motivation
+    return {
+      goal: 'wander',
+      motivation: 0.3,
+      priority: 1,
+      created: Date.now()
+    }
+  }
+
+  /**
+   * Get MDM dialogue phrases for a context
+   * Entity reads its own dialogue configuration
+   *
+   * @param context - Dialogue context (intro, greeting, question, etc.)
+   * @returns Array of dialogue phrases
+   */
+  getDialogue(context: string): Array<{ lang: Record<string, string> }> {
+    const dialogue = this.m.dialogue as any
+    if (!dialogue || !dialogue[context]) return []
+    return dialogue[context]
+  }
+
+  /**
+   * Speak from MDM dialogue (pick random phrase)
+   * @param context - Dialogue context
+   * @param lang - Language code (default 'en')
+   * @returns Spoken text or empty string
+   */
+  speakFromDialogue(context: string, lang: string = 'en'): string {
+    const phrases = this.getDialogue(context)
+    if (phrases.length === 0) return ''
+
+    const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)]
+    return randomPhrase.lang[lang] || randomPhrase.lang['en'] || ''
   }
 
   // v5.4: Reflection API

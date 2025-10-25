@@ -4,7 +4,7 @@
  */
 
 import assert from 'node:assert'
-import { validateMaterial } from '../dist/mds-core.esm.js'
+import { validateMaterial } from '../dist/mds-validator.esm.js'
 
 console.log('\n🔍 MDS v5.2 - MDM Validator Tests\n')
 

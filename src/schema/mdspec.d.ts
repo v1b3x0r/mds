@@ -179,6 +179,15 @@ export interface MdsWorldMindConfig {
 }
 
 /**
+ * Language profile configuration (v5.7 - Entity language autonomy)
+ */
+export interface MdsLanguageProfile {
+  native?: string             // Native language code (e.g., "ja", "th", "en")
+  weights?: Record<string, number>  // Language distribution (e.g., { ja: 0.8, en: 0.2 })
+  adaptToContext?: boolean    // Whether entity adapts language to listener (default: false)
+}
+
+/**
  * Complete material definition (v5.1+)
  */
 export interface MdsMaterial {
@@ -186,6 +195,10 @@ export interface MdsMaterial {
   material: string            // unique ID (e.g., "paper.shy", "entity.heroblind")
   intent?: string             // short verb/noun (e.g., "observe", "resonate")
   essence?: LangText          // semantic description (essence-first design)
+
+  // v5.7: Language autonomy
+  nativeLanguage?: string     // Shorthand for language.native
+  languageProfile?: MdsLanguageProfile  // Full language configuration
 
   behavior?: {
     onHover?: MdsBehaviorRule

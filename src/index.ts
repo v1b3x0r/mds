@@ -48,6 +48,21 @@ export { Field } from './core/field'
 export { World } from './world'
 export type { WorldOptions, SpawnOptions, WorldEvent } from './world'
 
+// v6.0: Linguistics system
+export {
+  TranscriptBuffer,
+  WorldLexicon,
+  LinguisticCrystallizer,
+  ProtoLanguageGenerator  // v6.1: Emergent language generation
+} from './world'
+
+export type {
+  Utterance,
+  LexiconEntry,
+  CrystallizerConfig,
+  ProtoSentenceConfig  // v6.1: Proto-language config
+} from './world'
+
 // Renderers (v5)
 export {
   DOMRenderer,

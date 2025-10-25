@@ -4,6 +4,72 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.7.0] — Emergent Linguistics System (Phase 10)
+
+📅 2025-10-26
+
+⸻
+
+🎯 Added
+
+Emergent Linguistics (Phase 10)
+	•	WorldLexicon — Track emergent terms, usage frequency, and strength
+	•	TranscriptBuffer — Store conversation history with speaker/emotion context
+	•	ProtoLanguageGenerator — Generate vocabulary-based proto-language (>= 20 words)
+	•	MemoryCrystallizer — Consolidate linguistic patterns from repeated interactions
+	•	WorldFile Linguistics Serialization — Save/restore lexicon + transcript
+
+World Linguistics API
+	•	world.recordUtterance(speaker, text, emotion) — Log conversation
+	•	world.addTerm(term, meaning, origin) — Add emergent vocabulary
+	•	world.getPopularTerms(limit) — Get most-used terms
+	•	world.getRecentUtterances(limit) — Get conversation history
+	•	world.getLexiconStats() — Get lexicon statistics
+	•	world.crystallizePatterns() — Consolidate linguistic patterns
+
+Tests
+	•	test-linguistics.mjs — 6 core linguistics tests (100% pass)
+	•	test-world-linguistics.mjs — 8 world integration tests (100% pass)
+
+⸻
+
+📝 Changed
+
+Bundle Size
+	•	Full: 251.77 KB (+30.76 KB from v5.5.0) — Linguistics features
+	•	Lite: 156.93 KB (+23.22 KB from v5.5.0) — Basic proto-language
+	•	Validator: 17.25 KB (unchanged)
+
+⸻
+
+⚙️ Technical Details
+
+Proto-Language Generation
+	•	Activates when vocabulary >= 20 words
+	•	Uses base vocabulary + crystallized patterns + environment terms
+	•	Emotion-aware phrasing (valence affects word choice)
+	•	Fallback to MDM dialogue if insufficient vocabulary
+
+Memory Crystallization
+	•	Four tiers: nascent (2+), emerging (5+), strong (10+), crystallized (20+)
+	•	Pattern strength decays over time (logarithmic curve)
+	•	Rehearsal increases strength (practice makes perfect)
+	•	Integrated with WorldFile serialization
+
+Lexicon Tracking
+	•	Term metadata: usage count, first/last seen, strength, meaning
+	•	Origin tracking: dialogue, learning, user_input, crystallized
+	•	Strength calculation: usage × recency × rehearsal count
+	•	Automatic term detection from all conversations
+
+⸻
+
+🎬 Philosophy
+
+"Language emerges from interaction" — Entities develop vocabulary naturally through conversation. Proto-language generates when entities lack canned responses, forcing creativity from base words. Patterns crystallize through repetition, forming permanent linguistic structures. The system learns to speak by speaking.
+
+⸻
+
 [5.5.0] — P2P Cognition Foundation (Distributed Intelligence)
 
 📅 2025-10-25

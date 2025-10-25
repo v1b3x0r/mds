@@ -23,6 +23,7 @@ export interface EngineOptions {
   boundaryBehavior?: BoundaryBehavior
   boundaryBounceDamping?: number
   seed?: number  // Deterministic mode (v4.2)
+  headless?: boolean  // v6.1: Headless mode (no DOM)
 }
 
 export class Engine {
@@ -32,14 +33,17 @@ export class Engine {
   private last = 0
   private options: EngineOptions
   private rng: () => number  // Deterministic RNG (v4.2)
+  private headless: boolean  // v6.1: Headless flag
 
   constructor(options: EngineOptions = {}) {
     this.options = {
       boundaryBehavior: options.boundaryBehavior ?? 'none',
       boundaryBounceDamping: options.boundaryBounceDamping ?? 0.85,
       worldBounds: options.worldBounds,
-      seed: options.seed
+      seed: options.seed,
+      headless: options.headless ?? false
     }
+    this.headless = this.options.headless || false
 
     // Initialize RNG (v4.2)
     if (options.seed !== undefined) {
@@ -72,9 +76,10 @@ export class Engine {
 
   /**
    * Spawn a new field at position
+   * v6.1: Respects headless mode
    */
   spawnField(fs: MdsFieldSpec, x: number, y: number): Field {
-    const f = new Field(fs, x, y)
+    const f = new Field(fs, x, y, this.headless)
     this.fields.push(f)
     return f
   }

@@ -1,0 +1,37 @@
+{
+  "name": "hi-introvert",
+  "version": "1.0.0",
+  "description": "A quiet corner of the internet where silence is understood.",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "hi-introvert": "./bin/hi-introvert.js"
+  },
+  "scripts": {
+    "dev": "bun run src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target node --format esm",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "@types/blessed": "^0.1.25",
+    "@v1b3x0r/mds-core": "^5.5.0",
+    "blessed": "^0.1.81",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "cli",
+    "chat",
+    "introvert",
+    "p2p",
+    "cognition",
+    "mds",
+    "terminal",
+    "minimal"
+  ],
+  "author": "v1b3x0r",
+  "license": "MIT"
+}

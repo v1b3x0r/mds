@@ -16,11 +16,17 @@ import type {
 
 /**
  * Parsed dialogue phrases by category and language
+ * v5.7: Added flexible categories map for custom dialogue types
  */
 export interface ParsedDialogue {
+  // Legacy fields (backward compatible)
   intro: Map<string, string[]>          // lang → phrases
   self_monologue: Map<string, string[]> // lang → phrases
   events: Map<string, Map<string, string[]>>  // eventName → lang → phrases
+
+  // v5.7: Flexible category system
+  categories: Map<string, Map<string, string[]>>  // categoryName → lang → phrases
+  // Access any category: categories.get('intro'), categories.get('greeting'), etc.
 }
 
 /**
@@ -148,30 +154,35 @@ export class MdmParser {
 
   /**
    * Parse dialogue phrases
+   * v5.7: Now parses all categories flexibly + maintains backward compatibility
    */
   parseDialogue(config: MdsDialogueConfig): ParsedDialogue {
     const result: ParsedDialogue = {
       intro: new Map(),
       self_monologue: new Map(),
-      events: new Map()
+      events: new Map(),
+      categories: new Map()  // v5.7: New flexible system
     }
 
-    // Parse intro
-    if (config.intro) {
-      this.addPhrasesToMap(result.intro, config.intro)
-    }
+    // Parse all top-level categories
+    for (const [categoryName, value] of Object.entries(config)) {
+      if (categoryName === 'event') {
+        // Special case: Parse events (nested structure)
+        for (const [eventName, phrases] of Object.entries(value)) {
+          const eventMap = new Map<string, string[]>()
+          this.addPhrasesToMap(eventMap, phrases as MdsDialoguePhrase[])
+          result.events.set(eventName, eventMap)
+          result.categories.set(eventName, eventMap)  // Also add to categories
+        }
+      } else {
+        // Parse as regular category
+        const categoryMap = new Map<string, string[]>()
+        this.addPhrasesToMap(categoryMap, value as MdsDialoguePhrase[])
+        result.categories.set(categoryName, categoryMap)
 
-    // Parse self_monologue
-    if (config.self_monologue) {
-      this.addPhrasesToMap(result.self_monologue, config.self_monologue)
-    }
-
-    // Parse events
-    if (config.event) {
-      for (const [eventName, phrases] of Object.entries(config.event)) {
-        const eventMap = new Map<string, string[]>()
-        this.addPhrasesToMap(eventMap, phrases)
-        result.events.set(eventName, eventMap)
+        // Backward compatibility: populate legacy fields
+        if (categoryName === 'intro') result.intro = categoryMap
+        if (categoryName === 'self_monologue') result.self_monologue = categoryMap
       }
     }
 
@@ -235,28 +246,40 @@ export function detectLanguage(): string {
 
 /**
  * Get phrase from parsed dialogue
+ * v5.7: Now uses flexible categories system
  */
 export function getDialoguePhrase(
   dialogue: ParsedDialogue,
   category: 'intro' | 'self_monologue' | string,
-  lang?: string
+  lang?: string,
+  languageWeights?: Record<string, number>  // v5.7: Optional language weighting
 ): string | undefined {
   const targetLang = lang || detectLanguage()
 
-  let map: Map<string, string[]> | undefined
+  // v5.7: Try flexible categories first
+  let map: Map<string, string[]> | undefined = dialogue.categories.get(category)
 
-  if (category === 'intro') {
-    map = dialogue.intro
-  } else if (category === 'self_monologue') {
-    map = dialogue.self_monologue
-  } else {
-    // Event category
-    map = dialogue.events.get(category)
+  // Fallback to legacy fields for backward compatibility
+  if (!map) {
+    if (category === 'intro') map = dialogue.intro
+    else if (category === 'self_monologue') map = dialogue.self_monologue
+    else map = dialogue.events.get(category)
   }
 
   if (!map) return undefined
 
-  // Try target language first
+  // v5.7: Use language weights if provided (entity autonomy)
+  if (languageWeights) {
+    const selectedLang = selectLanguageByWeight(languageWeights, map)
+    if (selectedLang) {
+      const phrases = map.get(selectedLang)
+      if (phrases && phrases.length > 0) {
+        return phrases[Math.floor(Math.random() * phrases.length)]
+      }
+    }
+  }
+
+  // Original fallback logic (no weights)
   let phrases = map.get(targetLang)
 
   // Fallback to English
@@ -276,4 +299,37 @@ export function getDialoguePhrase(
 
   // Random selection
   return phrases[Math.floor(Math.random() * phrases.length)]
+}
+
+/**
+ * v5.7: Select language by weight (for entity language autonomy)
+ */
+function selectLanguageByWeight(
+  weights: Record<string, number>,
+  availableLangs: Map<string, string[]>
+): string | undefined {
+  const rand = Math.random()
+  let cumulative = 0
+
+  for (const [lang, weight] of Object.entries(weights)) {
+    if (!availableLangs.has(lang)) continue
+    cumulative += weight
+    if (rand < cumulative) return lang
+  }
+
+  return undefined
+}
+
+/**
+ * v5.7: Replace placeholders in dialogue text
+ * Supports: {name}, {essence}, {valence}, {arousal}, etc.
+ */
+export function replacePlaceholders(
+  text: string,
+  context: Record<string, any>
+): string {
+  return text.replace(/{(\w+)}/g, (match, key) => {
+    const value = context[key]
+    return value !== undefined ? String(value) : match
+  })
 }

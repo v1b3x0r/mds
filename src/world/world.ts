@@ -39,13 +39,20 @@ import {
   DialogueManager,
   LanguageGenerator,
   SemanticSimilarity,
-  MessageDelivery
+  MessageDelivery,
+  MessageQueue
 } from '../communication'
 import {
   CollectiveIntelligence,
   WorldStats,
   PatternDetection
 } from '../world-mind'
+import {
+  TranscriptBuffer,
+  WorldLexicon,
+  LinguisticCrystallizer
+} from './index'
+import type { Utterance, LexiconEntry, CrystallizerConfig } from './index'
 
 /**
  * World configuration options
@@ -67,6 +74,17 @@ export interface WorldOptions {
     languageGeneration?: boolean  // Enable LLM-powered dialogue (Phase 6)
     cognitive?: boolean       // Enable learning/skills (Phase 7)
     cognition?: boolean       // Enable P2P cognition (Phase 9 / v5.5)
+    linguistics?: boolean     // Enable emergent linguistics (Phase 10 / v6.0)
+  }
+
+  // v6.0: Linguistics system configuration
+  linguistics?: {
+    enabled?: boolean         // Enable linguistics system (default: false)
+    maxTranscript?: number    // Max utterances in buffer (default: 1000)
+    analyzeEvery?: number     // Ticks between analysis (default: 50)
+    minUsage?: number         // Minimum occurrences (default: 3)
+    minLength?: number        // Min phrase length (default: 2)
+    maxLength?: number        // Max phrase length (default: 100)
   }
 
   // v5.5: P2P Cognition configuration
@@ -245,6 +263,11 @@ export class World {
   cognitiveNetwork?: import('../cognition').CognitiveNetwork
   resonanceField?: import('../cognition').ResonanceField
 
+  // Phase 10 / v6.0: Linguistics (optional)
+  transcript?: TranscriptBuffer
+  lexicon?: WorldLexicon
+  private crystallizer?: LinguisticCrystallizer
+
   // Options
   options: WorldOptions
 
@@ -257,15 +280,16 @@ export class World {
     this.migrateLLMConfig(options)
 
     // Create v4 engine (delegate tick logic)
+    const renderMode = options.features?.rendering ?? 'dom'
     this.engine = new Engine({
       seed: options.seed,
       worldBounds: options.worldBounds,
       boundaryBehavior: options.boundaryBehavior,
-      boundaryBounceDamping: options.boundaryBounceDamping
+      boundaryBounceDamping: options.boundaryBounceDamping,
+      headless: renderMode === 'headless'  // v6.1: Pass headless flag to Engine
     })
 
     // Initialize renderer
-    const renderMode = options.features?.rendering ?? 'dom'
     this.renderer = this.createRenderer(renderMode)
     this.renderer.init()
 
@@ -280,6 +304,11 @@ export class World {
     // Phase 6: Initialize communication systems (if enabled)
     if (options.features?.communication) {
       this.initializeCommunication(options)
+    }
+
+    // Phase 10 / v6.0: Initialize linguistics systems (if enabled)
+    if (options.features?.linguistics || options.linguistics?.enabled) {
+      this.initializeLinguistics(options)
     }
   }
 
@@ -405,6 +434,33 @@ export class World {
   }
 
   /**
+   * Initialize linguistics systems (Phase 10 / v6.0)
+   */
+  private initializeLinguistics(options: WorldOptions): void {
+    console.info('v6.0: Initializing emergent linguistics system')
+
+    // Create transcript buffer
+    const maxTranscript = options.linguistics?.maxTranscript ?? 1000
+    this.transcript = new TranscriptBuffer(maxTranscript)
+
+    // Create lexicon
+    this.lexicon = new WorldLexicon()
+
+    // Create crystallizer with config
+    const crystallizerConfig: CrystallizerConfig = {
+      enabled: true,
+      analyzeEvery: options.linguistics?.analyzeEvery ?? 50,
+      minUsage: options.linguistics?.minUsage ?? 3,
+      minLength: options.linguistics?.minLength ?? 2,
+      maxLength: options.linguistics?.maxLength ?? 100
+    }
+
+    this.crystallizer = new LinguisticCrystallizer(crystallizerConfig)
+
+    console.info(`v6.0: Linguistics initialized (buffer=${maxTranscript}, analyze every ${crystallizerConfig.analyzeEvery} ticks)`)
+  }
+
+  /**
    * Initialize communication systems (Phase 6)
    */
   private initializeCommunication(options: WorldOptions): void {
@@ -502,6 +558,41 @@ export class World {
     // Spawn entity (with or without DOM)
     const entity = this.engine.spawn(material, options?.x, options?.y, { skipDOM })
 
+    // v5.6: Auto-enable features based on MDM content
+    if (material.dialogue) {
+      // Has dialogue → enable message/communication features automatically
+      if (!entity.inbox) entity.inbox = new MessageQueue()
+      if (!entity.outbox) entity.outbox = new MessageQueue()
+    }
+
+    if (material.cognition) {
+      // Has cognition config → enable autonomous behavior
+      if (entity.emotion && entity.intent) {
+        entity.enableAutonomous()
+      }
+    }
+
+    if (material.memory) {
+      // Has memory config → ensure memory is enabled
+      if (!entity.memory) {
+        entity.enable('memory')
+      }
+    }
+
+    if (material.relationships) {
+      // Has relationships config → enable relationship tracking
+      if (!entity.relationships) {
+        entity.enable('relationships')
+      }
+    }
+
+    if (material.skills) {
+      // Has skills config → enable skill system
+      if (!entity.skills) {
+        entity.enable('skills')
+      }
+    }
+
     // Delegate rendering to renderer
     this.renderer.spawn(entity)
 
@@ -582,6 +673,11 @@ export class World {
 
     // Phase 4: World mind update (Phase 8 - statistics & patterns)
     this.updateWorldMind()
+
+    // Phase 4.5: Linguistics update (Phase 10 / v6.0 - if enabled)
+    if (this.options.features?.linguistics && this.crystallizer) {
+      this.updateLinguistics()
+    }
 
     // Phase 5: Rendering update
     if (this.renderer.renderAll) {
@@ -902,6 +998,17 @@ export class World {
   }
 
   /**
+   * Phase 4.5: Linguistics update (Phase 10 / v6.0)
+   * - Run crystallizer to detect patterns in transcript
+   * - Update lexicon with new terms
+   */
+  private updateLinguistics(): void {
+    if (!this.crystallizer || !this.transcript || !this.lexicon) return
+
+    this.crystallizer.tick(this.transcript, this.lexicon)
+  }
+
+  /**
    * Phase 8: Update world mind
    * - Calculate world statistics
    * - Detect emergent patterns
@@ -936,6 +1043,88 @@ export class World {
    */
   getCollectiveEmotion(): import('../ontology').EmotionalState | null {
     return CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
+  }
+
+  /**
+   * v6.0: Record entity speech to transcript
+   *
+   * @param speaker - Entity who is speaking
+   * @param text - What was said
+   * @param listener - Optional target entity (if direct message)
+   *
+   * @example
+   * const yuki = world.spawn(yukiMaterial, 100, 100)
+   * const says = yuki.speak('greeting')
+   * world.recordSpeech(yuki, says)
+   */
+  recordSpeech(speaker: Entity, text: string, listener?: Entity): void {
+    if (!this.transcript) {
+      console.warn('v6.0: recordSpeech called but linguistics not enabled')
+      return
+    }
+
+    // Map PAD emotion model to valence-arousal for linguistics
+    // PAD model uses 'pleasure' field, but EmotionalState may use 'valence'
+    const emotion = speaker.emotion as any
+    const valence = emotion?.pleasure ?? emotion?.valence ?? 0
+    const arousal = emotion?.arousal ?? 0.5
+
+    const utterance: Utterance = {
+      id: this.generateUUID(),
+      speaker: speaker.id,
+      text,
+      listener: listener?.id,
+      timestamp: Date.now(),
+      emotion: {
+        valence,
+        arousal
+      }
+    }
+
+    this.transcript.add(utterance)
+  }
+
+  /**
+   * v6.0: Get lexicon statistics
+   *
+   * @returns Lexicon stats or undefined if linguistics not enabled
+   *
+   * @example
+   * const stats = world.getLexiconStats()
+   * console.log(`Terms: ${stats.totalTerms}, Usage: ${stats.totalUsage}`)
+   */
+  getLexiconStats(): ReturnType<WorldLexicon['getStats']> | undefined {
+    return this.lexicon?.getStats()
+  }
+
+  /**
+   * v6.0: Get popular terms from lexicon
+   *
+   * @param minUsage - Minimum usage count (default: 5)
+   * @returns Popular terms or empty array if linguistics not enabled
+   *
+   * @example
+   * const popular = world.getPopularTerms(3)
+   * console.log(popular.map(e => `${e.term} (${e.usageCount}×)`))
+   */
+  getPopularTerms(minUsage: number = 5): LexiconEntry[] {
+    return this.lexicon?.getPopular(minUsage) ?? []
+  }
+
+  /**
+   * v6.0: Get recent utterances from transcript
+   *
+   * @param count - Number of recent utterances (default: 10)
+   * @returns Recent utterances or empty array if linguistics not enabled
+   *
+   * @example
+   * const recent = world.getRecentUtterances(5)
+   * for (const utt of recent) {
+   *   console.log(`${utt.speaker}: ${utt.text}`)
+   * }
+   */
+  getRecentUtterances(count: number = 10): Utterance[] {
+    return this.transcript?.getRecent(count) ?? []
   }
 
   /**

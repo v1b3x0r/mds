@@ -244,10 +244,12 @@ export class MessageDelivery {
 
   /**
    * Deliver direct message
+   * v5.6: Defensive - skip if receiver has no inbox (natural filtering)
    */
   private static deliverDirect(message: Message, receiver: MessageParticipant): void {
+    // Entity ไม่มี inbox = ไม่ต้องการรับข้อความ (e.g., ก้อนหินธรรมดา)
     if (!receiver.inbox) {
-      receiver.inbox = new MessageQueue() as any
+      return
     }
 
     (receiver.inbox as MessageQueue).enqueue(message)
@@ -256,14 +258,14 @@ export class MessageDelivery {
 
   /**
    * Deliver broadcast message (to all entities except sender)
+   * v5.6: Defensive - skip entities without inbox (natural filtering)
    */
   private static deliverBroadcast(message: Message, entities: MessageParticipant[]): void {
     for (const entity of entities) {
       if (entity.id === message.sender.id) continue
 
-      if (!entity.inbox) {
-        entity.inbox = new MessageQueue() as any
-      }
+      // v5.6: Skip entities without inbox (e.g., ก้อนหินธรรมดา, entities ที่ไม่มี dialogue)
+      if (!entity.inbox) continue
 
       // Clone message for each receiver
       const cloned = { ...message, receiver: entity }

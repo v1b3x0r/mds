@@ -1,0 +1,676 @@
+import blessed from 'blessed'
+import type { Widgets } from 'blessed'
+import { WorldSession } from '../session/WorldSession.js'
+import { getEmoji } from '../utils/emoji.js'
+import type { Message } from '../types/index.js'
+
+/**
+ * blessed-based TUI for hi-introvert
+ * Replaces Ink to fix stdin.setRawMode issues
+ */
+export class BlessedApp {
+  screen: Widgets.Screen
+  chatBox: Widgets.BoxElement
+  inputBox: Widgets.TextboxElement
+  statusBar: Widgets.BoxElement
+
+  session: WorldSession
+  messages: Message[] = []
+  statusInterval?: NodeJS.Timeout  // v6.3: Cleanup interval on exit
+
+  constructor() {
+    // Initialize session
+    this.session = new WorldSession()
+    this.session.setSilentMode(true)  // ✅ Disable console.log for clean TUI
+
+    // Create screen
+    this.screen = blessed.screen({
+      smartCSR: true,
+      title: 'hi, introvert',
+      fullUnicode: true,  // Thai Unicode support
+      dockBorders: true
+    })
+
+    // Create UI components
+    this.chatBox = this.createChatBox()
+    this.inputBox = this.createInputBox()
+    this.statusBar = this.createStatusBar()
+
+    // Append to screen
+    this.screen.append(this.chatBox)
+    this.screen.append(this.inputBox)
+    this.screen.append(this.statusBar)
+
+    // Setup event handlers
+    this.setupKeyBindings()
+    this.setupInputHandler()
+    this.setupSessionEventListeners()
+
+    // Initial render
+    this.screen.render()
+  }
+
+  /**
+   * Create scrollable chat box
+   */
+  private createChatBox(): Widgets.BoxElement {
+    return blessed.box({
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%-3',  // Leave space for input + status
+      scrollable: true,
+      alwaysScroll: true,
+      keys: true,
+      vi: true,
+      mouse: true,
+      tags: true,  // Enable {color} tags
+      wrap: true,  // ✅ Enable word wrap
+      border: {
+        type: 'line'
+      },
+      style: {
+        border: {
+          fg: 'cyan'
+        },
+        scrollbar: {
+          bg: 'blue',
+          fg: 'white'
+        }
+      },
+      scrollbar: {
+        ch: '█',
+        track: {
+          bg: 'grey'
+        },
+        style: {
+          inverse: true
+        }
+      },
+      label: ' Chat ',
+      padding: {
+        left: 1,
+        right: 1
+      }
+    })
+  }
+
+  /**
+   * Create input box
+   */
+  private createInputBox(): Widgets.TextboxElement {
+    return blessed.textbox({
+      bottom: 1,
+      left: 0,
+      width: '100%',
+      height: 1,
+      inputOnFocus: true,
+      mouse: true,
+      keys: true,
+      style: {
+        fg: 'white',
+        bg: 'black'
+      }
+    })
+  }
+
+  /**
+   * Create status bar
+   */
+  private createStatusBar(): Widgets.BoxElement {
+    return blessed.box({
+      bottom: 0,
+      left: 0,
+      width: '100%',
+      height: 1,
+      tags: true,
+      style: {
+        fg: 'grey',
+        bg: 'black'
+      }
+    })
+  }
+
+  /**
+   * Setup keyboard bindings
+   */
+  private setupKeyBindings() {
+    // ESC or Ctrl+C to quit
+    this.screen.key(['escape', 'C-c'], () => {
+      this.cleanup()
+      process.exit(0)
+    })
+
+    // Tab to focus input
+    this.screen.key(['tab'], () => {
+      this.inputBox.focus()
+      this.inputBox.readInput()  // Force input mode
+      this.screen.render()
+    })
+
+    // Arrow keys to scroll chat (when not in input)
+    this.chatBox.key(['up', 'down', 'pageup', 'pagedown'], (ch, key) => {
+      if (key.name === 'up') this.chatBox.scroll(-1)
+      if (key.name === 'down') this.chatBox.scroll(1)
+      if (key.name === 'pageup') this.chatBox.scroll(-this.chatBox.height as number)
+      if (key.name === 'pagedown') this.chatBox.scroll(this.chatBox.height as number)
+      this.screen.render()
+    })
+  }
+
+  /**
+   * Setup input handler
+   */
+  private setupInputHandler() {
+    this.inputBox.on('submit', async (input: string) => {
+      const text = input.trim()
+
+      if (!text) {
+        this.inputBox.clearValue()
+        this.inputBox.focus()
+        this.screen.render()
+        return
+      }
+
+      // Handle commands
+      if (text.startsWith('/')) {
+        await this.handleCommand(text)
+        this.inputBox.clearValue()
+        this.inputBox.focus()
+        this.screen.render()
+        return
+      }
+
+      // Handle user message
+      await this.handleUserMessage(text)
+
+      this.inputBox.clearValue()
+      this.inputBox.focus()
+      this.screen.render()
+    })
+  }
+
+  /**
+   * Add message to chat
+   */
+  private addMessage(message: Message) {
+    this.messages.push(message)
+    this.renderAllMessages()
+  }
+
+  /**
+   * Render a single message (helper for load)
+   */
+  private renderMessage(message: Message): string {
+    const timestamp = new Date(message.timestamp).toLocaleTimeString('th-TH', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+
+    if (message.type === 'user') {
+      return `{cyan-fg}[${timestamp}]{/} {bold}you:{/bold}\n  ${message.text}\n`
+    } else if (message.type === 'entity') {
+      // Emoji emergence based on emotion
+      const emoji = message.emotion ? getEmoji(message.emotion.valence) : '💭'
+      const emotionText = message.emotion
+        ? ` {dim}(${message.emotion.valence.toFixed(2)}){/}`
+        : ''
+      return `{cyan-fg}[${timestamp}]{/} ${emoji} {green-fg}${message.sender}:{/}${emotionText}\n  ${message.text}\n`
+    } else if (message.type === 'system') {
+      return `{cyan-fg}[${timestamp}]{/} {grey-fg}⚙ system{/}\n  {dim}${message.text}{/}\n`
+    }
+
+    return ''
+  }
+
+  /**
+   * Render all messages (full re-render to prevent overlap)
+   */
+  private renderAllMessages() {
+    const lines: string[] = []
+
+    // Only show last 50 messages to prevent lag
+    const recentMessages = this.messages.slice(-50)
+
+    for (const msg of recentMessages) {
+      lines.push(this.renderMessage(msg))
+    }
+
+    // Join with blank line separator for better readability
+    this.chatBox.setContent(lines.join('\n'))
+    this.chatBox.setScrollPerc(100)  // Auto-scroll to bottom
+  }
+
+  /**
+   * Handle user message
+   */
+  private async handleUserMessage(text: string) {
+    // Add user message
+    this.addMessage({
+      type: 'user',
+      sender: 'you',
+      text,
+      timestamp: Date.now()
+    })
+
+    this.screen.render()
+
+    // Get entity response
+    try {
+      const response = await this.session.handleUserMessage(text)
+
+      this.addMessage({
+        type: 'entity',
+        sender: response.name,
+        text: response.response,
+        emotion: response.emotion,
+        timestamp: Date.now()
+      })
+
+      // Update status bar
+      this.updateStatusBar()
+
+    } catch (error) {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `error: ${error instanceof Error ? error.message : String(error)}`,
+        timestamp: Date.now()
+      })
+    }
+
+    // Update status bar after all changes
+    this.updateStatusBar()
+    this.screen.render()
+  }
+
+  /**
+   * Handle command
+   */
+  private async handleCommand(cmd: string) {
+    const [command, ...args] = cmd.slice(1).split(' ')
+
+    switch (command) {
+      case 'help':
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `commands:
+  /status       entity emotion + memories + vocabulary
+  /growth       vocabulary & concept growth summary
+  /spawn [desc] spawn new friend (LLM only)
+  /history      show event log (world events)
+  /lexicon      emergent language terms
+  /autosave     toggle autosave (on|off)
+  /save [file]  save session manually
+  /load [file]  load previous session
+  /clear        clear chat history
+  /quit         leave chat`,
+          timestamp: Date.now()
+        })
+        break
+
+      case 'status':
+        const statusText = this.session.getStatusSummary()
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: statusText,
+          timestamp: Date.now()
+        })
+        break
+
+      case 'growth':
+        const growthText = this.session.getGrowthSummary()
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: growthText,
+          timestamp: Date.now()
+        })
+        break
+
+      case 'lexicon':
+        const lexiconStats = this.session.world.getLexiconStats()
+        if (!lexiconStats || lexiconStats.totalTerms === 0) {
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: 'No emergent terms yet. Keep talking!',
+            timestamp: Date.now()
+          })
+        } else {
+          const popular = this.session.world.getPopularTerms(3)
+          const lines = [
+            '🗣️ Emergent Lexicon',
+            '─'.repeat(40),
+            `${'Total terms:'.padEnd(20)}${lexiconStats.totalTerms}`,
+            `${'Total usage:'.padEnd(20)}${lexiconStats.totalUsage}`,
+            ''
+          ]
+
+          if (popular.length > 0) {
+            lines.push('Popular terms:')
+            for (const entry of popular) {
+              lines.push(`  • ${entry.term.padEnd(15)} ${entry.usageCount}× (${entry.strength.toFixed(2)})`)
+            }
+          }
+
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: lines.join('\n'),
+            timestamp: Date.now()
+          })
+        }
+        break
+
+      case 'history':
+        const recent = this.session.world.getRecentUtterances(10)
+        if (recent.length === 0) {
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: 'No conversation history yet.',
+            timestamp: Date.now()
+          })
+        } else {
+          let historyText = `📜 Recent Conversation (last ${recent.length})\n\n`
+          for (const utt of recent.reverse()) {
+            historyText += `[${utt.speaker}]: ${utt.text.substring(0, 60)}${utt.text.length > 60 ? '...' : ''}\n`
+          }
+
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: historyText,
+            timestamp: Date.now()
+          })
+        }
+        break
+
+      case 'save':
+        const saveFilename = args[0] || '.hi-introvert-session.json'
+        this.session.saveSessionWithHistory(saveFilename, this.messages)
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `Session saved to ${saveFilename}`,
+          timestamp: Date.now()
+        })
+        break
+
+      case 'load':
+        const loadFilename = args[0] || '.hi-introvert-session.json'
+        const loadResult = this.session.loadSessionWithHistory(loadFilename)
+
+        if (loadResult.success) {
+          // Restore messages
+          this.messages = loadResult.messages || []
+
+          // Re-render all messages
+          this.renderAllMessages()
+
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: `Session loaded from ${loadFilename}\nMessages: ${this.messages.length}, Vocabulary: ${loadResult.vocabularySize}`,
+            timestamp: Date.now()
+          })
+        } else {
+          this.addMessage({
+            type: 'system',
+            sender: 'system',
+            text: `Failed to load session: ${loadResult.error || 'File not found'}`,
+            timestamp: Date.now()
+          })
+        }
+        break
+
+      case 'clear':
+        this.messages = []
+        this.renderAllMessages()
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: 'Chat history cleared (memories preserved)',
+          timestamp: Date.now()
+        })
+        break
+
+      case 'quit':
+      case 'exit':
+        this.cleanup()
+        process.exit(0)
+        break
+
+      default:
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `Unknown command: ${command}. Type /help for available commands.`,
+          timestamp: Date.now()
+        })
+    }
+
+    this.screen.render()
+  }
+
+  /**
+   * Update status bar
+   */
+  private updateStatusBar() {
+    const companionEmotion = this.session.companionEntity.entity.emotion.valence.toFixed(2)
+    const travelerEmotion = this.session.impersonatedEntity.entity.emotion.valence.toFixed(2)
+    const memoryCount = this.session.companionEntity.entity.memory?.count() || 0
+
+    this.statusBar.setContent(
+      `{bold}traveler (YOU):{/bold} ${travelerEmotion} | ` +
+      `{bold}companion:{/bold} ${companionEmotion} | ` +
+      `memories: ${memoryCount} | ` +
+      `{dim}[ESC:quit | ↑↓:scroll | TAB:focus]{/}`
+    )
+  }
+
+  /**
+   * Start the app
+   */
+  async start() {
+    // Load session with history (if exists)
+    const loadResult = this.session.loadSessionWithHistory()
+
+    if (loadResult.success && loadResult.messages && loadResult.messages.length > 0) {
+      // Restore previous session
+      this.messages = loadResult.messages
+      this.renderAllMessages()
+
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `Session restored: ${loadResult.messages.length} messages, ${loadResult.vocabularySize} words`,
+        timestamp: Date.now()
+      })
+    } else {
+      // New session - show greeting
+      const entityInfo = this.session.getEntityInfo()
+      if (entityInfo) {
+        const greeting = this.session.getGreeting()
+
+        this.addMessage({
+          type: 'entity',
+          sender: entityInfo.name,
+          text: greeting,
+          emotion: entityInfo.entity.emotion,
+          timestamp: Date.now()
+        })
+      }
+    }
+
+    // Update status
+    this.updateStatusBar()
+
+    // Focus input
+    this.inputBox.focus()
+
+    // Render
+    this.screen.render()
+
+    // Update status bar every 2 seconds
+    this.statusInterval = setInterval(() => {
+      this.updateStatusBar()
+      this.screen.render()
+    }, 2000)
+
+    // Autonomous behavior: companion speaks spontaneously (every 15-45 seconds)
+    const scheduleAutonomousMessage = () => {
+      const delay = 15000 + Math.random() * 30000  // 15-45 seconds
+      setTimeout(async () => {
+        await this.triggerAutonomousMessage()
+        scheduleAutonomousMessage()  // Schedule next one
+      }, delay)
+    }
+    scheduleAutonomousMessage()
+  }
+
+  /**
+   * Trigger autonomous message from companion
+   */
+  private async triggerAutonomousMessage() {
+    // Only trigger if companion is autonomous (not impersonated)
+    if (this.session.companionEntity.entity.isAutonomous()) {
+      try {
+        const response = await this.session.generateAutonomousMessage()
+
+        if (response) {
+          this.addMessage({
+            type: 'entity',
+            sender: response.name,
+            text: response.response,
+            emotion: response.emotion,
+            timestamp: Date.now()
+          })
+
+          this.updateStatusBar()
+          this.screen.render()
+        }
+      } catch (error) {
+        // Silent fail for autonomous messages (don't spam errors)
+        console.error('[Autonomous]', error)
+      }
+    }
+  }
+
+  /**
+   * Setup session event listeners
+   * Listen to WorldSession events and display in chatBox
+   */
+  private setupSessionEventListeners() {
+    // Vocabulary learning
+    this.session.on('vocab', (data: { words: string[] }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{yellow-fg}[Vocab] Learned: ${data.words.join(', ')}{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    // Cognitive link
+    this.session.on('link', (data: { from: string; to: string; strength: number }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{blue-fg}[Link] ${data.from} ↔ ${data.to} (${data.strength.toFixed(2)}){/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    // Save session
+    this.session.on('save', (data: { filename: string }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{green-fg}[Save] Session saved to ${data.filename}{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    // Load session
+    this.session.on('load', (data: any) => {
+      if (data.status === 'not_found') {
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `{dim}[Load] No saved session found{/}`,
+          timestamp: Date.now()
+        })
+      } else if (data.status === 'success') {
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `{green-fg}[Load] Session restored: ${data.vocabularySize} words, ${data.entityCount} entities{/}`,
+          timestamp: Date.now()
+        })
+      }
+      this.screen.render()
+    })
+
+    // Impersonate/Unpossess
+    this.session.on('impersonate', (data: { entityName: string }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{magenta-fg}[Control] You now control ${data.entityName}{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    this.session.on('unpossess', (data: { entityName: string }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{magenta-fg}[Control] ${data.entityName} is autonomous again{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    // LLM fallback
+    this.session.on('llm', (data: { action: string }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{cyan-fg}[LLM] Using fallback generation{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+
+    // Errors
+    this.session.on('error', (data: { type: string; message: string }) => {
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{red-fg}[Error ${data.type}] ${data.message}{/}`,
+        timestamp: Date.now()
+      })
+      this.screen.render()
+    })
+  }
+
+  /**
+   * Cleanup
+   */
+  cleanup() {
+    // Clear interval to prevent duplicate status bars
+    if (this.statusInterval) clearInterval(this.statusInterval)
+
+    // Save session WITH conversation history
+    this.session.saveSessionWithHistory('.hi-introvert-session.json', this.messages)
+    this.screen.destroy()
+  }
+}

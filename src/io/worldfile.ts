@@ -48,6 +48,35 @@ export interface WorldFile {
 
   relationships?: Record<string, SerializedRelationship[]>  // Entity bonds (v5)
   eventLog?: any[]            // History events (if enabled)
+
+  // v6.0: Linguistics data (optional)
+  linguistics?: {
+    lexicon?: SerializedLexicon      // Emergent terms
+    transcript?: SerializedUtterance[]  // Conversation history
+  }
+}
+
+/**
+ * Serialized lexicon entry
+ */
+export interface SerializedLexicon {
+  terms: Array<{
+    term: string
+    usageCount: number
+    strength: number
+    firstSeen?: number
+    lastSeen?: number
+  }>
+}
+
+/**
+ * Serialized utterance
+ */
+export interface SerializedUtterance {
+  speaker: string
+  text: string
+  timestamp: number
+  emotion?: { valence: number; arousal: number }
 }
 
 /**
@@ -223,6 +252,36 @@ export function toWorldFile(world: World, metadata?: WorldFile['metadata']): Wor
     worldFile.eventLog = world.eventLog
   }
 
+  // v6.0: Save linguistics data (if enabled)
+  if (world['lexicon'] && world['transcript']) {
+    const lexiconStats = world.getLexiconStats()
+    if (lexiconStats && lexiconStats.totalTerms > 0) {
+      const popularTerms = world.getPopularTerms(100)  // Save top 100
+      const recentUtterances = world.getRecentUtterances(100)  // Save last 100
+
+      worldFile.linguistics = {
+        lexicon: {
+          terms: popularTerms.map(entry => ({
+            term: entry.term,
+            usageCount: entry.usageCount,
+            strength: entry.weight,  // Use weight as strength
+            firstSeen: entry.firstSeen,
+            lastSeen: entry.lastUsed  // Use lastUsed as lastSeen
+          }))
+        },
+        transcript: recentUtterances.map(utt => ({
+          speaker: utt.speaker,
+          text: utt.text,
+          timestamp: utt.timestamp,
+          emotion: utt.emotion ? {
+            valence: utt.emotion.valence,
+            arousal: utt.emotion.arousal
+          } : undefined
+        }))
+      }
+    }
+  }
+
   return worldFile
 }
 
@@ -354,6 +413,50 @@ export function fromWorldFile(worldFile: WorldFile): World {
   if (worldFile.eventLog) {
     world.historyEnabled = true
     world.eventLog = worldFile.eventLog
+  }
+
+  // v6.0: Restore linguistics data (if present)
+  if (worldFile.linguistics && world['lexicon'] && world['transcript']) {
+    // Restore lexicon
+    if (worldFile.linguistics.lexicon) {
+      const lexicon = world['lexicon'] as any
+      // Access internal terms map (WorldLexicon stores terms in a Map)
+      if (!lexicon.terms) {
+        lexicon.terms = new Map()
+      }
+
+      for (const termData of worldFile.linguistics.lexicon.terms) {
+        lexicon.terms.set(termData.term, {
+          term: termData.term,
+          meaning: 'Restored from session',  // Default meaning
+          origin: 'session',  // Mark as restored
+          usageCount: termData.usageCount,
+          lastUsed: termData.lastSeen || Date.now(),
+          firstSeen: termData.firstSeen || Date.now(),
+          relatedTerms: [],
+          weight: termData.strength,
+          decayRate: 0.01  // Default decay
+        })
+      }
+    }
+
+    // Restore transcript
+    if (worldFile.linguistics.transcript) {
+      const transcript = world['transcript'] as any
+      // Access internal buffer (TranscriptBuffer stores utterances in array)
+      if (!transcript.buffer) {
+        transcript.buffer = []
+      }
+
+      for (const utt of worldFile.linguistics.transcript) {
+        transcript.buffer.push({
+          speaker: utt.speaker,
+          text: utt.text,
+          timestamp: utt.timestamp,
+          emotion: utt.emotion
+        })
+      }
+    }
   }
 
   return world

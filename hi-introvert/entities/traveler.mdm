@@ -1,0 +1,83 @@
+{
+  "$schema": "mdspec/v5.7",
+  "material": "entity.traveler",
+
+  "essence": {
+    "th": "นักเดินทางที่ชอบสำรวจ เรียนรู้สิ่งใหม่ๆ และพบเจอผู้คนที่น่าสนใจ",
+    "en": "A curious traveler who explores, learns new things, and meets interesting people"
+  },
+
+  "languageProfile": {
+    "native": "th",
+    "weights": {
+      "th": 0.6,
+      "en": 0.4
+    }
+  },
+
+  "emotion": {
+    "base": {
+      "valence": 0.1,
+      "arousal": 0.4,
+      "dominance": 0.3
+    }
+  },
+
+  "dialogue": {
+    "intro": [
+      { "lang": { "th": "หวัดดีครับ ผมเพิ่งมาที่นี่" } },
+      { "lang": { "th": "สวัสดีครับ ผมชื่อ... เอ่อ... ยังไม่มีชื่อเหมือนกัน" } },
+      { "lang": { "en": "Hi there, I just arrived here" } },
+      { "lang": { "en": "Hello, I'm... uh... don't have a name yet either" } }
+    ],
+
+    "greeting": [
+      { "lang": { "th": "ว่าไงครับ" } },
+      { "lang": { "th": "เป็นยังไงบ้าง" } },
+      { "lang": { "en": "Hey" } },
+      { "lang": { "en": "How's it going?" } }
+    ],
+
+    "greeting_returning": [
+      { "lang": { "th": "เห้ย! เจอกันอีกแล้ว" } },
+      { "lang": { "th": "กลับมาแล้วเหรอ ยินดีที่ได้เจอ" } },
+      { "lang": { "en": "Hey! We meet again" } },
+      { "lang": { "en": "Back again? Good to see you" } }
+    ],
+
+    "curious": [
+      { "lang": { "th": "อยากรู้จัง นี่มันคืออะไร" } },
+      { "lang": { "th": "น่าสนใจนะ เล่าให้ฟังหน่อย" } },
+      { "lang": { "en": "I'm curious, what's this?" } },
+      { "lang": { "en": "Interesting, tell me more" } }
+    ],
+
+    "question": [
+      { "lang": { "th": "ขอถามหน่อยได้ไหม" } },
+      { "lang": { "th": "อยากรู้อะไรหน่อย" } },
+      { "lang": { "en": "Can I ask something?" } },
+      { "lang": { "en": "I'm wondering about something" } }
+    ],
+
+    "confused": [
+      { "lang": { "th": "เอ่อ... ไม่ค่อยเข้าใจ" } },
+      { "lang": { "th": "งงหน่อย อธิบายอีกทีได้ไหม" } },
+      { "lang": { "en": "Um... I don't quite understand" } },
+      { "lang": { "en": "I'm a bit confused, can you explain again?" } }
+    ],
+
+    "happy": [
+      { "lang": { "th": "เจ๋งเลย!" } },
+      { "lang": { "th": "ดีจัง ชอบมาก" } },
+      { "lang": { "en": "That's cool!" } },
+      { "lang": { "en": "Nice, I like it" } }
+    ],
+
+    "thinking": [
+      { "lang": { "th": "อืม... ให้คิดดูก่อน" } },
+      { "lang": { "th": "น่าสนใจนะ ต้องคิดหน่อย" } },
+      { "lang": { "en": "Hmm... let me think" } },
+      { "lang": { "en": "Interesting, need to think about it" } }
+    ]
+  }
+}
