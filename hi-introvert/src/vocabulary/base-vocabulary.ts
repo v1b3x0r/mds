@@ -97,7 +97,67 @@ export const BASE_VOCABULARY: string[] = [
 
   // Common expressions (10)
   'ไม่เป็นไร', 'จริงเหรอ', 'เท่ห์', 'เจ๋ง', 'ได้เลย',
-  'okay', 'really', 'sure', 'maybe', 'fine'
+  'okay', 'really', 'sure', 'maybe', 'fine',
+
+  // ========================================
+  // EXPANDED VOCABULARY (v1.1.0) +300 words
+  // ========================================
+
+  // Daily routines (20)
+  'ตื่น', 'นอน', 'อาบน้ำ', 'แปรงฟัน', 'ทำงาน', 'พัก', 'ออกกำลัง', 'เดิน', 'วิ่ง', 'นั่ง',
+  'wake', 'sleep', 'shower', 'brush', 'work', 'rest', 'exercise', 'walk', 'run', 'sit',
+
+  // Feelings (expanded) (30)
+  'เหงา', 'สับสน', 'กังวล', 'สงบ', 'ภูมิใจ', 'อาย', 'โกรธ', 'หงุดหงิด', 'เครียด', 'ผ่อนคลาย', 'ตื่นเต้น', 'ประหลาดใจ', 'เบื่อหน่าย', 'สนใจ', 'รู้สึก',
+  'lonely', 'confused', 'anxious', 'calm', 'proud', 'shy', 'frustrated', 'stressed', 'relaxed', 'surprised', 'bored', 'interested', 'nervous', 'confident', 'feel',
+
+  // Weather (15)
+  'ฝน', 'แดด', 'เมฆ', 'ร้อน', 'หนาว', 'อบอุ่น', 'เย็น', 'ชื้น',
+  'rain', 'sun', 'cloud', 'hot', 'cold', 'warm', 'cool',
+
+  // Social (20)
+  'พูด', 'คุย', 'ฟัง', 'ถาม', 'ตอบ', 'เล่า', 'บอก', 'พูดคุย', 'ส่งข้อความ', 'โทร',
+  'talk', 'chat', 'listen', 'ask', 'answer', 'tell', 'speak', 'message', 'call', 'reply',
+
+  // Abstract concepts (25)
+  'ฝัน', 'หวัง', 'กลัว', 'ความจริง', 'โกหก', 'ปัญหา', 'แก้ปัญหา', 'คำถาม', 'คำตอบ', 'ความคิด', 'ไอเดีย', 'ความรู้สึก', 'อารมณ์',
+  'dream', 'hope', 'fear', 'truth', 'lie', 'problem', 'solution', 'question', 'answer', 'idea', 'feeling', 'emotion',
+
+  // Body parts (15)
+  'หัว', 'มือ', 'ตา', 'หู', 'ปาก', 'จมูก', 'ขา', 'เท้า',
+  'head', 'hand', 'eye', 'ear', 'mouth', 'nose', 'foot',
+
+  // Nature (15)
+  'ต้นไม้', 'ดอกไม้', 'ฟ้า', 'ทะเล', 'ภูเขา', 'แม่น้ำ', 'ธรรมชาติ',
+  'tree', 'flower', 'sky', 'sea', 'mountain', 'river', 'nature', 'star',
+
+  // Tech (expanded) (20)
+  'แชท', 'พิมพ์', 'คลิก', 'ดาวน์โหลด', 'อัปโหลด', 'วายฟาย', 'อีเมล', 'โพสต์', 'แชร์', 'เซฟ',
+  'chat', 'type', 'click', 'download', 'upload', 'wifi', 'email', 'post', 'share', 'save',
+
+  // Connectors (expanded) (15)
+  'ด้วย', 'หรือ', 'และ', 'อย่างไรก็ตาม', 'แม้ว่า', 'ดังนั้น', 'เพราะฉะนั้น',
+  'also', 'or', 'and', 'however', 'although', 'therefore', 'thus', 'besides',
+
+  // Intensifiers (15)
+  'มาก', 'จริงๆ', 'ค่อนข้าง', 'เกือบ', 'เต็มที่', 'จัง', 'สุดๆ',
+  'very', 'really', 'quite', 'totally', 'actually', 'almost', 'fully', 'extremely',
+
+  // More verbs (30)
+  'อยาก', 'ต้องการ', 'ชอบ', 'รัก', 'เกลียด', 'หวัง', 'ปรารถนา', 'เชื่อ', 'รู้สึก', 'ดู', 'มอง', 'ได้ยิน', 'สัมผัส', 'พบ', 'เจอ',
+  'want', 'need', 'like', 'love', 'hate', 'hope', 'wish', 'believe', 'see', 'look', 'hear', 'touch', 'meet', 'find', 'lose',
+
+  // More adjectives (30)
+  'แปลก', 'เพื่อน', 'ปกติ', 'พิเศษ', 'ต่าง', 'เหมือนกัน', 'ง่าย', 'ยาก', 'สำคัญ', 'ธรรมดา', 'น่าสนใจ', 'น่าเบื่อ', 'สนุกสนาน', 'น่ากลัว', 'ปลอดภัย',
+  'strange', 'weird', 'normal', 'special', 'different', 'same', 'easy', 'hard', 'important', 'simple', 'interesting', 'boring', 'fun', 'scary', 'safe',
+
+  // More nouns (30)
+  'สิ่งของ', 'ของ', 'ปัญหา', 'วิธี', 'คำถาม', 'ความรู้', 'ประสบการณ์', 'เวลา', 'โอกาส', 'ความเป็นจริง', 'เหตุผล', 'สาเหตุ', 'ผลลัพธ์', 'ส่วน', 'ทาง',
+  'thing', 'stuff', 'problem', 'way', 'question', 'knowledge', 'experience', 'chance', 'reality', 'reason', 'cause', 'result', 'part', 'path', 'moment',
+
+  // Slang/informal (20)
+  'เท่', 'แจ่ม', 'แย่', 'โอเค', 'ช่างเถอะ', 'ไม่รู้', 'ก็ได้', 'เออ', 'อ้าว', 'เฮ้ย',
+  'cool', 'awesome', 'lame', 'whatever', 'dude', 'nah', 'yep', 'dunno', 'kinda', 'sorta'
 ]
 
 /**

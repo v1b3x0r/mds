@@ -44,9 +44,17 @@ const __dirname = path.dirname(__filename)
 
 /**
  * Load .mdm file from entities directory
+ * Works both in development (src/) and production (dist/)
  */
 function loadMDM(filename: string): any {
-  const mdmPath = path.join(__dirname, '../../entities', filename)
+  // Try production path first (dist/../entities)
+  let mdmPath = path.join(__dirname, '../entities', filename)
+
+  // Fallback to development path (src/../../entities)
+  if (!fs.existsSync(mdmPath)) {
+    mdmPath = path.join(__dirname, '../../entities', filename)
+  }
+
   const content = fs.readFileSync(mdmPath, 'utf-8')
   return JSON.parse(content)
 }
@@ -131,7 +139,12 @@ export class WorldSession extends EventEmitter {
     this.contextAnalyzer = new ContextAnalyzer()
     this.promptBuilder = new MemoryPromptBuilder()
     this.growthTracker = new GrowthTracker()
-    this.protoLangGenerator = new ProtoLanguageGenerator()  // v6.1: Emergent language
+    this.protoLangGenerator = new ProtoLanguageGenerator({
+      minVocabularySize: 50,  // v1.1.0: Increased from 20 to 50 for smoother proto-language
+      maxPhraseLength: 8,
+      emotionInfluence: 0.7,
+      fallbackToDialogue: true
+    })
 
     // v6.2: Initialize environment system
     this.environment = new Environment({

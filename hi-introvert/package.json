@@ -1,20 +1,27 @@
 {
   "name": "hi-introvert",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A quiet corner of the internet where silence is understood.",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
     "hi-introvert": "./bin/hi-introvert.js"
   },
+  "files": [
+    "dist",
+    "bin",
+    "entities",
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "dev": "bun run src/index.tsx",
-    "build": "bun build src/index.tsx --outdir dist --target node --format esm",
+    "build": "bun build src/index.tsx --outdir dist --target node --format esm --external @v1b3x0r/mds-core --external blessed --external chalk",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {
     "@types/blessed": "^0.1.25",
-    "@v1b3x0r/mds-core": "^5.5.0",
+    "@v1b3x0r/mds-core": "^5.7.0",
     "blessed": "^0.1.81",
     "chalk": "^5.3.0"
   },
@@ -30,8 +37,24 @@
     "cognition",
     "mds",
     "terminal",
-    "minimal"
+    "minimal",
+    "ai",
+    "companion",
+    "emergent",
+    "linguistics"
   ],
   "author": "v1b3x0r",
-  "license": "MIT"
+  "license": "MIT",
+  "homepage": "https://github.com/v1b3x0r/mds#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/v1b3x0r/mds.git",
+    "directory": "hi-introvert"
+  },
+  "bugs": {
+    "url": "https://github.com/v1b3x0r/mds/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  }
 }
