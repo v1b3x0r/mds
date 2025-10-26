@@ -47,13 +47,18 @@ import {
   WorldStats,
   PatternDetection
 } from '../world-mind'
-import {
-  TranscriptBuffer,
-  WorldLexicon,
-  LinguisticCrystallizer,
-  ProtoLanguageGenerator
-} from './index'
-import type { Utterance, LexiconEntry, CrystallizerConfig } from './index'
+
+// v5.8.4: Direct imports to avoid circular dependency (world/index.ts exports World)
+import { TranscriptBuffer } from './transcript'
+import type { Utterance } from './transcript'
+
+import { WorldLexicon } from './lexicon'
+import type { LexiconEntry } from './lexicon'
+
+import { LinguisticCrystallizer } from './crystallizer'
+import type { CrystallizerConfig } from './crystallizer'
+
+import { ProtoLanguageGenerator } from './proto-language'
 
 /**
  * World configuration options
