@@ -31,12 +31,11 @@ import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { VocabularyTracker } from '../vocabulary/VocabularyTracker.js'
 import { ContextAnalyzer} from './ContextAnalyzer.js'
 import { MemoryPromptBuilder } from './MemoryPromptBuilder.js'
 import { GrowthTracker } from './GrowthTracker.js'
-import { ProtoLanguageGenerator } from '@v1b3x0r/mds-core'
 import { OSSensor } from '../sensors/OSSensor.js'
+import { CompanionLoader } from './CompanionLoader.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -58,8 +57,10 @@ function loadMDM(filename: string): any {
   return JSON.parse(content)
 }
 
-// Load MDM definitions from files
-const companionMDM = loadMDM('entity.companion.hi_introvert.mdm')
+// Companion loader (v1.2: Dynamic companion selection)
+const companionLoader = new CompanionLoader()
+
+// Load traveler (user entity - always the same)
 const travelerMDM = loadMDM('traveler.mdm')
 
 export interface EntityInfo {
@@ -85,11 +86,11 @@ export class WorldSession extends EventEmitter {
   companionEntity!: EntityInfo     // companion (autonomous AI)
 
   // Growth tracking (vocabulary, concepts)
-  vocabularyTracker: VocabularyTracker
+  // v5.8.2: Removed VocabularyTracker - using world.lexicon as SSOT
+  conversationCount: number = 0     // Track conversation count for growth metrics
   contextAnalyzer: ContextAnalyzer
   promptBuilder: MemoryPromptBuilder
   growthTracker: GrowthTracker
-  protoLangGenerator: ProtoLanguageGenerator  // v6.1: Emergent language
   autoSaveEnabled: boolean = false  // v6.3: Disabled - BlessedApp handles save with history
   silentMode: boolean = false  // v6.3: Disable console.log for TUI mode
 
@@ -115,8 +116,21 @@ export class WorldSession extends EventEmitter {
   // v6.3: Interval tracking for proper cleanup
   private intervals: NodeJS.Timeout[] = []
 
-  constructor() {
+  // v1.2: Companion metadata
+  companionId: string  // e.g. "hi_introvert" or "orz-archivist"
+
+  constructor(options?: { companionId?: string }) {
     super()  // Call EventEmitter constructor
+
+    // v1.2: Load companion from ID or use default
+    const companion = companionLoader.getOrDefault(options?.companionId)
+    this.companionId = companion.id
+
+    // Log companion selection (silent mode respects this)
+    if (!this.silentMode) {
+      console.log(`📚 Companion: ${companion.id}`)
+      console.log(`   "${companion.essence.substring(0, 60)}..."`)
+    }
     // Initialize World with full features + LLM
     this.world = new World({
       features: {
@@ -140,16 +154,10 @@ export class WorldSession extends EventEmitter {
     })
 
     // Initialize growth systems
-    this.vocabularyTracker = new VocabularyTracker()
+    // v5.8.2: VocabularyTracker removed - using world.lexicon as SSOT
     this.contextAnalyzer = new ContextAnalyzer()
     this.promptBuilder = new MemoryPromptBuilder()
     this.growthTracker = new GrowthTracker()
-    this.protoLangGenerator = new ProtoLanguageGenerator({
-      minVocabularySize: 50,  // v1.1.0: Increased from 20 to 50 for smoother proto-language
-      maxPhraseLength: 8,
-      emotionInfluence: 0.7,
-      fallbackToDialogue: true
-    })
 
     // v6.2: Initialize environment system
     this.environment = new Environment({
@@ -296,9 +304,11 @@ export class WorldSession extends EventEmitter {
 
   /**
    * Spawn companion entity (AI, autonomous)
+   * v1.2: Uses companion selected in constructor
    */
   private spawnCompanion() {
-    this.companionEntity = this.spawnEntity('companion', companionMDM)
+    const companion = companionLoader.get(this.companionId)!
+    this.companionEntity = this.spawnEntity('companion', companion.material)
   }
 
   /**
@@ -944,7 +954,7 @@ export class WorldSession extends EventEmitter {
         }
       }
 
-      response = this.protoLangGenerator.generateResponse(userMessage, {
+      response = this.world.protoGenerator?.generateResponse(userMessage, {
         vocabularyPool,
         emotion: entity.emotion,
         minWords: 1,
@@ -1125,12 +1135,15 @@ export class WorldSession extends EventEmitter {
       }
 
       // Generate proto-language
-      response = this.protoLangGenerator.generate(
-        companion.emotion,
+      response = this.world.protoGenerator?.generate({
         vocabularyPool,
-        undefined,  // No user message for autonomous
-        envState
-      )
+        emotion: companion.emotion,
+        minWords: 1,
+        maxWords: 4,
+        allowParticles: true,
+        allowEmoji: true,
+        creativity: 0.6
+      })
     }
 
     // If still no response, skip this cycle

@@ -17,21 +17,26 @@
  * @property valence - Pleasure dimension: Positive (1) to Negative (-1)
  * @property arousal - Arousal dimension: Calm (0) to Excited (1)
  * @property dominance - Dominance dimension: Submissive (0) to Dominant (1)
+ * @property vitality - (v5.8 Thai emotions) Physical/mental energy: Exhausted (0) to Energized (1)
  *
  * @example
  * // Happy: high pleasure, moderate arousal, neutral dominance
- * { valence: 0.8, arousal: 0.6, dominance: 0.5 }
+ * { valence: 0.8, arousal: 0.6, dominance: 0.5, vitality: 0.7 }
  *
  * // Anxious: low pleasure, high arousal, low dominance
- * { valence: -0.3, arousal: 0.9, dominance: 0.2 }
+ * { valence: -0.3, arousal: 0.9, dominance: 0.2, vitality: 0.4 }
  *
  * // Content: moderate pleasure, low arousal, neutral dominance
- * { valence: 0.5, arousal: 0.2, dominance: 0.5 }
+ * { valence: 0.5, arousal: 0.2, dominance: 0.5, vitality: 0.6 }
+ *
+ * // เหนื่อยใจ (mentally exhausted): negative valence, low arousal, low vitality
+ * { valence: -0.4, arousal: 0.2, dominance: 0.3, vitality: 0.2 }
  */
 export interface EmotionalState {
   valence: number      // -1..1 (negative to positive)
   arousal: number      // 0..1 (calm to excited)
   dominance: number    // 0..1 (submissive to dominant)
+  vitality?: number    // 0..1 (exhausted to energized) - v5.8 optional for backwards compat
 }
 
 /**

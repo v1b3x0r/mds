@@ -65,6 +65,7 @@ export interface ParsedMaterialConfig {
   emotionTriggers: EmotionTrigger[]
   skillNames: string[]
   relationshipTargets: string[]
+  baselineEmotion?: import('../ontology/emotion').EmotionalState  // v5.8: Auto-detected from essence/dialogue
 }
 
 /**
@@ -340,11 +341,53 @@ export class MdmParser {
 export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
   const parser = new MdmParser()
 
+  // v5.8: Auto-detect emotion from essence/dialogue (Thai/English keywords)
+  let baselineEmotion: import('../ontology/emotion').EmotionalState | undefined
+
+  // Try importing emotion detector (may not be available in all contexts)
+  try {
+    const { detectEmotionFromText, detectAllEmotions, blendMultipleEmotions } = require('../ontology/emotion-detector')
+
+    // Detect from essence
+    if (material.essence) {
+      const essenceText = typeof material.essence === 'string'
+        ? material.essence
+        : material.essence.th || material.essence.en || ''
+
+      const detectedEmotion = detectEmotionFromText(essenceText)
+      if (detectedEmotion) {
+        baselineEmotion = detectedEmotion
+      }
+
+      // Also check dialogue for additional emotional context
+      if (material.dialogue?.intro) {
+        const introTexts = material.dialogue.intro.map((d: any) => {
+          if (typeof d === 'string') return d
+          if (d.lang) return d.lang.th || d.lang.en || ''
+          return ''
+        }).join(' ')
+
+        const dialogueEmotion = detectEmotionFromText(introTexts)
+
+        // Blend with essence emotion if both exist
+        if (dialogueEmotion && baselineEmotion) {
+          const emotions = detectAllEmotions(`${essenceText} ${introTexts}`)
+          baselineEmotion = blendMultipleEmotions(emotions) || baselineEmotion
+        } else if (dialogueEmotion) {
+          baselineEmotion = dialogueEmotion
+        }
+      }
+    }
+  } catch (err) {
+    // Emotion detector not available - skip auto-detection
+  }
+
   return {
     dialogue: material.dialogue ? parser.parseDialogue(material.dialogue) : undefined,
     emotionTriggers: material.emotion ? parser.parseEmotionTransitions(material.emotion) : [],
     skillNames: material.skills ? parser.parseSkills(material.skills) : [],
-    relationshipTargets: material.relationships ? parser.parseRelationships(material.relationships) : []
+    relationshipTargets: material.relationships ? parser.parseRelationships(material.relationships) : [],
+    baselineEmotion
   }
 }
 

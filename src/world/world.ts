@@ -50,7 +50,8 @@ import {
 import {
   TranscriptBuffer,
   WorldLexicon,
-  LinguisticCrystallizer
+  LinguisticCrystallizer,
+  ProtoLanguageGenerator
 } from './index'
 import type { Utterance, LexiconEntry, CrystallizerConfig } from './index'
 
@@ -267,6 +268,7 @@ export class World {
   transcript?: TranscriptBuffer
   lexicon?: WorldLexicon
   private crystallizer?: LinguisticCrystallizer
+  protoGenerator?: import('./proto-language').ProtoLanguageGenerator  // v6.1: Emergent language generation
 
   // Options
   options: WorldOptions
@@ -457,7 +459,11 @@ export class World {
 
     this.crystallizer = new LinguisticCrystallizer(crystallizerConfig)
 
+    // v6.1: Create proto-language generator
+    this.protoGenerator = new ProtoLanguageGenerator()
+
     console.info(`v6.0: Linguistics initialized (buffer=${maxTranscript}, analyze every ${crystallizerConfig.analyzeEvery} ticks)`)
+    console.info(`v6.1: Proto-language generator created`)
   }
 
   /**
