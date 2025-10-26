@@ -112,6 +112,9 @@ export class WorldSession extends EventEmitter {
   memoryLogs: Map<string, MemoryLog>          // CRDT-based distributed memory (Task 8)
   trustSystems: Map<string, TrustSystem>      // Trust & Privacy per entity (Task 9)
 
+  // v6.3: Interval tracking for proper cleanup
+  private intervals: NodeJS.Timeout[] = []
+
   constructor() {
     super()  // Call EventEmitter constructor
     // Initialize World with full features + LLM
@@ -207,17 +210,8 @@ export class WorldSession extends EventEmitter {
     // Setup environment sensors (broadcast events via setInterval)
     this.setupEnvironmentSensors()
 
-    // Auto-tick world
-    setInterval(() => {
-      this.world.tick(1 / 2)  // 2 FPS
-    }, 500)
-
-    // Autosave every 30 seconds
-    setInterval(() => {
-      if (this.autoSaveEnabled) {
-        this.saveSession()
-      }
-    }, 30000)
+    // Setup intervals (auto-tick, autosave)
+    this.setupIntervals()
   }
 
   /**
@@ -234,6 +228,37 @@ export class WorldSession extends EventEmitter {
     if (!this.silentMode) {
       console.log(...args)
     }
+  }
+
+  /**
+   * Setup intervals (auto-tick, autosave)
+   * v6.3: Stores interval IDs for cleanup during loadSession()
+   */
+  private setupIntervals() {
+    // Auto-tick world (2 FPS)
+    const tickInterval = setInterval(() => {
+      this.world.tick(1 / 2)
+    }, 500)
+    this.intervals.push(tickInterval)
+
+    // Autosave every 30 seconds
+    const saveInterval = setInterval(() => {
+      if (this.autoSaveEnabled) {
+        this.saveSession()
+      }
+    }, 30000)
+    this.intervals.push(saveInterval)
+  }
+
+  /**
+   * Clear all intervals (called before loadSession)
+   * v6.3: Prevents interval leak when loading session
+   */
+  private clearIntervals() {
+    for (const interval of this.intervals) {
+      clearInterval(interval)
+    }
+    this.intervals = []
   }
 
   /**
@@ -347,6 +372,8 @@ export class WorldSession extends EventEmitter {
    *
    * Instead of dedicated sensor API, we use:
    * setInterval → world.broadcastEvent → entity.inbox
+   *
+   * v6.3: All intervals are tracked in this.intervals array for cleanup
    */
   private setupEnvironmentSensors() {
     // Sensors broadcast to all entities in world
@@ -361,7 +388,7 @@ export class WorldSession extends EventEmitter {
     })
 
     // Time-of-day sensor (broadcast every 30 seconds)
-    setInterval(() => {
+    const timeInterval = setInterval(() => {
       const now = new Date()
       const hour = now.getHours()
       const minute = now.getMinutes()
@@ -391,10 +418,11 @@ export class WorldSession extends EventEmitter {
         }
       }
     }, 30000)
+    this.intervals.push(timeInterval)
 
     // Session duration (broadcast every 5 minutes)
     const startTime = Date.now()
-    setInterval(() => {
+    const durationInterval = setInterval(() => {
       const duration = Date.now() - startTime
       const minutes = Math.floor(duration / 60000)
 
@@ -418,15 +446,17 @@ export class WorldSession extends EventEmitter {
         }
       }
     }, 300000)  // 5 minutes
+    this.intervals.push(durationInterval)
 
     // v6.2: Longing field check (every 2 minutes)
     // Companion may miss traveler if high familiarity but no recent interaction
-    setInterval(() => {
+    const longingInterval = setInterval(() => {
       this.spawnLongingField(this.companionEntity, 'traveler')
     }, 120000)  // 2 minutes
+    this.intervals.push(longingInterval)
 
     // v6.2: OS Environment sensor (update every 10 seconds)
-    setInterval(() => {
+    const osInterval = setInterval(() => {
       const metrics = this.osSensor.getMetrics()
       const envMapping = this.osSensor.mapToEnvironment(metrics)
 
@@ -463,9 +493,10 @@ export class WorldSession extends EventEmitter {
         mapping: envMapping
       })
     }, 10000)  // 10 seconds
+    this.intervals.push(osInterval)
 
     // v6.2: Weather system update (every 2 seconds)
-    setInterval(() => {
+    const weatherInterval = setInterval(() => {
       // Update weather state
       this.weather.update(2)  // 2 seconds dt
 
@@ -509,9 +540,10 @@ export class WorldSession extends EventEmitter {
         }
       }
     }, 2000)  // 2 seconds
+    this.intervals.push(weatherInterval)
 
     // v6.2: Memory Consolidation (every 1 minute)
-    setInterval(() => {
+    const memoryInterval = setInterval(() => {
       const companion = this.companionEntity.entity
 
       // Consolidate companion memories
@@ -539,9 +571,10 @@ export class WorldSession extends EventEmitter {
         trustSystem.decayTrust(60)  // 60 seconds decay
       }
     }, 60000)  // 1 minute
+    this.intervals.push(memoryInterval)
 
     // v6.2: Energy + Collision system (every 1 second)
-    setInterval(() => {
+    const energyInterval = setInterval(() => {
       const allEntities = Array.from(this.entities.values()).map(info => info.entity)
 
       // 1. Check for collision (proximity-based, headless mode)
@@ -613,9 +646,10 @@ export class WorldSession extends EventEmitter {
         })
       }
     }, 1000)  // 1 second
+    this.intervals.push(energyInterval)
 
     // v6.2: World Mind analytics (every 30 seconds) - Task 12
-    setInterval(() => {
+    const worldMindInterval = setInterval(() => {
       const allEntities = Array.from(this.entities.values()).map(info => info.entity)
 
       // Use static methods
@@ -629,6 +663,7 @@ export class WorldSession extends EventEmitter {
         collectiveEmotion
       })
     }, 30000)
+    this.intervals.push(worldMindInterval)
   }
 
 
@@ -1196,6 +1231,7 @@ export class WorldSession extends EventEmitter {
 
   /**
    * Load session
+   * v6.3: Fixed memory loss bug - properly cleanup intervals before loading
    */
   loadSession(filename: string = '.hi-introvert-session.json') {
     if (!fs.existsSync(filename)) {
@@ -1205,6 +1241,10 @@ export class WorldSession extends EventEmitter {
 
     try {
       const data = JSON.parse(fs.readFileSync(filename, 'utf-8'))
+
+      // v6.3: CRITICAL - Clear all intervals before loading new world
+      // This prevents old intervals from interfering with loaded state
+      this.clearIntervals()
 
       // Restore vocabulary
       this.vocabularyTracker = VocabularyTracker.fromJSON(data.vocabulary)
@@ -1218,6 +1258,10 @@ export class WorldSession extends EventEmitter {
       // Restore entity references
       this.companionEntity.entity = this.world.entities[0]
       this.impersonatedEntity.entity = this.world.entities[1]
+
+      // v6.3: Restart all intervals with new world instance
+      this.setupEnvironmentSensors()
+      this.setupIntervals()
 
       this.emit('load', {
         status: 'success',
