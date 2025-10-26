@@ -29,10 +29,13 @@ export class CanvasRenderer implements RendererAdapter {
   private entities: Entity[] = []
 
   init(container?: HTMLElement): void {
+    // Skip if no DOM available (headless/Node.js)
+    if (typeof document === 'undefined') return
+
     // Create canvas
     this.canvas = document.createElement('canvas')
-    this.canvas.width = window.innerWidth
-    this.canvas.height = window.innerHeight
+    this.canvas.width = typeof window !== 'undefined' ? window.innerWidth : 800
+    this.canvas.height = typeof window !== 'undefined' ? window.innerHeight : 600
     this.canvas.style.position = 'absolute'
     this.canvas.style.top = '0'
     this.canvas.style.left = '0'
@@ -43,13 +46,16 @@ export class CanvasRenderer implements RendererAdapter {
     this.ctx = ctx
 
     // Append to container
-    ;(container ?? document.body).appendChild(this.canvas)
+    const target = container ?? (typeof document !== 'undefined' ? document.body : null)
+    if (target) target.appendChild(this.canvas)
 
-    // Auto-resize canvas
-    window.addEventListener('resize', () => {
-      this.canvas.width = window.innerWidth
-      this.canvas.height = window.innerHeight
-    })
+    // Auto-resize canvas (only in browser)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => {
+        this.canvas.width = window.innerWidth
+        this.canvas.height = window.innerHeight
+      })
+    }
   }
 
   spawn(entity: Entity): void {

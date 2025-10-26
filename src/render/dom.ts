@@ -20,10 +20,14 @@ export class DOMRenderer implements RendererAdapter {
   private container!: HTMLElement  // Initialized in init()
 
   init(container?: HTMLElement): void {
-    this.container = container ?? document.body
+    // Safe for headless/Node.js: only use document.body if available
+    this.container = container ?? (typeof document !== 'undefined' ? document.body : null as any)
   }
 
   spawn(entity: Entity): void {
+    // Skip if no DOM available (headless/Node.js)
+    if (typeof document === 'undefined' || !this.container) return
+
     // Create DOM element
     const el = document.createElement('div')
     el.className = 'mds-entity'

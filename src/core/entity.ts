@@ -191,7 +191,7 @@ export class Entity implements MessageParticipant {
     }
 
     // Create DOM element (v4 legacy mode - skip if using v5 renderer)
-    if (!options?.skipDOM) {
+    if (!options?.skipDOM && typeof document !== 'undefined') {
       this.el = document.createElement('div')
       this.el.className = 'mds-entity'
       this.el.style.position = 'absolute'
@@ -206,8 +206,10 @@ export class Entity implements MessageParticipant {
       // Attach event handlers
       this.attachDOMHandlers()
 
-      // Append to body
-      document.body.appendChild(this.el)
+      // Append to body (only if DOM available)
+      if (typeof document !== 'undefined') {
+        document.body.appendChild(this.el)
+      }
 
       // Initial render
       this.render()

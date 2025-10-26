@@ -43,6 +43,9 @@ export class Field {
    * (Only in DOM mode)
    */
   private createVisualElement(): void {
+    // Skip if no DOM available (headless/Node.js)
+    if (typeof document === 'undefined') return
+
     this.el = document.createElement('div')
     this.el.className = 'mds-field'
     this.el.style.position = 'absolute'
@@ -64,8 +67,10 @@ export class Field {
       transparent 100%
     )`
 
-    // Add to DOM
-    document.body.appendChild(this.el)
+    // Add to DOM (only if DOM available)
+    if (typeof document !== 'undefined') {
+      document.body.appendChild(this.el)
+    }
   }
 
   /**
