@@ -835,12 +835,13 @@ export class WorldSession extends EventEmitter {
       this.spawnSyncMoment(this.companionEntity, this.impersonatedEntity)
     }
 
+    // v5.8.5: newWordsLearned deprecated (vocabulary handled by world.lexicon)
     return {
       name: this.companionEntity.name,
       response,
       emotion: { ...companion.emotion },
       previousValence: this.companionEntity.previousValence,
-      newWordsLearned: newWords
+      newWordsLearned: [] // Deprecated: vocabulary tracking moved to world.lexicon
     }
   }
 

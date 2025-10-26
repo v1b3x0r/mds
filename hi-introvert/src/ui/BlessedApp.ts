@@ -583,11 +583,13 @@ export class BlessedApp {
     lines.push('{bold}{red-fg}📚 Vocabulary{/}')
     // v5.8.5: Use world.lexicon stats
     const totalWords = vocabSize
-    const learnedWords = vocabSize // All terms in lexicon are "learned" through crystallization
     const protoActive = totalWords >= 20 // Match WorldSession threshold
     lines.push(`  Total: {cyan-fg}${totalWords}{/} terms`)
     lines.push(`  Conversations: {green-fg}${conversationCount}{/}`)
-    lines.push(`  Proto: {${protoActive ? 'green' : 'dim'}-fg}${protoActive ? '✓' : '✗'}{/}`)
+    // Avoid template string in blessed tags
+    const protoColor = protoActive ? 'green-fg' : 'dim'
+    const protoSymbol = protoActive ? '✓' : '✗'
+    lines.push(`  Proto: {${protoColor}}${protoSymbol}{/}`)
 
     this.contextPanel.setContent(lines.join('\n'))
   }
