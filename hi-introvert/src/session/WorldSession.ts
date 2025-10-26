@@ -23,7 +23,6 @@ import {
   MemoryConsolidation,
   SymbolicPhysicalCoupler,
   CollectiveIntelligence,
-  clusterBySimilarity,
   MemoryLog,
   createMemoryLog,
   TrustSystem
@@ -982,7 +981,7 @@ export class WorldSession extends EventEmitter {
 
     try {
       const response = await this.world.languageGenerator.generate({
-        speaker: this.primaryEntity.entity,
+        speaker: this.companionEntity.entity,
         context: prompt
       })
 
@@ -1011,9 +1010,9 @@ export class WorldSession extends EventEmitter {
 
       this.entities.set(name, entityInfo)
 
-      // Primary entity remembers meeting new friend
-      if (this.primaryEntity.entity.memory) {
-        this.primaryEntity.entity.remember({
+      // Companion entity remembers meeting new friend
+      if (this.companionEntity.entity.memory) {
+        this.companionEntity.entity.remember({
           type: 'interaction',
           subject: name,
           content: { action: 'met', essence: generatedData.essence },
@@ -1292,13 +1291,6 @@ export class WorldSession extends EventEmitter {
    */
   isAutoSaveEnabled(): boolean {
     return this.autoSaveEnabled
-  }
-
-  /**
-   * Get entity info
-   */
-  getEntityInfo(): EntityInfo {
-    return this.entity
   }
 
   /**
