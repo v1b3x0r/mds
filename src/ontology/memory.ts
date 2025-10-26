@@ -90,6 +90,14 @@ export class MemoryBuffer {
   }
 
   /**
+   * Public accessor for memories array
+   * v5.8.2: Added for compatibility with external code expecting .memories property
+   */
+  get memories(): Memory[] {
+    return this.buffer
+  }
+
+  /**
    * Add a new memory (pushes out oldest if buffer full)
    */
   add(memory: Memory): void {
