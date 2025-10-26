@@ -128,8 +128,8 @@ export class WorldSession extends EventEmitter {
         rendering: 'headless'
       },
       linguistics: {
-        analyzeEvery: 30,
-        minUsage: 3,
+        analyzeEvery: 5,   // Analyze every 5 ticks (was 30) - faster pattern detection
+        minUsage: 1,       // Accept single usage (was 3) - capture all unique phrases
         maxTranscript: 500
       },
       llm: {
