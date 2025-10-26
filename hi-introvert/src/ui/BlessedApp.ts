@@ -633,10 +633,13 @@ export class BlessedApp {
           .map(entry => `"${entry.term}"`)
           .join(', ')
 
+        // v5.8.8: Fix blessed tag syntax (no template strings inside tags)
+        const plural = newCount > 1 ? 's' : ''
+
         this.addMessage({
           type: 'system',
           sender: 'system',
-          text: `{cyan-fg}✨ Emergent language:{/} ${newCount} new term${newCount > 1 ? 's' : ''} detected: ${wordList}`,
+          text: '{cyan-fg}✨ Emergent language:{/} ' + newCount + ' new term' + plural + ' detected: ' + wordList,
           timestamp: Date.now()
         })
       }
@@ -669,10 +672,14 @@ export class BlessedApp {
         .map(entry => `"${entry.term}"`)
         .join(', ')
 
+      // v5.8.8: Fix blessed tag syntax (no template strings inside tags)
+      const termCount = newTerms.length
+      const plural = termCount > 1 ? 's' : ''
+
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{cyan-fg}✨ World discovered:{/} ${newTerms.length} new term${newTerms.length > 1 ? 's' : ''} — ${wordList}`,
+        text: '{cyan-fg}✨ World discovered:{/} ' + termCount + ' new term' + plural + ' — ' + wordList,
         timestamp: Date.now()
       })
 
@@ -808,10 +815,12 @@ export class BlessedApp {
   private setupSessionEventListeners() {
     // Vocabulary learning
     this.session.on('vocab', (data: { words: string[] }) => {
+      // v5.8.8: Fix blessed tag syntax
+      const wordList = data.words.join(', ')
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{yellow-fg}[Vocab] Learned: ${data.words.join(', ')}{/}`,
+        text: '{yellow-fg}[Vocab] Learned: ' + wordList + '{/}',
         timestamp: Date.now()
       })
       this.screen.render()
@@ -819,10 +828,12 @@ export class BlessedApp {
 
     // Cognitive link
     this.session.on('link', (data: { from: string; to: string; strength: number }) => {
+      // v5.8.8: Fix blessed tag syntax
+      const strength = data.strength.toFixed(2)
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{blue-fg}[Link] ${data.from} ↔ ${data.to} (${data.strength.toFixed(2)}){/}`,
+        text: '{blue-fg}[Link] ' + data.from + ' ↔ ' + data.to + ' (' + strength + '){/}',
         timestamp: Date.now()
       })
       this.screen.render()
@@ -830,10 +841,11 @@ export class BlessedApp {
 
     // Save session
     this.session.on('save', (data: { filename: string }) => {
+      // v5.8.8: Fix blessed tag syntax
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{green-fg}[Save] Session saved to ${data.filename}{/}`,
+        text: '{green-fg}[Save] Session saved to ' + data.filename + '{/}',
         timestamp: Date.now()
       })
       this.screen.render()
@@ -845,14 +857,15 @@ export class BlessedApp {
         this.addMessage({
           type: 'system',
           sender: 'system',
-          text: `{dim}[Load] No saved session found{/}`,
+          text: '{dim}[Load] No saved session found{/}',
           timestamp: Date.now()
         })
       } else if (data.status === 'success') {
+        // v5.8.8: Fix blessed tag syntax
         this.addMessage({
           type: 'system',
           sender: 'system',
-          text: `{green-fg}[Load] Session restored: ${data.vocabularySize} words, ${data.entityCount} entities{/}`,
+          text: '{green-fg}[Load] Session restored: ' + data.vocabularySize + ' words, ' + data.entityCount + ' entities{/}',
           timestamp: Date.now()
         })
       }
@@ -861,20 +874,22 @@ export class BlessedApp {
 
     // Impersonate/Unpossess
     this.session.on('impersonate', (data: { entityName: string }) => {
+      // v5.8.8: Fix blessed tag syntax
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{magenta-fg}[Control] You now control ${data.entityName}{/}`,
+        text: '{magenta-fg}[Control] You now control ' + data.entityName + '{/}',
         timestamp: Date.now()
       })
       this.screen.render()
     })
 
     this.session.on('unpossess', (data: { entityName: string }) => {
+      // v5.8.8: Fix blessed tag syntax
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{magenta-fg}[Control] ${data.entityName} is autonomous again{/}`,
+        text: '{magenta-fg}[Control] ' + data.entityName + ' is autonomous again{/}',
         timestamp: Date.now()
       })
       this.screen.render()
@@ -885,7 +900,7 @@ export class BlessedApp {
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{cyan-fg}[LLM] Using fallback generation{/}`,
+        text: '{cyan-fg}[LLM] Using fallback generation{/}',
         timestamp: Date.now()
       })
       this.screen.render()
@@ -893,10 +908,11 @@ export class BlessedApp {
 
     // Errors
     this.session.on('error', (data: { type: string; message: string }) => {
+      // v5.8.8: Fix blessed tag syntax
       this.addMessage({
         type: 'system',
         sender: 'system',
-        text: `{red-fg}[Error ${data.type}] ${data.message}{/}`,
+        text: '{red-fg}[Error ' + data.type + '] ' + data.message + '{/}',
         timestamp: Date.now()
       })
       this.screen.render()
