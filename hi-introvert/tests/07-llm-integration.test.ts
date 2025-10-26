@@ -71,12 +71,12 @@ describe('LLM Integration Journey', () => {
   })
 
   test('should track vocabulary from conversations', async () => {
-    const initialVocab = app.session.vocabularyTracker.getVocabularySize()
+    const initialVocab = app.session.getVocabularySize()
 
     await app.typeMessage('quantum entanglement superposition')
     await app.waitForResponse()
 
-    const finalVocab = app.session.vocabularyTracker.getVocabularySize()
+    const finalVocab = app.session.getVocabularySize()
 
     expect(finalVocab).toBeGreaterThan(initialVocab)
   })
@@ -122,7 +122,7 @@ describe('LLM Integration Journey', () => {
     await app.typeMessage('วันนี้อากาศดี')
     await app.waitForResponse()
 
-    const conversationCount = app.session.vocabularyTracker.toJSON().conversationCount
+    const conversationCount = app.session.conversationCount
     expect(conversationCount).toBe(3)
   })
 })

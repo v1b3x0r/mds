@@ -129,7 +129,7 @@ for (const msg of buildMessages) {
   console.log(`🤖 ${resp.name}: "${resp.response}"`)
 }
 
-const vocabStats = session1.vocabularyTracker.getStats()
+const vocabStats = session1.getVocabularyStats()
 console.log(`\n📚 Vocabulary after building: ${vocabStats.total} words`)
 
 // Check lexicon

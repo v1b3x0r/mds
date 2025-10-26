@@ -78,7 +78,7 @@ async function runTests() {
     }
 
     console.log('\n📊 Vocabulary after building:')
-    const vocabStats = session.vocabularyTracker.getStats()
+    const vocabStats = session.getVocabularyStats()
     console.log(`   Total: ${vocabStats.total} words`)
     console.log(`   Learned: ${vocabStats.learnedWords}`)
 

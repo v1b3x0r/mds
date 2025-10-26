@@ -124,7 +124,7 @@ describe('Returning User Journey', () => {
     await app.typeMessage('quantum physics entanglement')
     await app.waitForResponse()
 
-    const vocabBeforeSave = app.session.vocabularyTracker.getVocabularySize()
+    const vocabBeforeSave = app.session.getVocabularySize()
     await app.command(`/save ${testSessionFile}`)
 
     app.destroy()
@@ -133,7 +133,7 @@ describe('Returning User Journey', () => {
     const app2 = new BlessedAppMock()
     await app2.command(`/load ${testSessionFile}`)
 
-    const vocabAfterLoad = app2.session.vocabularyTracker.getVocabularySize()
+    const vocabAfterLoad = app2.session.getVocabularySize()
     expect(vocabAfterLoad).toBe(vocabBeforeSave)
 
     app2.destroy()
@@ -146,7 +146,7 @@ describe('Returning User Journey', () => {
       await app.waitForResponse()
     }
 
-    const growthBefore = app.session.vocabularyTracker.toJSON().conversationCount
+    const growthBefore = app.session.conversationCount
     await app.command(`/save ${testSessionFile}`)
 
     app.destroy()
@@ -155,7 +155,7 @@ describe('Returning User Journey', () => {
     const app2 = new BlessedAppMock()
     await app2.command(`/load ${testSessionFile}`)
 
-    const growthAfter = app2.session.vocabularyTracker.toJSON().conversationCount
+    const growthAfter = app2.session.conversationCount
     expect(growthAfter).toBe(growthBefore)
 
     app2.destroy()

@@ -57,7 +57,7 @@ describe('Edge Case Journey', () => {
     await Promise.all(promises)
 
     // All messages should be processed
-    expect(app.session.vocabularyTracker.toJSON().conversationCount).toBe(10)
+    expect(app.session.conversationCount).toBe(10)
   })
 
   test('should handle emoji and special characters', async () => {

@@ -18,7 +18,7 @@ session.setSilentMode(true)
 const companion = session.companionEntity.entity
 const traveler = session.impersonatedEntity.entity
 const world = session.world
-const vocab = session.vocabularyTracker
+const vocab = session.getVocabularyStats()
 
 console.log('  ✓ Session created')
 console.log(`  ✓ Companion: ${companion.id}`)

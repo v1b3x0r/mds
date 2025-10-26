@@ -28,7 +28,7 @@ describe('Long Conversation Journey', () => {
       await app.waitForResponse()
     }
 
-    expect(app.session.vocabularyTracker.toJSON().conversationCount).toBe(100)
+    expect(app.session.conversationCount).toBe(100)
     expect(app.session.companionEntity.entity).toBeTruthy()
     expect(app.screen.destroyed).toBe(false)
   })
@@ -86,7 +86,7 @@ describe('Long Conversation Journey', () => {
     await Promise.all(promises)
 
     // All messages should be processed
-    expect(app.session.vocabularyTracker.toJSON().conversationCount).toBeGreaterThanOrEqual(20)
+    expect(app.session.conversationCount).toBeGreaterThanOrEqual(20)
   })
 
   test('should maintain performance with large memory count', async () => {

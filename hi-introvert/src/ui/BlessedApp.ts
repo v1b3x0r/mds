@@ -534,7 +534,9 @@ export class BlessedApp {
     const memCount = companion.memory?.count() || 0
     const recentMem = companion.memory?.memories?.[0]
     const emotion = companion.emotion
-    const vocab = this.session.vocabularyTracker
+    // v5.8.5: Use world.lexicon instead of vocabularyTracker
+    const vocabSize = world.lexicon.size
+    const conversationCount = this.session.conversationCount
     const weather = world.environment?.weather?.type || 'Clear'
     const temp = world.environment?.temperature || 25
     const tickCount = world.entities?.length || 0  // Use entity count as proxy for activity
@@ -579,12 +581,12 @@ export class BlessedApp {
     }
 
     lines.push('{bold}{red-fg}📚 Vocabulary{/}')
-    const stats = vocab.getStats()
-    const totalWords = stats.total
-    const learnedWords = stats.learnedWords
-    const protoActive = totalWords >= 50
-    lines.push(`  Total: {cyan-fg}${totalWords}{/} words`)
-    lines.push(`  Learned: {green-fg}+${learnedWords}{/}`)
+    // v5.8.5: Use world.lexicon stats
+    const totalWords = vocabSize
+    const learnedWords = vocabSize // All terms in lexicon are "learned" through crystallization
+    const protoActive = totalWords >= 20 // Match WorldSession threshold
+    lines.push(`  Total: {cyan-fg}${totalWords}{/} terms`)
+    lines.push(`  Conversations: {green-fg}${conversationCount}{/}`)
     lines.push(`  Proto: {${protoActive ? 'green' : 'dim'}-fg}${protoActive ? '✓' : '✗'}{/}`)
 
     this.contextPanel.setContent(lines.join('\n'))

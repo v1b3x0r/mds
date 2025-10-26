@@ -43,7 +43,7 @@ describe('First-Time User Journey', () => {
     expect(response.length).toBeGreaterThan(0)
 
     // Should learn Thai words
-    const vocabSize = app.session.vocabularyTracker.getVocabularySize()
+    const vocabSize = app.session.getVocabularySize()
     expect(vocabSize).toBeGreaterThan(0)
   })
 
@@ -62,19 +62,19 @@ describe('First-Time User Journey', () => {
     expect(response).toBeTruthy()
 
     // Should learn both Thai and English words
-    const hasThai = app.session.vocabularyTracker.canUse('สวัสดี')
-    const hasEnglish = app.session.vocabularyTracker.canUse('hello')
+    const hasThai = app.session.canUse('สวัสดี')
+    const hasEnglish = app.session.canUse('hello')
 
     expect(hasThai || hasEnglish).toBe(true) // At least one should be learned
   })
 
   test('should learn new vocabulary from user messages', async () => {
-    const initialVocab = app.session.vocabularyTracker.getVocabularySize()
+    const initialVocab = app.session.getVocabularySize()
 
     await app.typeMessage('ผมชอบเล่นดนตรีและอ่านหนังสือ')
     await app.waitForResponse()
 
-    const finalVocab = app.session.vocabularyTracker.getVocabularySize()
+    const finalVocab = app.session.getVocabularySize()
     expect(finalVocab).toBeGreaterThan(initialVocab)
   })
 

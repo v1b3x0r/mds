@@ -1396,6 +1396,32 @@ export class WorldSession extends EventEmitter {
   }
 
   /**
+   * v5.8.5: Get vocabulary statistics (for UI/tests)
+   * Adapter method for world.lexicon
+   */
+  getVocabularyStats() {
+    return {
+      total: this.world.lexicon.size,
+      learnedWords: this.world.lexicon.size, // All terms are learned through crystallization
+      conversationCount: this.conversationCount
+    }
+  }
+
+  /**
+   * v5.8.5: Get vocabulary size (for tests backward compatibility)
+   */
+  getVocabularySize(): number {
+    return this.world.lexicon.size
+  }
+
+  /**
+   * v5.8.5: Check if word exists in lexicon (for tests backward compatibility)
+   */
+  canUse(word: string): boolean {
+    return this.world.lexicon.get(word.toLowerCase()) !== undefined
+  }
+
+  /**
    * v6.1: Use crystallized patterns in proto-language
    * Enhances emergent language with discovered patterns
    */
