@@ -4,6 +4,77 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.8.1] — Thai Emotion System (Cultural Emotional Richness)
+
+📅 2025-10-27
+
+⸻
+
+🎯 Added
+
+Thai Emotion Baselines (44 emotions)
+	•	Comprehensive PAD coverage across all quadrants
+	•	Positive + Low Arousal (4): สงบ, สบาย, ผ่อนคลาย, พอใจ
+	•	Positive + High Arousal (5): ดีใจ, ตื่นเต้น, สนุก, ร่าเริง, สะใจ
+	•	Positive + Medium (5): กตัญญู, ภูมิใจ, ซาบซึ้ง, สะเทือนใจ, ประทับใจ
+	•	Neutral (3): เฉย, ปกติ, เพิกเฉย
+	•	Negative + Low (7): เศร้า, เหงา, อ้างว้าง, เหนื่อยใจ, เหนื่อยกาย, ท้อแท้, หมดหวัง
+	•	Negative + Medium (5): กังวล, เครียด, ผิดหวัง, เสียใจ, เสียดาย
+	•	Negative + High (6): โกรธ, หงุดหงิด, รำคาญ, กลัว, ตกใจ, ตื่นกลัว
+	•	Social/Complex (4): อาย, อิจฉา, ริษยา, อดทน
+	•	Boredom (3): เบื่อ, เซ็ง, เฉาๆ
+
+Emotion Detection API
+	•	findClosestThaiEmotion(state) — Map PAD state to closest Thai emotion label
+	•	detectEmotionFromText(text) — Keyword-based emotion detection (Thai + English)
+	•	blendMultipleEmotions(labels) — Average multiple emotion states
+	•	detectAllEmotions(text) — Find all emotions in text
+
+Optional Vitality Dimension
+	•	vitality field (0..1) tracks physical/mental energy
+	•	Distinguishes เหนื่อยกาย (physical fatigue) from เหนื่อยใจ (mental exhaustion)
+
+hi-introvert v1.2 Integration
+	•	Context panel displays Thai emotion labels (44 granular emotions vs 8 basic)
+	•	Fixed bug: world.tick displayed code snippet → use entities.length instead
+
+⸻
+
+📝 Changed
+
+Bundle Size
+	•	Full: 290.19 KB (+13 KB from v5.8.0) — Thai emotion baselines + detection functions
+	•	Lite: 179.87 KB (+2 KB from v5.8.0) — Minimal overhead
+	•	Validator: 17.25 KB (unchanged)
+
+Emotion Display
+	•	Calm (V=0.05, A=0.52, D=0.5) → "ปกติ" (was "neutral")
+	•	Happy (V=0.7, A=0.7, D=0.6) → "ร่าเริง" (was "happy")
+	•	Sad (V=-0.5, A=0.2, D=0.3) → "เศร้า" (was "sad")
+
+⸻
+
+⚙️ Technical Details
+
+Emotion Detection Flow
+	1.	User provides PAD state or text
+	2.	detectEmotionFromText() finds keywords → returns PAD state
+	3.	findClosestThaiEmotion() calculates Euclidean distance in 4D PAD+vitality space
+	4.	Returns closest Thai emotion label (44 options)
+
+Backwards Compatibility
+	•	Existing PAD emotions still work unchanged
+	•	Thai labels are display-only — core still uses PAD model
+	•	All existing .mdm files compatible
+
+⸻
+
+🎬 Philosophy
+
+"อารมณ์ไทย ละเอียดกว่าแปดแบบ" — Thai culture has nuanced emotions that PAD's 8 basic emotions can't capture. This system provides 44 culturally-specific labels while maintaining PAD compatibility. Users get richer emotional feedback without breaking existing systems.
+
+⸻
+
 [5.8.0] — World Auto-Context Injection (Generic Triggers)
 
 📅 2025-10-26

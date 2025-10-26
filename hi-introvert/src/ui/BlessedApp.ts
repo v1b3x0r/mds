@@ -3,6 +3,7 @@ import type { Widgets } from 'blessed'
 import { WorldSession } from '../session/WorldSession.js'
 import { getEmoji } from '../utils/emoji.js'
 import type { Message } from '../types/index.js'
+import { findClosestThaiEmotion } from '@v1b3x0r/mds-core'
 
 /**
  * blessed-based TUI for hi-introvert
@@ -13,14 +14,17 @@ export class BlessedApp {
   chatBox: Widgets.BoxElement
   inputBox: Widgets.TextboxElement
   statusBar: Widgets.BoxElement
+  contextPanel?: Widgets.BoxElement  // v1.2: Live context feed
 
   session: WorldSession
   messages: Message[] = []
   statusInterval?: NodeJS.Timeout  // v6.3: Cleanup interval on exit
+  contextInterval?: NodeJS.Timeout  // v1.2: Context panel update interval
+  showContext: boolean = true  // v1.2: Toggle context panel visibility
 
-  constructor() {
-    // Initialize session
-    this.session = new WorldSession()
+  constructor(options?: { companionId?: string }) {
+    // v1.2: Initialize session with optional companion selection
+    this.session = new WorldSession(options)
     this.session.setSilentMode(true)  // ✅ Disable console.log for clean TUI
 
     // Create screen
@@ -35,11 +39,15 @@ export class BlessedApp {
     this.chatBox = this.createChatBox()
     this.inputBox = this.createInputBox()
     this.statusBar = this.createStatusBar()
+    this.contextPanel = this.createContextPanel()  // v1.2: Context panel
 
     // Append to screen
     this.screen.append(this.chatBox)
     this.screen.append(this.inputBox)
     this.screen.append(this.statusBar)
+    if (this.showContext && this.contextPanel) {
+      this.screen.append(this.contextPanel)  // v1.2: Show by default
+    }
 
     // Setup event handlers
     this.setupKeyBindings()
@@ -57,7 +65,7 @@ export class BlessedApp {
     return blessed.box({
       top: 0,
       left: 0,
-      width: '100%',
+      width: this.showContext ? '70%' : '100%',  // v1.2: 70% when context visible
       height: '100%-3',  // Leave space for input + status
       scrollable: true,
       alwaysScroll: true,
@@ -88,6 +96,37 @@ export class BlessedApp {
         }
       },
       label: ' Chat ',
+      padding: {
+        left: 1,
+        right: 1
+      }
+    })
+  }
+
+  /**
+   * v1.2: Create context panel (live feed)
+   */
+  private createContextPanel(): Widgets.BoxElement {
+    return blessed.box({
+      top: 0,
+      left: '70%',
+      width: '30%',
+      height: '100%-3',
+      scrollable: true,
+      alwaysScroll: true,
+      keys: true,
+      mouse: true,
+      tags: true,
+      wrap: true,
+      border: {
+        type: 'line'
+      },
+      style: {
+        border: {
+          fg: 'yellow'
+        }
+      },
+      label: ' Context ',
       padding: {
         left: 1,
         right: 1
@@ -146,6 +185,11 @@ export class BlessedApp {
       this.inputBox.focus()
       this.inputBox.readInput()  // Force input mode
       this.screen.render()
+    })
+
+    // F2 to toggle context panel (v1.2)
+    this.screen.key(['f2'], () => {
+      this.toggleContextPanel()
     })
 
     // Arrow keys to scroll chat (when not in input)
@@ -457,6 +501,96 @@ export class BlessedApp {
   }
 
   /**
+   * v1.2: Toggle context panel visibility
+   */
+  private toggleContextPanel() {
+    this.showContext = !this.showContext
+
+    if (this.showContext && this.contextPanel) {
+      // Show context panel
+      this.screen.append(this.contextPanel)
+      this.chatBox.width = '70%'
+      this.updateContextPanel()
+    } else if (this.contextPanel) {
+      // Hide context panel
+      this.screen.remove(this.contextPanel)
+      this.chatBox.width = '100%'
+    }
+
+    this.screen.render()
+  }
+
+  /**
+   * v1.2: Update context panel with live data
+   */
+  private updateContextPanel() {
+    if (!this.contextPanel || !this.showContext) return
+
+    const companion = this.session.companionEntity.entity
+    const traveler = this.session.impersonatedEntity.entity
+    const world = this.session.world
+
+    // Get data
+    const memCount = companion.memory?.count() || 0
+    const recentMem = companion.memory?.memories?.[0]
+    const emotion = companion.emotion
+    const vocab = this.session.vocabularyTracker
+    const weather = world.environment?.weather?.type || 'Clear'
+    const temp = world.environment?.temperature || 25
+    const tickCount = world.entities?.length || 0  // Use entity count as proxy for activity
+
+    // Get cognitive link (handle case where cognitiveLinks might not be an array)
+    const links = Array.isArray(companion.cognitiveLinks) ? companion.cognitiveLinks : []
+    const link = links.find(l => l.targetId === traveler.id)
+
+    // Build content
+    const lines: string[] = []
+    lines.push('{bold}{yellow-fg}🧠 Memory{/}')
+    lines.push(`  Total: {cyan-fg}${memCount}{/}`)
+    if (recentMem) {
+      const memText = recentMem.content?.message || recentMem.content?.response || JSON.stringify(recentMem.content).substring(0, 20)
+      lines.push(`  Recent: {dim}"${memText.substring(0, 20)}..."{/}`)
+    }
+    lines.push('')
+
+    // v5.8: Show emotion with higher granularity (18 emotions vs 8)
+    const emotionLabel = findClosestThaiEmotion(emotion)
+
+    lines.push('{bold}{magenta-fg}💭 Emotion{/}')
+    lines.push(`  {yellow-fg}${emotionLabel}{/}`)  // Compact: show label only
+    lines.push(`  V:{${emotion.valence >= 0 ? 'green' : 'red'}-fg}${emotion.valence.toFixed(2)}{/} A:{cyan-fg}${emotion.arousal.toFixed(2)}{/} D:{yellow-fg}${emotion.dominance.toFixed(2)}{/}`)
+    if (emotion.vitality !== undefined) {
+      lines.push(`  Vit: {cyan-fg}${emotion.vitality.toFixed(2)}{/}`)
+    }
+    lines.push('')
+
+    lines.push('{bold}{blue-fg}🌍 World{/}')
+    lines.push(`  Weather: {cyan-fg}${weather}{/}`)
+    lines.push(`  Temp: {yellow-fg}${temp}°C{/}`)
+    lines.push(`  Entities: {dim}${tickCount}{/}`)
+    lines.push('')
+
+    if (link) {
+      lines.push('{bold}{green-fg}🔗 Link{/}')
+      lines.push(`  companion ↔ you`)
+      lines.push(`  Trust: {cyan-fg}${link.trust?.toFixed(2) || '0.00'}{/}`)
+      lines.push(`  Strength: {green-fg}${link.strength.toFixed(2)}{/}`)
+      lines.push('')
+    }
+
+    lines.push('{bold}{red-fg}📚 Vocabulary{/}')
+    const stats = vocab.getStats()
+    const totalWords = stats.total
+    const learnedWords = stats.learnedWords
+    const protoActive = totalWords >= 50
+    lines.push(`  Total: {cyan-fg}${totalWords}{/} words`)
+    lines.push(`  Learned: {green-fg}+${learnedWords}{/}`)
+    lines.push(`  Proto: {${protoActive ? 'green' : 'dim'}-fg}${protoActive ? '✓' : '✗'}{/}`)
+
+    this.contextPanel.setContent(lines.join('\n'))
+  }
+
+  /**
    * Update status bar
    */
   private updateStatusBar() {
@@ -468,7 +602,7 @@ export class BlessedApp {
       `{bold}traveler (YOU):{/bold} ${travelerEmotion} | ` +
       `{bold}companion:{/bold} ${companionEmotion} | ` +
       `memories: ${memoryCount} | ` +
-      `{dim}[ESC:quit | ↑↓:scroll | TAB:focus]{/}`
+      `{dim}[F2:context | TAB:focus | ESC:quit]{/}`
     )
   }
 
@@ -514,6 +648,12 @@ export class BlessedApp {
 
     // Render
     this.screen.render()
+
+    // v1.2: Update context panel every 500ms (live feed)
+    this.contextInterval = setInterval(() => {
+      this.updateContextPanel()
+      this.screen.render()
+    }, 500)
 
     // Update status bar every 2 seconds
     this.statusInterval = setInterval(() => {
@@ -666,8 +806,9 @@ export class BlessedApp {
    * Cleanup
    */
   cleanup() {
-    // Clear interval to prevent duplicate status bars
+    // Clear intervals to prevent memory leaks
     if (this.statusInterval) clearInterval(this.statusInterval)
+    if (this.contextInterval) clearInterval(this.contextInterval)  // v1.2
 
     // Save session WITH conversation history
     this.session.saveSessionWithHistory('.hi-introvert-session.json', this.messages)

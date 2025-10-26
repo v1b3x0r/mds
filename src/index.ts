@@ -306,6 +306,13 @@ export {
   emotionToHex,
   resonate,  // v5.5: P2P emotional resonance
   EMOTION_BASELINES,
+  EMOTION_BASELINES_TH,  // v5.8: Thai emotion baselines
+  THAI_EMOTION_KEYWORDS,
+  ENGLISH_EMOTION_KEYWORDS,
+  detectEmotionFromText,
+  detectAllEmotions,
+  blendMultipleEmotions,
+  findClosestThaiEmotion,
   IntentStack,
   createIntent,
   INTENT_TEMPLATES,

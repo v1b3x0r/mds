@@ -45,6 +45,17 @@ export {
   EMOTION_BASELINES
 } from './emotion'
 
+// Emotion detector (v5.8: Thai/English emotion recognition)
+export {
+  EMOTION_BASELINES_TH,
+  THAI_EMOTION_KEYWORDS,
+  ENGLISH_EMOTION_KEYWORDS,
+  detectEmotionFromText,
+  detectAllEmotions,
+  blendMultipleEmotions,
+  findClosestThaiEmotion
+} from './emotion-detector'
+
 // Intent system
 export type {
   Intent,
