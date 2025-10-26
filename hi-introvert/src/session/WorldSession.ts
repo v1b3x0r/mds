@@ -154,9 +154,9 @@ export class WorldSession extends EventEmitter {
     })
 
     // Initialize growth systems
-    // v5.8.2: VocabularyTracker removed - using world.lexicon as SSOT
+    // v5.8.3: Pass world to promptBuilder (needs access to world.lexicon)
     this.contextAnalyzer = new ContextAnalyzer()
-    this.promptBuilder = new MemoryPromptBuilder()
+    this.promptBuilder = new MemoryPromptBuilder(this.world)
     this.growthTracker = new GrowthTracker()
 
     // v6.2: Initialize environment system
@@ -732,22 +732,9 @@ export class WorldSession extends EventEmitter {
 
     this.lastMessageTime = now
 
-    // 1. Detect new words (companion learns from traveler's speech)
-    const newWords = this.vocabularyTracker.detectNewWords(message)
-    if (newWords.length > 0) {
-      this.emit('vocab', { words: newWords })
-
-      // Companion acknowledges learning
-      for (const word of newWords.slice(0, 2)) {  // Max 2 words at once
-        companion.remember({
-          type: 'observation',
-          subject: 'vocabulary',
-          content: { word, source: 'traveler' },
-          timestamp: Date.now(),
-          salience: 0.6
-        })
-      }
-    }
+    // 1. Record traveler's speech (v5.8.3: Let core handle vocabulary via Crystallizer)
+    // World will crystallize patterns automatically via world.lexicon
+    this.world.recordSpeech(traveler, message)
 
     // 2. Analyze context (from companion's perspective)
     const context = this.contextAnalyzer.analyzeIntent(message, companion)
@@ -820,11 +807,11 @@ export class WorldSession extends EventEmitter {
       })
     }
 
-    // 11. Update growth tracker
-    this.vocabularyTracker.incrementConversation()
+    // 11. Update growth tracker (v5.8.3: Use world.lexicon)
+    this.conversationCount++
     this.growthTracker.update({
-      vocabularySize: this.vocabularyTracker.getVocabularySize(),
-      conversationCount: this.vocabularyTracker.toJSON().conversationCount,
+      vocabularySize: this.world.lexicon.size,
+      conversationCount: this.conversationCount,
       memoryCount: companion.memory?.memories?.length || 0
     })
 
@@ -889,8 +876,8 @@ export class WorldSession extends EventEmitter {
       response = entity.speak(category)
     }
 
-    // If new words learned, acknowledge
-    if (!response && context.keywords.some(k => !this.vocabularyTracker.canUse(k))) {
+    // If new words learned, acknowledge (v5.8.3: Check world.lexicon)
+    if (!response && context.keywords.some(k => this.world.lexicon.get(k.toLowerCase()) === undefined)) {
       response = entity.speak('learned_new_word')
     }
 
@@ -918,20 +905,9 @@ export class WorldSession extends EventEmitter {
     // v6.1: Proto-language generation (if vocabulary ≥ 20 words)
     // Emergent language from learned vocabulary + crystallized patterns
     // v6.2: Environment-aware (temperature, light, humidity affect word choice)
-    if (!response && this.vocabularyTracker.getVocabularySize() >= 20) {
-      let vocabularyPool = this.vocabularyTracker.toJSON().knownWords
-
-      // v6.1: Enhance with crystallized patterns (if available)
-      if (this.world.lexicon) {
-        const patterns = this.world.lexicon.getAll()
-        if (patterns.length > 0) {
-          // Add high-weight patterns to vocabulary pool
-          const frequentPatterns = patterns
-            .filter(p => p.weight > 0.3)  // Only frequent patterns
-            .map(p => p.phrase)
-          vocabularyPool = [...vocabularyPool, ...frequentPatterns]
-        }
-      }
+    // v5.8.3: Use world.lexicon as SSOT
+    if (!response && this.world.lexicon.size >= 20) {
+      let vocabularyPool = this.world.lexicon.getAll().map(e => e.term)
 
       // v6.2: Get environment state at entity position
       const envState = this.environment.getState(entity.x, entity.y)
@@ -986,8 +962,7 @@ export class WorldSession extends EventEmitter {
         const prompt = this.promptBuilder.buildPrompt(
           entity,
           userMessage,
-          context,
-          this.vocabularyTracker
+          context
         )
 
         const llmResponse = await this.world.languageGenerator.generate({
@@ -1105,19 +1080,9 @@ export class WorldSession extends EventEmitter {
     }
 
     // Last resort: proto-language (if vocabulary enough)
-    if (!response && this.vocabularyTracker.getVocabularySize() >= 20) {
-      let vocabularyPool = this.vocabularyTracker.toJSON().knownWords
-
-      // Add crystallized patterns
-      if (this.world.lexicon) {
-        const patterns = this.world.lexicon.getAll()
-        if (patterns.length > 0) {
-          const frequentPatterns = patterns
-            .filter(p => p.weight > 0.3)
-            .map(p => p.phrase)
-          vocabularyPool = [...vocabularyPool, ...frequentPatterns]
-        }
-      }
+    // v5.8.3: Use world.lexicon as SSOT
+    if (!response && this.world.lexicon.size >= 20) {
+      let vocabularyPool = this.world.lexicon.getAll().map(e => e.term)
 
       // Environment-aware vocabulary
       const envState = this.environment.getState(companion.x, companion.y)
@@ -1177,10 +1142,10 @@ export class WorldSession extends EventEmitter {
       output += `  Memories: ${memoryCount}\n\n`
     }
 
-    // Vocabulary stats (shared)
-    const vocabStats = this.vocabularyTracker.getStats()
-    output += `📚 Vocabulary: ${vocabStats.total} words (+${vocabStats.learnedWords} learned)\n`
-    output += `💬 Conversations: ${vocabStats.conversationCount}\n`
+    // Vocabulary stats (v5.8.3: Use world.lexicon)
+    const lexiconSize = this.world.lexicon.size
+    output += `📚 Vocabulary: ${lexiconSize} terms (crystallized from conversations)\n`
+    output += `💬 Conversations: ${this.conversationCount}\n`
 
     // Linguistics stats
     const lexiconStats = this.world.getLexiconStats()
@@ -1216,9 +1181,10 @@ export class WorldSession extends EventEmitter {
    */
   saveSession(filename: string = '.hi-introvert-session.json') {
     const state = {
-      vocabulary: this.vocabularyTracker.toJSON(),
+      // v5.8.3: No need to save vocabulary - world.lexicon already in world state
       growth: this.growthTracker.toJSON(),
       world: toWorldFile(this.world),
+      conversationCount: this.conversationCount,
       timestamp: Date.now()
     }
 
@@ -1231,9 +1197,10 @@ export class WorldSession extends EventEmitter {
    */
   saveSessionWithHistory(filename: string = '.hi-introvert-session.json', messages: any[]) {
     const state = {
-      vocabulary: this.vocabularyTracker.toJSON(),
+      // v5.8.3: No need to save vocabulary - world.lexicon already in world state
       growth: this.growthTracker.toJSON(),
       world: toWorldFile(this.world),
+      conversationCount: this.conversationCount,
       messages,  // Include conversation history
       timestamp: Date.now()
     }
@@ -1259,11 +1226,9 @@ export class WorldSession extends EventEmitter {
       // This prevents old intervals from interfering with loaded state
       this.clearIntervals()
 
-      // Restore vocabulary
-      this.vocabularyTracker = VocabularyTracker.fromJSON(data.vocabulary)
-
-      // Restore growth
+      // v5.8.3: Restore growth + conversation count (no vocabulary - in world.lexicon)
       this.growthTracker = GrowthTracker.fromJSON(data.growth)
+      this.conversationCount = data.conversationCount || 0
 
       // Restore world (this will restore entity state)
       this.world = fromWorldFile(data.world)
@@ -1279,7 +1244,7 @@ export class WorldSession extends EventEmitter {
       this.emit('load', {
         status: 'success',
         filename,
-        vocabularySize: this.vocabularyTracker.getVocabularySize(),
+        vocabularySize: this.world.lexicon.size,
         entityCount: this.world.entities.length
       })
 
@@ -1309,11 +1274,9 @@ export class WorldSession extends EventEmitter {
     try {
       const data = JSON.parse(fs.readFileSync(filename, 'utf-8'))
 
-      // Restore vocabulary
-      this.vocabularyTracker = VocabularyTracker.fromJSON(data.vocabulary)
-
-      // Restore growth
+      // v5.8.3: Restore growth + conversation count (no vocabulary - in world.lexicon)
       this.growthTracker = GrowthTracker.fromJSON(data.growth)
+      this.conversationCount = data.conversationCount || 0
 
       // Restore world
       this.world = fromWorldFile(data.world)
@@ -1325,7 +1288,7 @@ export class WorldSession extends EventEmitter {
       return {
         success: true,
         messages: data.messages || [],
-        vocabularySize: this.vocabularyTracker.getVocabularySize()
+        vocabularySize: this.world.lexicon.size
       }
     } catch (error) {
       return {

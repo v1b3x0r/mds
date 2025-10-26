@@ -10,9 +10,8 @@
  * Design: Essence-first (no hardcoded personality), entity grows naturally
  */
 
-import type { Entity } from '@v1b3x0r/mds-core'
+import type { Entity, World } from '@v1b3x0r/mds-core'
 import type { ContextAnalysis } from './ContextAnalyzer'
-import type { VocabularyTracker } from '../vocabulary/VocabularyTracker'
 
 /**
  * Prompt building options
@@ -30,13 +29,14 @@ export interface PromptOptions {
  * Generates LLM prompts with entity essence + context
  */
 export class MemoryPromptBuilder {
+  constructor(private world: World) {}
+
   /**
    * Build LLM prompt from entity state
    *
    * @param entity - Entity that will respond
    * @param userMessage - User input
    * @param contextAnalysis - Analyzed context
-   * @param vocabularyTracker - Vocabulary state
    * @param options - Prompt options
    * @returns LLM prompt string
    */
@@ -44,7 +44,6 @@ export class MemoryPromptBuilder {
     entity: Entity,
     userMessage: string,
     contextAnalysis: ContextAnalysis,
-    vocabularyTracker: VocabularyTracker,
     options: PromptOptions = {}
   ): string {
     const {
@@ -68,16 +67,16 @@ export class MemoryPromptBuilder {
       prompt += `${languageInfo}\n\n`
     }
 
-    // 3. Vocabulary constraints (optional)
+    // 3. Vocabulary constraints (optional) - v5.8.3: Use world.lexicon
     if (includeVocabulary) {
-      const vocabSize = vocabularyTracker.getVocabularySize()
-      const recentLearned = vocabularyTracker.getRecentlyLearned(3)
+      const vocabSize = this.world.lexicon.size
+      const recentLearned = this.world.lexicon.getRecent(60000)  // Last 1 minute
 
       prompt += `# Vocabulary\n`
-      prompt += `- You know ${vocabSize} words\n`
+      prompt += `- You know ${vocabSize} terms (crystallized from conversations)\n`
 
       if (recentLearned.length > 0) {
-        prompt += `- Recently learned: ${recentLearned.map(e => e.word).join(', ')}\n`
+        prompt += `- Recently learned: ${recentLearned.map(e => e.term).join(', ')}\n`
       }
 
       prompt += `- Use simple words a 12-year-old would know\n`
