@@ -60,7 +60,7 @@ function loadMDM(filename: string): any {
 }
 
 // Load MDM definitions from files
-const companionMDM = loadMDM('companion.mdm')
+const companionMDM = loadMDM('entity.companion.hi_introvert.mdm')
 const travelerMDM = loadMDM('traveler.mdm')
 
 export interface EntityInfo {
@@ -93,6 +93,9 @@ export class WorldSession extends EventEmitter {
   protoLangGenerator: ProtoLanguageGenerator  // v6.1: Emergent language
   autoSaveEnabled: boolean = false  // v6.3: Disabled - BlessedApp handles save with history
   silentMode: boolean = false  // v6.3: Disable console.log for TUI mode
+
+  // v5.7.1: Chat trigger context tracking
+  lastMessageTime: number = Date.now()
 
   // v6.2: Environment System
   environment: Environment                     // MDS environment (temperature, light, humidity)
@@ -437,7 +440,17 @@ export class WorldSession extends EventEmitter {
         vy: envMapping.windVy
       }
 
-      // Broadcast environment change event
+      // v5.8.0: Broadcast OS metrics to world (for trigger context)
+      this.world.broadcastContext({
+        'cpu.usage': metrics.cpuUsage,
+        'memory.usage': metrics.memoryUsage,
+        'battery.level': metrics.batteryLevel,
+        'battery.charging': metrics.batteryCharging ? 1 : 0,
+        'system.uptime': metrics.uptime,
+        'system.load': metrics.loadAverage[0]
+      })
+
+      // Broadcast environment change event (legacy)
       this.world.broadcastEvent('environment_update', {
         temperature: envMapping.temperature,
         humidity: envMapping.humidity,
@@ -661,6 +674,19 @@ export class WorldSession extends EventEmitter {
   async handleUserMessage(message: string): Promise<MessageResponse> {
     const traveler = this.impersonatedEntity.entity
     const companion = this.companionEntity.entity
+
+    // 0. v5.8.0: Broadcast context to world (replaces manual updateTriggerContext)
+    const now = Date.now()
+    const silenceDuration = this.lastMessageTime
+      ? (now - this.lastMessageTime) / 1000
+      : 0
+
+    this.world.broadcastContext({
+      'user.message': message,
+      'user.silence': silenceDuration
+    })
+
+    this.lastMessageTime = now
 
     // 1. Detect new words (companion learns from traveler's speech)
     const newWords = this.vocabularyTracker.detectNewWords(message)

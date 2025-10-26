@@ -29,6 +29,7 @@ export default defineConfig({
           fileName: () => 'mds-core.esm.js'
         },
     rollupOptions: {
+      external: ['os', 'child_process', 'fs'],
       output: {
         exports: 'named'
       }

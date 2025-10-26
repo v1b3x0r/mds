@@ -124,6 +124,16 @@ export {
   levenshteinSimilarity
 } from './communication'
 
+// Context Providers (v5.8.0 - Auto-context injection)
+export {
+  OSContextProvider,
+  ChatContextProvider
+} from './context'
+
+export type {
+  ContextProvider
+} from './context'
+
 export type {
   Message,
   MessageType,

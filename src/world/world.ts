@@ -699,6 +699,33 @@ export class World {
   }
 
   /**
+   * Broadcast context to all entities
+   * v5.8.0 - Auto-context injection system
+   *
+   * Updates trigger context for ALL entities and checks emotion triggers.
+   * Replaces manual entity.updateTriggerContext() + entity.checkEmotionTriggers() calls.
+   *
+   * @param context - Key-value pairs using dot notation
+   * @example
+   * world.broadcastContext({
+   *   'cpu.usage': 0.85,
+   *   'memory.usage': 0.72,
+   *   'user.message': 'Hello!'
+   * })
+   *
+   * @example
+   * // MDM triggers automatically evaluate against this context:
+   * { "trigger": "cpu.usage>0.8", "to": "anxious" }  // Will fire!
+   * { "trigger": "user.message", "to": "attentive" } // Will fire!
+   */
+  broadcastContext(context: Record<string, any>): void {
+    for (const entity of this.entities) {
+      entity.updateTriggerContext(context)
+      entity.checkEmotionTriggers()
+    }
+  }
+
+  /**
    * Phase 1.5: Environmental Physics update (Phase 5)
    * - Environment and weather updates
    * - Collision detection and response

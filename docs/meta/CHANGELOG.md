@@ -4,6 +4,83 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.8.0] — World Auto-Context Injection (Generic Triggers)
+
+📅 2025-10-26
+
+⸻
+
+🎯 Added
+
+Context Provider System
+	•	ContextProvider — Base interface for context data sources
+	•	OSContextProvider — System metrics (CPU, memory, battery, uptime, load)
+	•	ChatContextProvider — Conversation metrics (message, silence duration)
+
+World Broadcast API
+	•	world.broadcastContext(context) — Send context to all entities + check triggers
+	•	Auto-injection pattern: app sends data → world distributes → entities react
+
+Generic Trigger Parser (v5.8.0)
+	•	Dot-notation keys: cpu.usage, memory.usage, battery.level, user.silence
+	•	Operators: >, <, >=, <=
+	•	Time units: 60s (seconds), 1000ms (milliseconds)
+	•	Negative values: temperature>-10, temperature<-10
+	•	Example MDM: { "trigger": "cpu.usage>0.8", "to": "stress" }
+
+Tests
+	•	test-generic-triggers.mjs — 28 pattern tests (100% pass)
+	•	Total coverage: 137 tests (109 existing + 28 new)
+
+⸻
+
+📝 Changed
+
+Bundle Size
+	•	Full: 276.91 KB (+25 KB from v5.7.0) — Node.js modules (os, fs, child_process)
+	•	Lite: 177.99 KB (+21 KB from v5.7.0) — Generic parser overhead
+	•	Validator: 17.25 KB (unchanged)
+
+MDM Parser
+	•	Removed hardcoded user.silence>Ns pattern (now uses generic parser)
+	•	Generic pattern takes precedence over keyword-based triggers
+	•	Backward compatible: all existing triggers still work
+
+Dependencies
+	•	Added @types/node for Node.js type definitions
+	•	Updated tsconfig.json with "types": ["node"]
+	•	Updated vite.config.ts with external: ['os', 'child_process', 'fs']
+
+⸻
+
+⚙️ Technical Details
+
+Context Injection Flow
+	1.	App collects metrics (OS, chat, sensors)
+	2.	App calls world.broadcastContext({ ... })
+	3.	World loops all entities → updateTriggerContext()
+	4.	World loops all entities → checkEmotionTriggers()
+	5.	Entities react automatically based on MDM definitions
+
+Generic Trigger Regex
+	•	Pattern: /^([\w.]+)([><]=?)(-?\d+\.?\d*)(s|ms)?$/
+	•	Examples: cpu.usage>0.8, memory.usage<0.2, user.silence>60s
+	•	Supports dot-notation keys, numeric operators, time units
+
+Context Provider Architecture
+	•	BaseContextProvider — Shared normalize() method (0-1 range)
+	•	OSContextProvider.getContext() — Returns current system state
+	•	ChatContextProvider.getContext(message?) — Calculates silence duration
+	•	Extensible: Create custom providers for any data source
+
+⸻
+
+🎬 Philosophy
+
+"World ต้องฉลาดเอง แต่ไม่พังของเก่า" — World automatically injects context when app sends data. MDM writers use natural logic (cpu.usage>0.8) without knowing field names. App developers just call broadcastContext() and entities react. Zero breaking changes, maximum simplicity.
+
+⸻
+
 [5.7.0] — Emergent Linguistics System (Phase 10)
 
 📅 2025-10-26

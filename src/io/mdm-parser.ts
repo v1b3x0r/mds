@@ -13,6 +13,7 @@ import type {
   MdsSkillsConfig,
   MdsRelationshipsConfig
 } from '../schema/mdspec'
+import { MULTILINGUAL_TRIGGERS } from './trigger-keywords'
 
 /**
  * Parsed dialogue phrases by category and language
@@ -43,10 +44,16 @@ export interface EmotionTrigger {
  * Trigger evaluation context
  */
 export interface TriggerContext {
+  // Game-centric triggers (legacy)
   playerGazeDuration?: number  // seconds
   playerDistance?: number       // pixels
   lightLevel?: number           // 0..1
   playerAction?: string         // action name
+
+  // Chat-centric triggers (v5.7.1)
+  userMessage?: string          // Last user message
+  userSilenceDuration?: number  // Seconds since last message
+
   [key: string]: any            // extensible
 }
 
@@ -90,11 +97,14 @@ export class MdmParser {
 
   /**
    * Parse trigger condition string into function
+   * v5.7.1: Added multilingual chat triggers (user.*)
    * @example "player.gaze>5s" → (ctx) => ctx.playerGazeDuration > 5
    * @example "distance<2" → (ctx) => ctx.playerDistance < 2
+   * @example "user.praise" → (ctx) => message contains praise keywords (20 languages)
    */
   parseTriggerCondition(trigger: string): (context: TriggerContext) => boolean {
-    // Simple pattern matching for common triggers
+    // === GAME-CENTRIC TRIGGERS (Legacy) ===
+
     // player.gaze>5s
     const gazeMatch = trigger.match(/player\.gaze>(\d+)s/)
     if (gazeMatch) {
@@ -131,6 +141,111 @@ export class MdmParser {
     // chant.recognition
     if (trigger === 'chant.recognition') {
       return (ctx) => ctx.playerAction === 'chant'
+    }
+
+    // === CHAT-CENTRIC TRIGGERS (v5.7.1 - Multilingual 90% coverage) ===
+
+    // user.praise - positive sentiment (20 languages)
+    if (trigger === 'user.praise') {
+      return (ctx) => {
+        const msg = ctx.userMessage?.toLowerCase() || ''
+        return MULTILINGUAL_TRIGGERS.praise.some(word =>
+          msg.includes(word.toLowerCase())
+        )
+      }
+    }
+
+    // user.criticism - negative sentiment (20 languages)
+    if (trigger === 'user.criticism') {
+      return (ctx) => {
+        const msg = ctx.userMessage?.toLowerCase() || ''
+        return MULTILINGUAL_TRIGGERS.criticism.some(word =>
+          msg.includes(word.toLowerCase())
+        )
+      }
+    }
+
+    // user.question - interrogative detection (20 languages)
+    if (trigger === 'user.question') {
+      return (ctx) => {
+        const msg = ctx.userMessage || ''
+        return MULTILINGUAL_TRIGGERS.question_markers.some(marker =>
+          msg.includes(marker)
+        )
+      }
+    }
+
+    // user.greeting - greeting detection (20 languages)
+    if (trigger === 'user.greeting') {
+      return (ctx) => {
+        const msg = ctx.userMessage?.toLowerCase() || ''
+        return MULTILINGUAL_TRIGGERS.greetings.some(word =>
+          msg.includes(word.toLowerCase())
+        )
+      }
+    }
+
+    // user.enthusiasm - high arousal detection (20 languages)
+    if (trigger === 'user.enthusiasm') {
+      return (ctx) => {
+        const msg = ctx.userMessage || ''
+        const hasMarker = MULTILINGUAL_TRIGGERS.enthusiasm_markers.some(marker =>
+          msg.includes(marker)
+        )
+        const hasPositive = MULTILINGUAL_TRIGGERS.praise.some(word =>
+          msg.toLowerCase().includes(word.toLowerCase())
+        )
+        return hasMarker && hasPositive
+      }
+    }
+
+    // user.deep_topic - philosophical/existential keywords (20 languages)
+    if (trigger === 'user.deep_topic') {
+      return (ctx) => {
+        const msg = ctx.userMessage?.toLowerCase() || ''
+        return MULTILINGUAL_TRIGGERS.deep_topics.some(word =>
+          msg.includes(word.toLowerCase())
+        )
+      }
+    }
+
+    // user.attack - hostile language detection (20 languages)
+    if (trigger === 'user.attack') {
+      return (ctx) => {
+        const msg = ctx.userMessage?.toLowerCase() || ''
+        return MULTILINGUAL_TRIGGERS.hostile.some(word =>
+          msg.includes(word.toLowerCase())
+        )
+      }
+    }
+
+    // === GENERIC DOT-NOTATION TRIGGERS (v5.8.0) ===
+    // Supports: key>value, key<value, key>=value, key<=value
+    // Examples: cpu.usage>0.8, memory.usage<0.2, battery.level<=0.15
+    // Time units: 60s, 1000ms
+    // Negative values: temperature>-10, temperature<-10
+
+    const genericMatch = trigger.match(/^([\w.]+)([><]=?)(-?\d+\.?\d*)(s|ms)?$/)
+    if (genericMatch) {
+      const [, key, operator, valueStr, unit] = genericMatch
+      let threshold = parseFloat(valueStr)
+
+      // Convert time units to seconds
+      if (unit === 'ms') threshold = threshold / 1000  // milliseconds to seconds
+      // 's' is default (no conversion needed)
+
+      return (ctx) => {
+        const actual = ctx[key]
+        if (actual === undefined) return false
+
+        switch (operator) {
+          case '>': return actual > threshold
+          case '<': return actual < threshold
+          case '>=': return actual >= threshold
+          case '<=': return actual <= threshold
+          default: return false
+        }
+      }
     }
 
     // Fallback: always false
