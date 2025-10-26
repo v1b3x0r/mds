@@ -21,6 +21,7 @@ export class BlessedApp {
   statusInterval?: NodeJS.Timeout  // v6.3: Cleanup interval on exit
   contextInterval?: NodeJS.Timeout  // v1.2: Context panel update interval
   showContext: boolean = true  // v1.2: Toggle context panel visibility
+  lastVocabSize: number = 0    // v5.8.7: Track vocab growth for emergent detection
 
   constructor(options?: { companionId?: string }) {
     // v1.2: Initialize session with optional companion selection
@@ -311,6 +312,9 @@ export class BlessedApp {
         timestamp: Date.now()
       })
 
+      // v5.8.7: Check for emergent language detection
+      this.checkEmergentLanguage()
+
       // Update status bar
       this.updateStatusBar()
 
@@ -590,8 +594,51 @@ export class BlessedApp {
     const protoColor = protoActive ? 'green-fg' : 'dim'
     const protoSymbol = protoActive ? '✓' : '✗'
     lines.push(`  Proto: {${protoColor}}${protoSymbol}{/}`)
+    lines.push('')
+
+    // v5.8.7: OS Sensor info
+    lines.push('{bold}{grey-fg}💻 OS Info{/}')
+    const osMetrics = this.session.osSensor.getMetrics()
+    lines.push(`  Platform: {dim}${process.platform}{/}`)
+    lines.push(`  Locale: {dim}${Intl.DateTimeFormat().resolvedOptions().locale}{/}`)
+    lines.push(`  Timezone: {dim}${Intl.DateTimeFormat().resolvedOptions().timeZone}{/}`)
+    lines.push(`  CPU: {yellow-fg}${(osMetrics.cpuUsage * 100).toFixed(0)}%{/}`)
+    lines.push(`  Memory: {cyan-fg}${(osMetrics.memoryUsage * 100).toFixed(0)}%{/}`)
+    const battColor = osMetrics.batteryLevel > 0.5 ? 'green-fg' : 'red-fg'
+    lines.push(`  Battery: {${battColor}}${(osMetrics.batteryLevel * 100).toFixed(0)}%{/} ${osMetrics.batteryCharging ? '⚡' : ''}`)
 
     this.contextPanel.setContent(lines.join('\n'))
+  }
+
+  /**
+   * v5.8.7: Check for emergent language detection
+   * Show system message when new terms are learned
+   */
+  private checkEmergentLanguage() {
+    const currentSize = this.session.world.lexicon?.size || 0
+
+    if (currentSize > this.lastVocabSize) {
+      const newCount = currentSize - this.lastVocabSize
+
+      // Get the new words (within last 5 seconds)
+      const recentWords = this.session.world.lexicon?.getRecent(5000) || []
+
+      if (recentWords.length > 0) {
+        const wordList = recentWords
+          .slice(0, 5) // Show max 5 words
+          .map(entry => `"${entry.term}"`)
+          .join(', ')
+
+        this.addMessage({
+          type: 'system',
+          sender: 'system',
+          text: `{cyan-fg}✨ Emergent language:{/} ${newCount} new term${newCount > 1 ? 's' : ''} detected: ${wordList}`,
+          timestamp: Date.now()
+        })
+      }
+
+      this.lastVocabSize = currentSize
+    }
   }
 
   /**
@@ -614,6 +661,9 @@ export class BlessedApp {
    * Start the app
    */
   async start() {
+    // v5.8.7: Initialize vocab tracking
+    this.lastVocabSize = this.session.world.lexicon?.size || 0
+
     // Load session with history (if exists)
     const loadResult = this.session.loadSessionWithHistory()
 
