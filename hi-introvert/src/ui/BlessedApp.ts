@@ -22,6 +22,7 @@ export class BlessedApp {
   contextInterval?: NodeJS.Timeout  // v1.2: Context panel update interval
   showContext: boolean = true  // v1.2: Toggle context panel visibility
   lastVocabSize: number = 0    // v5.8.7: Track vocab growth for emergent detection
+  seenTerms: Set<string> = new Set()  // v5.8.7: Track terms already notified (polling-based)
 
   constructor(options?: { companionId?: string }) {
     // v1.2: Initialize session with optional companion selection
@@ -530,6 +531,9 @@ export class BlessedApp {
   private updateContextPanel() {
     if (!this.contextPanel || !this.showContext) return
 
+    // v5.8.7: Check for new terms (polling-based detection)
+    this.checkEmergentLanguagePolling()
+
     const companion = this.session.companionEntity.entity
     const traveler = this.session.impersonatedEntity.entity
     const world = this.session.world
@@ -611,7 +615,7 @@ export class BlessedApp {
   }
 
   /**
-   * v5.8.7: Check for emergent language detection
+   * v5.8.7: Check for emergent language detection (immediate - after user message)
    * Show system message when new terms are learned
    */
   private checkEmergentLanguage() {
@@ -642,6 +646,45 @@ export class BlessedApp {
   }
 
   /**
+   * v5.8.7: Polling-based detection for background crystallization
+   * Runs every context panel update (~1 second interval)
+   * Detects terms added by world.tick() that aren't caught by immediate detection
+   */
+  private checkEmergentLanguagePolling() {
+    const allTerms = this.session.world.lexicon?.getAll() || []
+
+    // Find new terms not yet seen
+    const newTerms = allTerms.filter(entry => {
+      // Skip if already notified
+      if (this.seenTerms.has(entry.term)) return false
+
+      // Only show terms detected within last 2 seconds (avoid flooding on startup)
+      const age = Date.now() - entry.firstSeen
+      return age < 2000
+    })
+
+    if (newTerms.length > 0) {
+      const wordList = newTerms
+        .slice(0, 5) // Show max 5 words
+        .map(entry => `"${entry.term}"`)
+        .join(', ')
+
+      this.addMessage({
+        type: 'system',
+        sender: 'system',
+        text: `{cyan-fg}✨ World discovered:{/} ${newTerms.length} new term${newTerms.length > 1 ? 's' : ''} — ${wordList}`,
+        timestamp: Date.now()
+      })
+
+      // Mark as seen
+      newTerms.forEach(entry => this.seenTerms.add(entry.term))
+
+      // Update lastVocabSize to stay in sync
+      this.lastVocabSize = this.session.world.lexicon?.size || 0
+    }
+  }
+
+  /**
    * Update status bar
    */
   private updateStatusBar() {
@@ -663,6 +706,10 @@ export class BlessedApp {
   async start() {
     // v5.8.7: Initialize vocab tracking
     this.lastVocabSize = this.session.world.lexicon?.size || 0
+
+    // v5.8.7: Mark all existing terms as seen (avoid flooding on startup)
+    const existingTerms = this.session.world.lexicon?.getAll() || []
+    existingTerms.forEach(entry => this.seenTerms.add(entry.term))
 
     // Load session with history (if exists)
     const loadResult = this.session.loadSessionWithHistory()
