@@ -44,8 +44,11 @@ export interface EnvironmentMapping {
 export class OSSensor {
   private lastCPUInfo: os.CpuInfo[] = []
   private lastCPUTimes: { idle: number, total: number }[] = []
+  private realSensors: boolean
 
-  constructor() {
+  constructor(options: { realSensors?: boolean } = {}) {
+    // v6.3: Enable real sensors by default (except in test mode)
+    this.realSensors = options.realSensors ?? (process.env.NODE_ENV !== 'test')
     this.initializeCPU()
   }
 

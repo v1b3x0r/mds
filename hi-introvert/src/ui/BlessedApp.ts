@@ -594,22 +594,29 @@ export class BlessedApp {
     const protoActive = totalWords >= 20 // Match WorldSession threshold
     lines.push(`  Total: {cyan-fg}${totalWords}{/} terms`)
     lines.push(`  Conversations: {green-fg}${conversationCount}{/}`)
-    // Avoid template string in blessed tags
+    // v6.3: Avoid template string in blessed tags (causes rendering issues)
     const protoColor = protoActive ? 'green-fg' : 'dim'
     const protoSymbol = protoActive ? '✓' : '✗'
-    lines.push(`  Proto: {${protoColor}}${protoSymbol}{/}`)
+    lines.push('  Proto: {' + protoColor + '}' + protoSymbol + '{/}')
     lines.push('')
 
     // v5.8.7: OS Sensor info
     lines.push('{bold}{grey-fg}💻 OS Info{/}')
     const osMetrics = this.session.osSensor.getMetrics()
-    lines.push(`  Platform: {dim}${process.platform}{/}`)
-    lines.push(`  Locale: {dim}${Intl.DateTimeFormat().resolvedOptions().locale}{/}`)
-    lines.push(`  Timezone: {dim}${Intl.DateTimeFormat().resolvedOptions().timeZone}{/}`)
-    lines.push(`  CPU: {yellow-fg}${(osMetrics.cpuUsage * 100).toFixed(0)}%{/}`)
-    lines.push(`  Memory: {cyan-fg}${(osMetrics.memoryUsage * 100).toFixed(0)}%{/}`)
+
+    // v6.3: Format values outside tags to avoid blessed parsing issues
+    const cpuPercent = Math.min(100, (osMetrics.cpuUsage * 100)).toFixed(0)
+    const memPercent = Math.min(100, (osMetrics.memoryUsage * 100)).toFixed(0)
+    const battPercent = Math.min(100, (osMetrics.batteryLevel * 100)).toFixed(0)
+    const battIcon = osMetrics.batteryCharging ? ' ⚡' : ''
     const battColor = osMetrics.batteryLevel > 0.5 ? 'green-fg' : 'red-fg'
-    lines.push(`  Battery: {${battColor}}${(osMetrics.batteryLevel * 100).toFixed(0)}%{/} ${osMetrics.batteryCharging ? '⚡' : ''}`)
+
+    lines.push('  Platform: {dim}' + process.platform + '{/}')
+    lines.push('  Locale: {dim}' + Intl.DateTimeFormat().resolvedOptions().locale + '{/}')
+    lines.push('  Timezone: {dim}' + Intl.DateTimeFormat().resolvedOptions().timeZone + '{/}')
+    lines.push('  CPU: {yellow-fg}' + cpuPercent + '%{/}')
+    lines.push('  Memory: {cyan-fg}' + memPercent + '%{/}')
+    lines.push('  Battery: {' + battColor + '}' + battPercent + '%{/}' + battIcon)
 
     this.contextPanel.setContent(lines.join('\n'))
   }
@@ -697,12 +704,19 @@ export class BlessedApp {
   private updateStatusBar() {
     const companionEmotion = this.session.companionEntity.entity.emotion.valence.toFixed(2)
     const travelerEmotion = this.session.impersonatedEntity.entity.emotion.valence.toFixed(2)
-    const memoryCount = this.session.companionEntity.entity.memory?.count() || 0
+    const companion = this.session.companionEntity.entity
+
+    // v6.5: Enhanced memory display (show raw + consolidated)
+    const rawMemoryCount = companion.memory?.count() || 0
+    const consolidatedCount = companion.consolidation?.memories?.size || 0
+    const totalMemories = consolidatedCount > 0
+      ? `${rawMemoryCount}+${consolidatedCount}LT`  // "45+12LT" (LT = Long-Term)
+      : `${rawMemoryCount}`
 
     this.statusBar.setContent(
       `{bold}traveler (YOU):{/bold} ${travelerEmotion} | ` +
       `{bold}companion:{/bold} ${companionEmotion} | ` +
-      `memories: ${memoryCount} | ` +
+      `mem: ${totalMemories} | ` +
       `{dim}[F2:context | TAB:focus | ESC:quit]{/}`
     )
   }
