@@ -977,8 +977,12 @@ export class WorldSession extends EventEmitter {
       relationshipStrength * 0.2                 // Bonding (20%)
     ))
 
+    // Get top emergent words from lexicon
+    const topWords = this.world.lexicon.getRecent(10).map(entry => entry.term)
+
     this.growthTracker.update({
       vocabularySize: this.world.lexicon.size,
+      vocabularyWords: topWords,  // Top 10 emergent words
       conversationCount: this.conversationCount,
       memoryCount,
       emotionalMaturity  // ✅ Now calculated!
@@ -1004,6 +1008,39 @@ export class WorldSession extends EventEmitter {
       this.spawnSyncMoment(this.companionEntity, this.impersonatedEntity)
     }
 
+    // 14. v6.7: WorldMind Analytics (Collective Intelligence)
+    // Calculate world stats and detect emergent patterns
+    this.debug('   [WorldMind] Calculating analytics...')
+    const allEntities = Array.from(this.entities.values()).map(ei => ei.entity)
+    this.debug(`   [WorldMind] Entities: ${allEntities.length}`)
+    const worldStats = CollectiveIntelligence.calculateStats(allEntities)
+    const patterns = CollectiveIntelligence.detectPatterns(allEntities)
+    const collectiveEmotion = CollectiveIntelligence.calculateCollectiveEmotion(allEntities)
+
+    // Emit WorldMind events for UI/logging
+    if (patterns.length > 0) {
+      this.emit('world-mind:pattern', {
+        patterns: patterns.map(p => ({
+          pattern: p.pattern,
+          strength: p.strength.toFixed(2),
+          entities: p.entities.length
+        })),
+        stats: {
+          avgValence: worldStats.avgEmotionalValence?.toFixed(2),
+          avgArousal: worldStats.avgEmotionalArousal?.toFixed(2),
+          totalMemories: worldStats.totalMemories
+        }
+      })
+    }
+
+    // Store patterns for future use (e.g., influence next response)
+    this.worldMind['patterns'] = patterns
+    this.worldMind['lastStats'] = worldStats
+    this.worldMind['collectiveEmotion'] = collectiveEmotion
+
+    // Debug: Confirm storage
+    this.debug(`   [WorldMind] Stored: patterns=${patterns.length}, stats=${!!worldStats}, collectiveEmotion=${!!collectiveEmotion}`)
+
     // v5.8.5: newWordsLearned deprecated (vocabulary handled by world.lexicon)
     return {
       name: this.companionEntity.name,
@@ -1023,6 +1060,52 @@ export class WorldSession extends EventEmitter {
     context: ReturnType<ContextAnalyzer['analyzeIntent']>
   ): Promise<string> {
     const entity = this.companionEntity.entity
+
+    // 0. v6.7: WorldMind influence (collective intelligence affects response)
+    // Check if we have collective emotion data from previous conversation
+    const collectiveEmotion = this.worldMind['collectiveEmotion']
+    const lastStats = this.worldMind['lastStats']
+    const lastPatterns = this.worldMind['patterns'] || []
+
+    // If world mood is strongly negative, companion shows empathy
+    // Fallback: if no specific dialogue, adjust context for LLM
+    if (collectiveEmotion && collectiveEmotion.valence < -0.4) {
+      if (Math.random() < 0.3) {
+        const empathyResponses = entity.speak('empathetic') || entity.speak('sad')
+        if (empathyResponses) {
+          this.debug('   [WorldMind] Collective mood negative → empathetic response')
+          return empathyResponses
+        }
+      }
+      // Store hint for LLM fallback
+      context['worldMindHint'] = 'empathy'
+    }
+
+    // If high emotional synchronization detected, companion feels connected
+    const syncPattern = lastPatterns.find(p => p.pattern === 'synchronization')
+    if (syncPattern && syncPattern.strength > 0.7) {
+      if (Math.random() < 0.25) {
+        const connectionResponses = entity.speak('connected') || entity.speak('happy')
+        if (connectionResponses) {
+          this.debug(`   [WorldMind] Synchronization detected (${syncPattern.strength.toFixed(2)}) → connected response`)
+          return connectionResponses
+        }
+      }
+      context['worldMindHint'] = 'synchronization'
+    }
+
+    // If stillness pattern (calm world), companion is peaceful
+    const stillPattern = lastPatterns.find(p => p.pattern === 'stillness')
+    if (stillPattern && stillPattern.strength > 0.8) {
+      if (Math.random() < 0.2) {
+        const calmResponses = entity.speak('peaceful') || entity.speak('calm') || entity.speak('curious')
+        if (calmResponses) {
+          this.debug(`   [WorldMind] Stillness detected (${stillPattern.strength.toFixed(2)}) → peaceful response`)
+          return calmResponses
+        }
+      }
+      context['worldMindHint'] = 'stillness'
+    }
 
     // 1. Try MDM dialogue first (based on intent)
     let response: string | undefined
@@ -1307,6 +1390,89 @@ export class WorldSession extends EventEmitter {
       if (!this.silentMode) console.error('[Spawn Error]', error)
       return null
     }
+  }
+
+  /**
+   * Spawn additional companion by ID (e.g., "orz_archivist")
+   * Unlike spawnFriend (LLM-generated), this loads predefined .mdm files
+   * v6.x: Multi-companion interaction support
+   */
+  spawnCompanionById(companionId: string): EntityInfo | null {
+    // 1. Load companion from CompanionLoader
+    const companionData = companionLoader.get(companionId)
+
+    if (!companionData) {
+      const available = companionLoader.list().map(c => c.id).join(', ')
+      this.emit('error', {
+        type: 'spawn',
+        message: `Companion "${companionId}" not found. Available: ${available}`
+      })
+      return null
+    }
+
+    // 2. Check if already spawned
+    if (this.entities.has(companionId)) {
+      this.emit('error', {
+        type: 'spawn',
+        message: `Companion "${companionId}" is already in the world`
+      })
+      return null
+    }
+
+    // 3. Spawn entity with full features
+    const entityInfo = this.spawnEntity(companionId, companionData.material)
+
+    // 4. Setup cognitive links with existing entities
+    const newCompanion = entityInfo.entity
+    const hiIntrovert = this.companionEntity.entity
+    const traveler = this.impersonatedEntity.entity
+
+    // Connect with hi_introvert (bidirectional, medium-strong bond)
+    if (newCompanion.cognitiveLinks && hiIntrovert.cognitiveLinks) {
+      newCompanion.connectTo(hiIntrovert, { strength: 0.5, bidirectional: true })
+    }
+
+    // Connect with traveler (bidirectional, weaker initial bond)
+    if (newCompanion.cognitiveLinks && traveler.cognitiveLinks) {
+      newCompanion.connectTo(traveler, { strength: 0.3, bidirectional: true })
+    }
+
+    // 5. Memory: Companions remember meeting each other
+    if (hiIntrovert.memory) {
+      hiIntrovert.remember({
+        type: 'interaction',
+        subject: companionId,
+        content: { action: 'met', essence: companionData.essence, timestamp: Date.now() },
+        timestamp: Date.now(),
+        salience: 0.7
+      })
+    }
+
+    if (newCompanion.memory) {
+      newCompanion.remember({
+        type: 'interaction',
+        subject: this.companionEntity.name,
+        content: { action: 'met', essence: this.companionEntity.entity.essence, timestamp: Date.now() },
+        timestamp: Date.now(),
+        salience: 0.7
+      })
+    }
+
+    this.debug(`v6.x: Spawned companion "${companionId}" with P2P cognition`)
+    this.emit('spawn', { name: companionId, entityInfo })
+
+    return entityInfo
+  }
+
+  /**
+   * Get available companions (for UI display)
+   * Returns list of companion IDs with their essences
+   */
+  getAvailableCompanions(): Array<{ id: string; essence: string }> {
+    return companionLoader.list().map(c => ({
+      id: c.id,
+      essence: c.essence
+    }))
   }
 
   /**

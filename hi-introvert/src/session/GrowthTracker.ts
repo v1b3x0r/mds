@@ -12,13 +12,20 @@
  * Growth metrics
  */
 export interface GrowthMetrics {
-  vocabularySize: number
+  // Emergent Language (from world.lexicon - linguistics system)
+  vocabularySize: number              // Count of emergent vocabulary
+  vocabularyWords?: string[]          // Optional: top N emergent words
+
+  // Explicit Learning (from conversation analysis)
+  conceptsLearned: string[]           // Keywords detected/understood
+  keywordsUnderstood?: number         // Computed from conceptsLearned.length
+
+  // General metrics
   conversationCount: number
   memoryCount: number
-  conceptsLearned: string[]
-  emotionalMaturity: number  // 0-1
-  firstConversation?: number  // timestamp
-  lastConversation?: number   // timestamp
+  emotionalMaturity: number           // 0-1
+  firstConversation?: number          // timestamp
+  lastConversation?: number           // timestamp
 }
 
 /**
@@ -30,9 +37,11 @@ export class GrowthTracker {
   constructor() {
     this.metrics = {
       vocabularySize: 0,
+      vocabularyWords: [],
       conversationCount: 0,
       memoryCount: 0,
       conceptsLearned: [],
+      keywordsUnderstood: 0,
       emotionalMaturity: 0,
       firstConversation: undefined,
       lastConversation: undefined
@@ -44,6 +53,9 @@ export class GrowthTracker {
    */
   update(data: Partial<GrowthMetrics>): void {
     Object.assign(this.metrics, data)
+
+    // Auto-compute keywordsUnderstood from conceptsLearned
+    this.metrics.keywordsUnderstood = this.metrics.conceptsLearned.length
 
     // Update timestamps
     const now = Date.now()
@@ -73,17 +85,21 @@ export class GrowthTracker {
    * Get growth summary (for display)
    */
   getSummary(): string {
-    const { vocabularySize, conversationCount, memoryCount, conceptsLearned, emotionalMaturity } = this.metrics
+    const { vocabularySize, vocabularyWords, conversationCount, memoryCount, conceptsLearned, emotionalMaturity } = this.metrics
 
     const lines = [
       '📊 Growth Summary',
       '',
-      `${'Vocabulary:'.padEnd(18)}${vocabularySize} words`,
+      `${'Emergent Vocab:'.padEnd(18)}${vocabularySize} words${vocabularyWords && vocabularyWords.length > 0 ? ` (${vocabularyWords.slice(0, 3).join(', ')}...)` : ''}`,
+      `${'Concepts Learned:'.padEnd(18)}${conceptsLearned.length} keywords`,
       `${'Conversations:'.padEnd(18)}${conversationCount}`,
       `${'Memories:'.padEnd(18)}${memoryCount}`,
-      `${'Concepts:'.padEnd(18)}${conceptsLearned.length} (${conceptsLearned.slice(0, 5).join(', ')}${conceptsLearned.length > 5 ? ', ...' : ''})`,
       `${'Maturity:'.padEnd(18)}${(emotionalMaturity * 100).toFixed(0)}%`
     ]
+
+    if (conceptsLearned.length > 0) {
+      lines.push(`${'Recent Concepts:'.padEnd(18)}${conceptsLearned.slice(-5).join(', ')}${conceptsLearned.length > 5 ? ', ...' : ''}`)
+    }
 
     return lines.join('\n')
   }
