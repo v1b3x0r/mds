@@ -88,7 +88,25 @@ export class OSSensor {
   }
 
   /**
+   * Map OS metrics to world.broadcastContext() format
+   * (Generic key-value context for MDM triggers)
+   */
+  mapToContext(metrics: OSMetrics): Record<string, any> {
+    return {
+      'cpu.usage': metrics.cpuUsage,
+      'cpu.temp': metrics.cpuTemp,
+      'memory.usage': metrics.memoryUsage,
+      'memory.pressure': metrics.memoryPressure,
+      'battery.level': metrics.batteryLevel,
+      'battery.charging': metrics.batteryCharging ? 1 : 0,
+      'system.uptime': metrics.uptime,
+      'system.load': metrics.loadAverage[0]
+    }
+  }
+
+  /**
    * Map OS metrics to environment state
+   * (For MDS Environment/Weather systems - optional)
    */
   mapToEnvironment(metrics: OSMetrics): EnvironmentMapping {
     // CPU → Temperature
