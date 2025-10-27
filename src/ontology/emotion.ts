@@ -98,6 +98,7 @@ export function emotionDistance(
 
 /**
  * Apply emotional delta (clamps to valid ranges)
+ * v6.3: Added NaN validation for safety
  *
  * @param state - Current emotional state
  * @param delta - Change to apply
@@ -107,19 +108,32 @@ export function applyEmotionalDelta(
   state: EmotionalState,
   delta: EmotionalDelta
 ): EmotionalState {
+  // v6.3: Validate inputs (prevent NaN propagation)
+  const safeState = {
+    valence: isNaN(state.valence) ? 0 : state.valence,
+    arousal: isNaN(state.arousal) ? 0.5 : state.arousal,
+    dominance: isNaN(state.dominance) ? 0.5 : state.dominance
+  }
+
+  const safeDelta = {
+    valence: isNaN(delta.valence ?? 0) ? 0 : (delta.valence ?? 0),
+    arousal: isNaN(delta.arousal ?? 0) ? 0 : (delta.arousal ?? 0),
+    dominance: isNaN(delta.dominance ?? 0) ? 0 : (delta.dominance ?? 0)
+  }
+
   return {
     valence: clamp(
-      state.valence + (delta.valence ?? 0),
+      safeState.valence + safeDelta.valence,
       -1,
       1
     ),
     arousal: clamp(
-      state.arousal + (delta.arousal ?? 0),
+      safeState.arousal + safeDelta.arousal,
       0,
       1
     ),
     dominance: clamp(
-      state.dominance + (delta.dominance ?? 0),
+      safeState.dominance + safeDelta.dominance,
       0,
       1
     )

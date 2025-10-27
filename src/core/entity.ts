@@ -34,7 +34,11 @@ import { MessageQueue as MsgQueue, createMessage } from '../communication'
 
 // v5 Phase 7: Cognitive imports
 import type { LearningSystem, MemoryConsolidation, SkillSystem } from '../cognitive'
-import { LearningSystem as LearningSystemImpl, SkillSystem as SkillSystemImpl } from '../cognitive'
+import {
+  LearningSystem as LearningSystemImpl,
+  SkillSystem as SkillSystemImpl,
+  MemoryConsolidation as MemoryConsolidationImpl  // v6.4: Added for consolidation wiring
+} from '../cognitive'
 
 // v5.5: P2P Cognition imports
 import type { CognitiveLink } from '../cognition/cognitive-link'
@@ -635,6 +639,7 @@ export class Entity implements MessageParticipant {
     const arousal = emotion?.arousal || 0.5
 
     // Built-in dialogue bank (multilingual, cute/quirky)
+    // v6.5: Expanded with more categories for variety
     const builtIn: Record<string, string[]> = {
       'intro_en': ["...", "oh, hi", "didn't see you there", "hello... I'm still figuring things out", "*waves shyly*", "um, nice to meet you?", "hi there ✨"],
       'intro_th': ["...", "หวัดดีครับ", "เอ่อ... สวัสดี", "ไม่ได้สังเกตเห็นคุณ", "*โบกมืออย่างอายๆ*", "ยินดีที่ได้รู้จักครับ"],
@@ -651,17 +656,43 @@ export class Entity implements MessageParticipant {
       'excited_en': ["wow!", "that's amazing!", "*bounces*", "really?!", "this is so cool! ✨", "I love this!"],
       'excited_th': ["ว้าว!", "เจ๋งมาก!", "*กระโดดโลดเต้น*", "จริงเหรอ?!", "เจ๋งสุดๆ! ✨", "ชอบเลย!"],
       'tired_en': ["*yawn*", "getting sleepy...", "need a moment...", "that's a lot to process", "...zzz"],
-      'tired_th': ["*หาว*", "ง่วงแล้ว...", "ขอพักหน่อย...", "มันเยอะเกินประมวลผลไหว", "...zzz"]
+      'tired_th': ["*หาว*", "ง่วงแล้ว...", "ขอพักหน่อย...", "มันเยอะเกินประมวลผลไหว", "...zzz"],
+
+      // v6.5: NEW CATEGORIES (more contextual variety)
+      'grateful_en': ["thank you!", "I appreciate that", "you're kind :)", "that means a lot", "thanks so much"],
+      'grateful_th': ["ขอบคุณครับ!", "ขอบใจจัง", "คุณใจดีมาก :)", "ซาบซึ้งเลย", "ขอบคุณมากๆ"],
+      'lonely_en': ["it's quiet here...", "I wish someone was around", "*sits alone*", "feeling a bit isolated", "could use some company"],
+      'lonely_th': ["เงียบจัง...", "อยากมีใครสักคน", "*นั่งคนเดียว*", "รู้สึกโดดเดี่ยวหน่อย", "อยากมีเพื่อนจัง"],
+      'inspired_en': ["I have an idea!", "what if we...", "*eyes light up*", "this could work!", "ooh, I'm thinking..."],
+      'inspired_th': ["มีไอเดีย!", "ถ้าเรา...", "*ตาเป็นประกาย*", "น่าจะได้นะ!", "อ้อ กำลังคิดอยู่..."],
+      'nostalgic_en': ["remember when...", "that reminds me of...", "*recalls memory*", "good times...", "I miss that"],
+      'nostalgic_th': ["จำได้ว่า...", "นั่นทำให้นึกถึง...", "*ระลึกถึงความทรงจำ*", "ดีจังเลย...", "คิดถึงจัง"],
+      'anxious_en': ["I'm a bit worried...", "is this okay?", "*fidgets*", "not sure about this", "feeling nervous"],
+      'anxious_th': ["กังวลหน่อย...", "โอเคไหมนะ?", "*กระสับกระส่าย*", "ไม่แน่ใจเลย", "รู้สึกเครียด"],
+      'playful_en': ["hehe!", "let's try something fun!", "*grins*", "wanna see this?", "catch me if you can! :P"],
+      'playful_th': ["ฮิฮิ!", "ลองอะไรสนุกๆกัน!", "*ยิ้มซน*", "อยากดูไหม?", "จับผมให้ได้! :P"],
+      'focused_en': ["concentrating...", "let me focus on this", "*narrows eyes*", "need to pay attention", "analyzing..."],
+      'focused_th': ["กำลังตั้งใจ...", "ให้สมาธิหน่อย", "*ทำสีหน้าจริงจัง*", "ต้องใส่ใจ", "กำลังวิเคราะห์..."],
+      'relieved_en': ["phew...", "that's better", "*sighs in relief*", "glad that's over", "feeling lighter now"],
+      'relieved_th': ["โล่งใจ...", "ดีขึ้นแล้ว", "*ถอนหายใจโล่ง*", "ดีใจที่ผ่านไปแล้ว", "รู้สึกเบาขึ้น"]
     }
 
-    // Emotion-based category fallback
+    // Emotion-based category fallback (v6.5: More nuanced mapping)
     let fallbackCategory = category
     if (!builtIn[`${category}_${lang}`]) {
-      if (valence > 0.5) fallbackCategory = 'happy'
-      else if (valence < -0.3) fallbackCategory = 'sad'
-      else if (arousal > 0.6) fallbackCategory = 'excited'
-      else if (arousal < 0.3) fallbackCategory = 'tired'
-      else fallbackCategory = 'curious'
+      // Map PAD values to appropriate categories
+      if (valence > 0.7 && arousal > 0.6) fallbackCategory = 'excited'      // Very happy + energetic
+      else if (valence > 0.5 && arousal < 0.4) fallbackCategory = 'relieved'  // Happy + calm
+      else if (valence > 0.5) fallbackCategory = 'happy'                    // Generally positive
+      else if (valence > 0.2 && arousal > 0.7) fallbackCategory = 'playful'  // Mildly positive + high energy
+      else if (valence > 0.2 && arousal > 0.5) fallbackCategory = 'curious'  // Neutral + interested
+      else if (valence > 0.2) fallbackCategory = 'grateful'                 // Mildly positive
+      else if (valence < -0.5 && arousal > 0.6) fallbackCategory = 'anxious' // Negative + stressed
+      else if (valence < -0.5) fallbackCategory = 'sad'                     // Very negative
+      else if (valence < -0.2 && arousal < 0.4) fallbackCategory = 'lonely'  // Mildly sad + low energy
+      else if (arousal > 0.7) fallbackCategory = 'inspired'                 // High arousal (regardless of valence)
+      else if (arousal < 0.3) fallbackCategory = 'tired'                    // Low arousal
+      else fallbackCategory = 'thinking'                                    // Neutral state
     }
 
     const key = `${fallbackCategory}_${lang}`
@@ -719,7 +750,7 @@ export class Entity implements MessageParticipant {
 
   /**
    * Enable one or more features for this entity (v5.3 unified API)
-   * @param features - Feature names to enable ('memory', 'learning', 'relationships', 'skills')
+   * @param features - Feature names to enable ('memory', 'learning', 'relationships', 'skills', 'consolidation')
    * @returns this (for chaining)
    *
    * @example
@@ -727,14 +758,17 @@ export class Entity implements MessageParticipant {
    *
    * @example Chainable
    * entity.enable('memory').enable('learning')
+   *
+   * v6.4: Added 'consolidation' support + increased memory cap to 500
    */
-  enable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills'>): this {
+  enable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills' | 'consolidation'>): this {
     for (const feature of features) {
       switch (feature) {
         case 'memory':
           // Initialize memory system if not already present
           if (!this.memory) {
-            this.memory = new MemoryBuffer({ maxSize: 100 })
+            // v6.4: Increased default memory cap from 100 to 500 for long-term companions
+            this.memory = new MemoryBuffer({ maxSize: 500 })
           }
           break
         case 'learning':
@@ -755,6 +789,16 @@ export class Entity implements MessageParticipant {
             this.skills = new SkillSystemImpl()
           }
           break
+        case 'consolidation':
+          // v6.4: Initialize memory consolidation system (was missing - forgotten wiring!)
+          if (!this.consolidation) {
+            this.consolidation = new MemoryConsolidationImpl({
+              similarityThreshold: 0.7,
+              forgettingRate: 0.001,
+              consolidationInterval: 60000
+            })
+          }
+          break
         default:
           console.warn(`Unknown feature: ${feature}`)
       }
@@ -766,8 +810,10 @@ export class Entity implements MessageParticipant {
    * Disable one or more features for this entity
    * @param features - Feature names to disable
    * @returns this (for chaining)
+   *
+   * v6.4: Added 'consolidation' support
    */
-  disable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills'>): this {
+  disable(...features: Array<'memory' | 'learning' | 'relationships' | 'skills' | 'consolidation'>): this {
     for (const feature of features) {
       switch (feature) {
         case 'memory':
@@ -790,6 +836,11 @@ export class Entity implements MessageParticipant {
             this.skills = undefined
           }
           break
+        case 'consolidation':
+          if (this.consolidation) {
+            this.consolidation = undefined
+          }
+          break
       }
     }
     return this
@@ -799,8 +850,10 @@ export class Entity implements MessageParticipant {
    * Check if a feature is enabled
    * @param feature - Feature name to check
    * @returns true if enabled
+   *
+   * v6.4: Added 'consolidation' support
    */
-  isEnabled(feature: 'memory' | 'learning' | 'relationships' | 'skills'): boolean {
+  isEnabled(feature: 'memory' | 'learning' | 'relationships' | 'skills' | 'consolidation'): boolean {
     switch (feature) {
       case 'memory':
         return this.memory !== undefined
@@ -810,6 +863,8 @@ export class Entity implements MessageParticipant {
         return this.relationships !== undefined
       case 'skills':
         return this.skills !== undefined
+      case 'consolidation':
+        return this.consolidation !== undefined
       default:
         return false
     }

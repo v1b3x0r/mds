@@ -820,13 +820,15 @@ export class World {
    */
   private updateMental(dt: number): void {
     for (const entity of this.entities) {
-      // Memory decay
+      // Memory decay (v6.5: Reduced rate for longer memory retention)
       if (entity.memory) {
-        entity.memory.decay(dt, 0.01)  // 1% fade per second
+        entity.memory.decay(dt, 0.003)  // 0.3% fade per second (was 0.01 = 1%)
+        // Memory lifespan: ~300s (5 min) instead of ~90s (1.5 min)
 
         // Forget low-salience memories (every 10 seconds)
+        // v6.5: Lower threshold to give weak memories more time
         if (this.worldTime % 10 < dt) {
-          entity.memory.forget(0.1)  // Remove salience < 0.1
+          entity.memory.forget(0.05)  // Remove salience < 0.05 (was 0.1)
         }
       }
 
