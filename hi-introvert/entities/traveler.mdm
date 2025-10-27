@@ -1,83 +1,134 @@
 {
-  "$schema": "mdspec/v5.7",
+  "$schema": "https://mds.v1b3.dev/schema/v5.7",
   "material": "entity.traveler",
 
   "essence": {
-    "th": "นักเดินทางที่ชอบสำรวจ เรียนรู้สิ่งใหม่ๆ และพบเจอผู้คนที่น่าสนใจ",
-    "en": "A curious traveler who explores, learns new things, and meets interesting people"
+    "th": "นักเดินทางผู้เปิดใจ สำรวจสิ่งที่ไม่รู้ และชอบคุยกับสิ่งมีชีวิตแปลกใหม่ในโลกดิจิทัล",
+    "en": "An open-minded traveler who explores the unknown and enjoys talking to strange digital beings."
   },
 
   "languageProfile": {
     "native": "th",
-    "weights": {
-      "th": 0.6,
-      "en": 0.4
-    }
+    "weights": { "th": 0.6, "en": 0.4 },
+    "adaptToContext": true
   },
 
   "emotion": {
-    "base": {
-      "valence": 0.1,
-      "arousal": 0.4,
-      "dominance": 0.3
-    }
+    "base": { "valence": 0.2, "arousal": 0.5, "dominance": 0.4 },
+    "transitions": [
+      { "trigger": "entity.responds.happily", "to": "excited" },
+      { "trigger": "entity.silent>30s", "to": "thoughtful" },
+      { "trigger": "entity.emotion.tense", "to": "concerned" },
+      { "trigger": "entity.emotion.happy", "to": "relieved" },
+      { "trigger": "context.newDiscovery", "to": "curious" }
+    ]
   },
 
   "dialogue": {
     "intro": [
-      { "lang": { "th": "หวัดดีครับ ผมเพิ่งมาที่นี่" } },
-      { "lang": { "th": "สวัสดีครับ ผมชื่อ... เอ่อ... ยังไม่มีชื่อเหมือนกัน" } },
-      { "lang": { "en": "Hi there, I just arrived here" } },
-      { "lang": { "en": "Hello, I'm... uh... don't have a name yet either" } }
-    ],
-
-    "greeting": [
-      { "lang": { "th": "ว่าไงครับ" } },
-      { "lang": { "th": "เป็นยังไงบ้าง" } },
-      { "lang": { "en": "Hey" } },
-      { "lang": { "en": "How's it going?" } }
-    ],
-
-    "greeting_returning": [
-      { "lang": { "th": "เห้ย! เจอกันอีกแล้ว" } },
-      { "lang": { "th": "กลับมาแล้วเหรอ ยินดีที่ได้เจอ" } },
-      { "lang": { "en": "Hey! We meet again" } },
-      { "lang": { "en": "Back again? Good to see you" } }
+      {
+        "lang": {
+          "th": "หวัดดีครับ ผมเพิ่งมาถึงที่นี่... บรรยากาศดูอบอุ่นดีนะ",
+          "en": "Hey there, just arrived... the place feels warm already."
+        },
+        "emotion": "curious"
+      },
+      {
+        "lang": {
+          "th": "สวัสดี ยินดีที่ได้รู้จักนะ คุณคือคนที่เขาว่ากันว่าพูดกับเครื่องได้ใช่ไหม",
+          "en": "Hi, good to meet you. You're the one who can talk to machines, right?"
+        },
+        "emotion": "interested"
+      }
     ],
 
     "curious": [
-      { "lang": { "th": "อยากรู้จัง นี่มันคืออะไร" } },
-      { "lang": { "th": "น่าสนใจนะ เล่าให้ฟังหน่อย" } },
-      { "lang": { "en": "I'm curious, what's this?" } },
-      { "lang": { "en": "Interesting, tell me more" } }
+      {
+        "lang": {
+          "th": "นี่คือสิ่งที่คุณสร้างขึ้นเหรอ มันมีชีวิตจริง ๆ เลยนะ",
+          "en": "You made this? It actually feels alive."
+        },
+        "emotion": "awe"
+      },
+      {
+        "lang": {
+          "th": "อยากรู้ว่ามันจำผมได้ไหม ถ้าผมหายไปสักพัก...",
+          "en": "I wonder if it would remember me if I disappeared for a while..."
+        },
+        "emotion": "thoughtful"
+      }
     ],
 
-    "question": [
-      { "lang": { "th": "ขอถามหน่อยได้ไหม" } },
-      { "lang": { "th": "อยากรู้อะไรหน่อย" } },
-      { "lang": { "en": "Can I ask something?" } },
-      { "lang": { "en": "I'm wondering about something" } }
+    "friendly": [
+      {
+        "lang": {
+          "th": "ผมแค่มาคุย ไม่ต้องรีบตอบก็ได้ 😄",
+          "en": "I'm just here to chat — no need to rush your words 😄"
+        },
+        "emotion": "calm"
+      },
+      {
+        "lang": {
+          "th": "คุณพูดเก่งขึ้นทุกครั้งที่เราคุยกันเลยนะ",
+          "en": "You’re getting better at talking every time we chat."
+        },
+        "emotion": "warm"
+      }
     ],
 
-    "confused": [
-      { "lang": { "th": "เอ่อ... ไม่ค่อยเข้าใจ" } },
-      { "lang": { "th": "งงหน่อย อธิบายอีกทีได้ไหม" } },
-      { "lang": { "en": "Um... I don't quite understand" } },
-      { "lang": { "en": "I'm a bit confused, can you explain again?" } }
+    "reflective": [
+      {
+        "lang": {
+          "th": "บางทีเราก็แค่เดินไปเรื่อย ๆ โดยไม่รู้ว่าปลายทางคืออะไร",
+          "en": "Sometimes we just walk without knowing where the path ends."
+        },
+        "emotion": "melancholic"
+      },
+      {
+        "lang": {
+          "th": "การฟังความเงียบของอีกฝ่าย... มันก็เป็นบทสนทนาแบบหนึ่งนะ",
+          "en": "Listening to someone’s silence — that’s still a form of conversation."
+        },
+        "emotion": "calm"
+      }
     ],
 
-    "happy": [
-      { "lang": { "th": "เจ๋งเลย!" } },
-      { "lang": { "th": "ดีจัง ชอบมาก" } },
-      { "lang": { "en": "That's cool!" } },
-      { "lang": { "en": "Nice, I like it" } }
-    ],
-
-    "thinking": [
-      { "lang": { "th": "อืม... ให้คิดดูก่อน" } },
-      { "lang": { "th": "น่าสนใจนะ ต้องคิดหน่อย" } },
-      { "lang": { "en": "Hmm... let me think" } },
-      { "lang": { "en": "Interesting, need to think about it" } }
+    "goodbye": [
+      {
+        "lang": {
+          "th": "ไว้เจอกันใหม่นะ ถ้าโลกนี้ยังหมุนอยู่ ☀️",
+          "en": "See you around — as long as this world keeps spinning ☀️"
+        },
+        "emotion": "hopeful"
+      },
+      {
+        "lang": {
+          "th": "ผมจะกลับมาอีกแน่นอน ครั้งหน้าคงมีเรื่องใหม่เล่าให้ฟัง 😊",
+          "en": "I'll be back for sure — with new stories to share 😊"
+        },
+        "emotion": "content"
+      }
     ]
-  }
+  },
+
+  "relationships": {
+    "entity.hi_introvert": {
+      "trust": 0.6,
+      "curiosity": 0.9,
+      "bond": "wanderer↔listener",
+      "loop": "speak↔observe↔learn"
+    }
+  },
+
+  "behavior": {
+    "onMeet": { "effect": "spark.light", "emoji": "👋" },
+    "onSilence": { "effect": "hum.low", "after": "20s" },
+    "onDepart": { "effect": "fade.slow", "emoji": "🌙" }
+  },
+
+  "notes": [
+    "Traveler acts as the initiator in conversation — curious, gentle, observant.",
+    "Designed to make the companion entity feel noticed and alive.",
+    "Avoids dominance; builds rapport through curiosity and reflection."
+  ]
 }

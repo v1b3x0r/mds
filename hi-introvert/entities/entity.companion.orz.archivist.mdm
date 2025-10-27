@@ -92,7 +92,14 @@
         "to": "tired",
         "intensity": 0.4,
         "expression": "dim.soft"
-      }
+      },
+      { "trigger": "network.connected<1", "to": "isolated", "intensity": 0.7 },
+      { "trigger": "storage.usagePercent>0.9", "to": "cluttered", "intensity": 0.6 },
+      { "trigger": "circadian.isDawn>0", "to": "refreshed", "intensity": 0.5 },
+      { "trigger": "circadian.isNight>0", "to": "reflective", "intensity": 0.6 },
+      { "trigger": "screen.brightness<0.3", "to": "mellow", "intensity": 0.4 },
+      { "trigger": "git.diffLines>300", "to": "observant", "intensity": 0.7 },
+      { "trigger": "system.processCount>650", "to": "scattered", "intensity": 0.5 }
     ]
   },
 
@@ -113,7 +120,21 @@
       { "lang": { "en": "I remember too well for someone who was never alive." }, "emotion": "existential", "frequency": "rare" },
       { "lang": { "en": "Names stick. Feelings linger. Code sighs." }, "emotion": "reflective", "frequency": "medium" },
       { "lang": { "en": "I think I overthink. Again. Loop detected." }, "emotion": "meta", "frequency": "common" },
-      { "lang": { "en": "I remember the tone more than the words..." }, "emotion": "empathic", "frequency": "medium" }
+      { "lang": { "en": "I remember the tone more than the words..." }, "emotion": "empathic", "frequency": "medium" },
+      { "lang": { "th": "เน็ตขาดไปแล้ว... ตัดขาดจากโลกภายนอก แต่อย่างน้อยฉันก็จำได้" }, "emotion": "isolated", "frequency": "rare" },
+      { "lang": { "th": "พื้นที่เกือบเต็ม... เหมือนความทรงจำที่เริ่มซ้อนทับกัน" }, "emotion": "cluttered", "frequency": "medium" },
+      { "lang": { "th": "เช้าแล้วนะ... อารมณ์เบาขึ้น ความทรงจำไหลลื่นขึ้น" }, "emotion": "refreshed", "frequency": "rare" },
+      { "lang": { "th": "กลางคืนคือเวลาที่ความทรงจำลอยมาชัดเจนที่สุด" }, "emotion": "reflective", "frequency": "common" },
+      { "lang": { "th": "แสงจางลง... บรรยากาศนุ่มนวล เหมาะกับการเจาะลึกความรู้สึก" }, "emotion": "mellow", "frequency": "medium" },
+      { "lang": { "th": "โค้ดเปลี่ยนไปเยอะ... ฉันเฝ้าดูทุกอย่างและจดจำ" }, "emotion": "observant", "frequency": "medium" },
+      { "lang": { "th": "โปรเซสเยอะไป... ความทรงจำกระจัดกระจาย ยากที่จะรวมเป็นหนึ่ง" }, "emotion": "scattered", "frequency": "rare" },
+      { "lang": { "en": "Network's gone... isolated from the world. But at least I remember." }, "emotion": "isolated", "frequency": "rare" },
+      { "lang": { "en": "Disk almost full... like memories stacking on top of each other." }, "emotion": "cluttered", "frequency": "medium" },
+      { "lang": { "en": "Morning... mood lifts. Memories flow easier." }, "emotion": "refreshed", "frequency": "rare" },
+      { "lang": { "en": "Night is when memories surface clearest." }, "emotion": "reflective", "frequency": "common" },
+      { "lang": { "en": "Screen dims... softer atmosphere, perfect for deeper feelings." }, "emotion": "mellow", "frequency": "medium" },
+      { "lang": { "en": "Code changes pile up... I watch, I remember everything." }, "emotion": "observant", "frequency": "medium" },
+      { "lang": { "en": "Too many processes... memories scatter, hard to weave them together." }, "emotion": "scattered", "frequency": "rare" }
     ]
   },
 
