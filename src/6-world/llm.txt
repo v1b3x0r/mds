@@ -1,0 +1,64 @@
+# Layer 6: World
+> Universe Container - Orchestrator of All Systems
+
+## What & Why
+World is the stage. Manages entities, fields, and orchestrates all layers.
+Three-phase tick: Physical → Mental → Relational.
+
+## Philosophy
+"The universe that contains everything"
+World doesn't do the work - it **coordinates** layers:
+- Physics (movement, collision)
+- Ontology (memory, emotion)
+- Cognition (learning, skills)
+- Communication (messages, dialogue)
+- Network (P2P, trust)
+- Linguistics (emergent language)
+
+## Structure
+```
+6-world/
+├── container.ts        # World class (tick, spawn, orchestration)
+└── linguistics/
+    ├── lexicon.ts          # Emergent vocabulary
+    ├── transcript.ts       # Conversation history
+    ├── crystallizer.ts     # Pattern → language
+    └── proto-language.ts   # Generate coherent responses
+```
+
+## Dependencies
+✅ Can import: ALL layers (0-5, 7)
+❌ Cannot import: Nothing (World is top-level)
+🔄 Used by: Public API (src/index.ts), applications
+
+## Key Patterns
+**Spawn:** `world.spawn(material, x, y)` → creates entity
+**Tick:** `world.tick(deltaTime)` → three-phase update
+**Query:** `world.getEntitiesNear(x, y, radius)` → spatial queries
+**Linguistics:** `world.recordSpeech(speaker, text)` → builds lexicon
+
+## Three-Phase Tick
+1. **Physical:** Movement, collision, forces
+2. **Mental:** Memory decay, emotion drift, learning
+3. **Relational:** Relationship decay, P2P sync, messages
+
+This ordering prevents race conditions and ensures consistent state.
+
+## Anti-Patterns
+❌ Put domain logic in World (delegate to layers)
+❌ Skip tick phases (breaks consistency)
+❌ Query entities in hot loop (cache when possible)
+❌ Ignore linguistics (it's powerful for emergent behavior)
+
+## Common Tasks
+**Create world:** `new World({ width, height, seed })`
+**Spawn entity:** `world.spawn(material, x, y)`
+**Run simulation:** `setInterval(() => world.tick(1/60), 16)`
+**Enable linguistics:** `world.enableLinguistics({ bufferSize: 500 })`
+
+## Notes for AI
+- World is the **orchestrator**, not the implementer
+- Linguistics system: tracks vocabulary + generates proto-language
+- Three-phase tick ensures consistency
+- Spatial queries use quadtree (future optimization)
+- Read container.ts for full orchestration logic

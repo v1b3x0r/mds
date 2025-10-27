@@ -1,0 +1,56 @@
+# Layer 5: Network
+> P2P Cognition - Distributed Consciousness, Trust, Topology
+
+## What & Why
+Entities form cognitive networks: share memories, resonate emotionally, build trust.
+**Metaphysics insight:** Consciousness is distributed, not isolated.
+
+## Philosophy
+"Minds connect and resonate"
+- ResonanceField: Emotional contagion (joy spreads)
+- CognitiveLink: P2P memory sharing (CRDT-based)
+- TrustSystem: Reputation, privacy, deception detection
+- Small-World: Efficient network topology (Watts-Strogatz)
+
+## Structure
+```
+5-network/
+├── p2p/
+│   ├── resonance.ts        # Emotional resonance field
+│   ├── cognitive-link.ts   # P2P memory sharing (CRDT)
+│   └── memory-log.ts       # Distributed memory log
+├── trust/
+│   └── system.ts           # Trust, reputation, privacy
+└── topology/
+    └── small-world.ts      # Network formation (k=8, p=0.2)
+```
+
+## Dependencies
+✅ Can import: 0-foundation, 1-ontology, schema
+❌ Cannot import: 2-physics, 3-cognition, 4-communication, 6-world, 7-interface
+🔄 Used by: 3-cognition (re-exports for convenience), 0-foundation/entity
+
+## Key Patterns
+**Resonance:** `resonate(emitter, receiver)` → emotional contagion
+**Cognitive Link:** `CognitiveLinkManager.connect(alice, bob)` → share memories
+**Trust:** `TrustSystem.updateTrust(alice, bob, delta)` → build/lose trust
+**Network:** `SmallWorldNetwork.create(entities, k=8)` → efficient topology
+
+## Anti-Patterns
+❌ Assume all entities are connected (network is opt-in)
+❌ Share everything (respect privacy settings)
+❌ Trust without validation (check reputation)
+❌ Skip topology optimization (use small-world)
+
+## Common Tasks
+**Enable P2P:** `entity.enableCognitiveLink()`
+**Share memory:** `entity.shareMemory(targetId, memoryId, policy)`
+**Build trust:** `entity.updateTrust(targetId, 0.1)` after positive interaction
+**Detect deception:** `TrustSystem.detectDeception(sender, message)`
+
+## Notes for AI
+- ResonanceField: distance-based emotional spread
+- CognitiveLink: CRDT ensures consistency without central server
+- Trust: reputation + privacy + deception detection
+- Small-world: k=8 neighbors, p=0.2 rewiring (efficient + sparse)
+- This enables "collective consciousness" across entities

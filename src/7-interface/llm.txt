@@ -1,0 +1,63 @@
+# Layer 7: Interface
+> Boundaries - Render, IO, Context
+
+## What & Why
+Adapters between MDS core and external world.
+Render to screen, save/load worlds, provide context to LLMs.
+
+## Philosophy
+"Adapter pattern for everything external"
+- Render: DOM, Canvas, WebGL, Headless (pluggable)
+- IO: Load materials, save worlds, LLM bridges
+- Context: Auto-inject system info for AI prompts
+
+## Structure
+```
+7-interface/
+├── render/
+│   ├── adapter.ts          # RendererAdapter interface
+│   ├── dom-adapter.ts      # HTML rendering
+│   ├── canvas-adapter.ts   # Canvas 2D rendering
+│   ├── webgl-adapter.ts    # WebGL rendering
+│   └── headless-adapter.ts # No rendering (simulation only)
+├── io/
+│   ├── reader.ts           # Load materials from JSON/MDM
+│   ├── writer.ts           # WorldFile serialization
+│   ├── mdm-parser.ts       # Parse .mdm.json format
+│   ├── bridge-llm.ts       # LLM adapter interface
+│   └── llmAdapter.ts       # OpenAI/Anthropic/OpenRouter
+└── context/
+    ├── types.ts            # CreatorContext (user signature)
+    └── context-v1.ts       # Auto-context providers (OS, Chat)
+```
+
+## Dependencies
+✅ Can import: 0-foundation, 1-ontology, schema
+❌ Cannot import: 2-physics, 3-cognition, 4-communication, 5-network, 6-world
+🔄 Used by: Applications, 6-world (for serialization)
+
+## Key Patterns
+**Render:** `world.setRenderer(new DOMRenderer(container))`
+**Save:** `toWorldFile(world)` → JSON
+**Load:** `fromWorldFile(worldFile)` → reconstructs World
+**LLM:** `setLlmBridge(new OpenAIBridge(apiKey))`
+**Context:** `setCreatorContext({ user: { name, personality }})`
+
+## Anti-Patterns
+❌ Assume specific renderer (use adapter)
+❌ Hardcode LLM provider (use bridge pattern)
+❌ Skip serialization validation
+❌ Leak internal state in WorldFile
+
+## Common Tasks
+**Switch renderer:** `world.setRenderer(new CanvasRenderer(canvas))`
+**Save world:** `const file = toWorldFile(world); saveWorldFile(file, 'world.json')`
+**Load world:** `const world = fromWorldFile(loadWorldFile('world.json'))`
+**Enable LLM:** `enableLLM({ provider: 'openrouter', apiKey, model })`
+
+## Notes for AI
+- Adapters are **pluggable** - easy to add new renderers
+- WorldFile format is versioned (v5 current)
+- mdm-parser handles .mdm.json declarative format
+- Context providers auto-inject system info (OS, time, etc.)
+- Bridge pattern keeps LLM providers swappable

@@ -38,15 +38,15 @@
  */
 
 // Core engine (v4 legacy - still fully supported)
-export { Engine } from './core/engine'
-export type { EngineOptions, WorldBounds, BoundaryBehavior } from './core/engine'
-export { Entity } from './core/entity'
-export type { ReflectionResult } from './core/entity'  // v5.4
-export { Field } from './core/field'
+export { Engine } from './0-foundation/engine'
+export type { EngineOptions, WorldBounds, BoundaryBehavior } from './0-foundation/engine'
+export { Entity } from './0-foundation/entity'
+export type { ReflectionResult } from './0-foundation/entity'  // v5.4
+export { Field } from './0-foundation/field'
 
 // World container (v5 recommended)
-export { World } from './world'
-export type { WorldOptions, SpawnOptions, WorldEvent } from './world'
+export { World } from './6-world'
+export type { WorldOptions, SpawnOptions, WorldEvent } from './6-world'
 
 // v6.0: Linguistics system
 export {
@@ -54,14 +54,14 @@ export {
   WorldLexicon,
   LinguisticCrystallizer,
   ProtoLanguageGenerator  // v6.1: Emergent language generation
-} from './world'
+} from './6-world'
 
 export type {
   Utterance,
   LexiconEntry,
   CrystallizerConfig,
   ProtoSentenceConfig  // v6.1: Proto-language config
-} from './world'
+} from './6-world'
 
 // Renderers (v5)
 export {
@@ -69,12 +69,12 @@ export {
   CanvasRenderer,
   HeadlessRenderer,
   StateMapper
-} from './render'
+} from './7-interface/render'
 
 export type {
   RendererAdapter,
   VisualStyle
-} from './render'
+} from './7-interface/render'
 
 // Physics (v5 Phase 5)
 export {
@@ -88,7 +88,7 @@ export {
   getEntityRadius,
   EnergySystem,
   initializeThermalProperties
-} from './physics'
+} from './2-physics'
 
 export type {
   EnvironmentConfig,
@@ -101,7 +101,7 @@ export type {
   AABB,
   CollisionPair,
   EnergyConfig
-} from './physics'
+} from './2-physics'
 
 // Communication (v5 Phase 6)
 export {
@@ -122,17 +122,17 @@ export {
   jaccardSimilarity,
   levenshteinDistance,
   levenshteinSimilarity
-} from './communication'
+} from './4-communication'
 
 // Context Providers (v5.8.0 - Auto-context injection)
 export {
   OSContextProvider,
   ChatContextProvider
-} from './context'
+} from './7-interface/context'
 
 export type {
   ContextProvider
-} from './context'
+} from './7-interface/context'
 
 export type {
   Message,
@@ -147,47 +147,47 @@ export type {
   LanguageResponse,
   Embedding,
   SemanticConfig
-} from './communication'
+} from './4-communication'
 
 // Cognitive (v5 Phase 7)
 export {
   LearningSystem,
   createExperience,
   calculateReward,
-  MemoryConsolidation,
-  memorySimilarity,
+  // MemoryConsolidation (imported separately)
+  // memorySimilarity (imported separately)
   SkillSystem,
   createSkill,
   SKILL_PRESETS
-} from './cognitive'
+} from './3-cognition'
 
 export type {
   Experience,
   Pattern,
   LearningStats,
   LearningConfig,
-  ConsolidatedMemory,
-  ConsolidationConfig,
+  // ConsolidatedMemory (from 1-ontology)
+  // ConsolidationConfig (from 1-ontology)
   Skill,
   SkillLevel,
   SkillConfig
-} from './cognitive'
+} from './3-cognition'
 
 // World Mind (v5 Phase 8)
 export {
   CollectiveIntelligence
-} from './world-mind'
+} from './3-cognition/world-mind'
 
 export type {
   WorldStats,
   EmergentPattern,
   PatternDetection
-} from './world-mind'
+} from './3-cognition/world-mind'
 
 // IO
-export { loadMaterial, loadMaterials } from './io/loader'
-export { setLlmBridge, getLlmBridge, DummyBridge } from './io/bridge-llm'
-export type { LlmBridge } from './io/bridge-llm'
+export { loadMaterial, loadMaterials } from './7-interface/io/loader'
+export { setLlmBridge, getLlmBridge, DummyBridge } from './7-interface/io/bridge-llm'
+export type { LlmBridge } from './7-interface/io/bridge-llm'
 
 // Validation (v5.2) - Moved to separate bundle for bundle size optimization
 // Import from '@v1b3x0r/mds-core/validator' for validation features
@@ -200,23 +200,19 @@ export {
   OpenAISimilarityProvider,
   CohereSimilarityProvider,
   createSimilarityProvider,
-  EntitySimilarityAdapter,
-  findSimilarEntities,
-  createSimilarityMatrix,
-  clusterBySimilarity
-} from './similarity'
+} from './4-communication/semantics'
 
 export type {
   SimilarityProvider,
   SimilarityProviderConfig,
   BaseSimilarityProvider
-} from './similarity'
+} from './4-communication/semantics'
 
 // Coupling (v5.2 Phase 2.3)
 export type {
   PhysicalProperties,
   CouplingConfig
-} from './coupling'
+} from './2-physics/coupling'
 
 export {
   SymbolicPhysicalCoupler,
@@ -226,7 +222,7 @@ export {
   emotionToForce,
   emotionToPhysicsColor,
   COUPLING_PRESETS
-} from './coupling'
+} from './2-physics/coupling'
 
 export {
   enableLLM,
@@ -235,7 +231,7 @@ export {
   getCreatorContext,
   isLlmEnabled,
   resetLlmAdapter
-} from './io/llmAdapter'
+} from './7-interface/io/llmAdapter'
 
 // MDM Parser (v5.1 declarative config)
 export {
@@ -243,14 +239,14 @@ export {
   parseMaterial,
   detectLanguage,
   getDialoguePhrase
-} from './io/mdm-parser'
+} from './7-interface/io/mdm-parser'
 
 export type {
   ParsedDialogue,
   EmotionTrigger,
   TriggerContext,
   ParsedMaterialConfig
-} from './io/mdm-parser'
+} from './7-interface/io/mdm-parser'
 
 // WorldFile persistence (v5)
 export {
@@ -260,19 +256,19 @@ export {
   loadWorldFile,
   downloadWorldFile,
   uploadWorldFile
-} from './io/worldfile'
+} from './7-interface/io/worldfile'
 
 export type {
   WorldFile,
   SerializedEntity,
   SerializedField,
   SerializedRelationship
-} from './io/worldfile'
+} from './7-interface/io/worldfile'
 
 // Utils
-export { clamp, distance, similarity, lerp, randRange, randInt } from './utils/math'
-export { parseSeconds, applyRule } from './utils/events'
-export { seededRandom, noise1D } from './utils/random'
+export { clamp, distance, similarity, lerp, randRange, randInt } from './0-foundation/math'
+export { parseSeconds, applyRule } from './0-foundation/events'
+export { seededRandom, noise1D } from './0-foundation/random'
 
 // Types
 export type {
@@ -289,7 +285,7 @@ export type {
   MdsFieldVisual
 } from './schema/fieldspec'
 
-export type { CreatorContext } from './types'
+export type { CreatorContext } from './7-interface/context/types'
 
 // v5 Ontology (optional features)
 export {
@@ -330,7 +326,11 @@ export {
   applyDecay,
   shouldPrune,
   DECAY_PRESETS
-} from './ontology'
+} from './1-ontology'
+
+// Memory Consolidation (v6.4)
+export { MemoryConsolidation, memorySimilarity } from './1-ontology/memory/consolidation'
+export type { ConsolidatedMemory, ConsolidationConfig } from './1-ontology/memory/consolidation'
 
 export type {
   Memory,
@@ -350,7 +350,7 @@ export type {
   DecayCurve,
   DecayConfig,
   DecayStats
-} from './ontology'
+} from './1-ontology'
 
 // v5.5: P2P Cognition (Phase 9)
 export {
@@ -364,7 +364,7 @@ export {
   TrustSystem,
   createTrustSystem,
   deceive
-} from './cognition'
+} from './3-cognition'
 
 export type {
   SignalType,
@@ -381,4 +381,4 @@ export type {
   TrustConfig,
   PrivacySettings,
   TrustEntry
-} from './cognition'
+} from './3-cognition'

@@ -1,0 +1,64 @@
+# Layer 1: Ontology
+> Being & Knowing - Memory, Emotion, Relationships, Intent
+
+## What & Why
+Defines what it means to "be" and "know."
+Entities aren't just physics—they remember, feel, relate, and desire.
+
+## Philosophy
+"Essence-first, not state-first"
+- Memory = What I've experienced
+- Emotion = How I feel (PAD model)
+- Relationships = Who I know
+- Intent = What I want (goal stack)
+
+Systems are independent but compose naturally.
+
+## Structure
+```
+1-ontology/
+├── memory/
+│   ├── buffer.ts           # Ebbinghaus decay
+│   ├── consolidation.ts    # Long-term storage
+│   └── crystallization.ts  # Pattern extraction
+├── emotion/
+│   ├── state.ts            # PAD model (Pleasure-Arousal-Dominance)
+│   └── detector.ts         # Text → emotion (Thai/English)
+├── relationships/
+│   ├── bond.ts             # Trust, familiarity
+│   └── decay.ts            # Time-based forgetting
+└── intent/
+    ├── intent.ts           # Goal stack (approach, avoid, etc.)
+    └── reasoner.ts         # Context-aware scoring
+```
+
+## Dependencies
+✅ Can import: 0-foundation, schema, itself
+❌ Cannot import: 2-physics, 3-cognition, 4-communication, 5-network, 6-world, 7-interface
+🔄 Used by: Everyone (ontology is fundamental)
+
+## Key Patterns
+**Memory:** `memory.add({ type, subject, content, salience })` → Ebbinghaus decay
+**Emotion:** PAD model (valence, arousal, dominance) + drift to baseline
+**Relationships:** `createRelationship()` → trust/familiarity + decay over time
+**Intent:** Stack with priorities → `current()` returns highest priority goal
+**Reasoning:** `reasonAbout(intent, context)` → weighted scoring (emotion + memory + relationships)
+
+## Anti-Patterns
+❌ Mix with rendering (emotion → color belongs elsewhere)
+❌ Assume physics exists (ontology is abstract)
+❌ Hardcode language (support Thai/English)
+❌ Couple systems tightly (memory works without emotion)
+
+## Common Tasks
+**Add emotion:** `entity.enableEmotion({ baseline, driftRate })`
+**Query memories:** `memory.recall({ type, subject, limit })`
+**Detect emotion:** `detectEmotionFromText('ดีใจ', 'th')`
+**Reason intent:** `reasonAbout(intent, { emotion, memory, relationships })`
+
+## Notes for AI
+- Subsystems are composable (work alone or together)
+- PAD model = continuous emotion space (smooth blending)
+- Ebbinghaus: Recent + salient memories recalled easier
+- Intent = declarative goals, not commands
+- Support multilingual (Thai priority)

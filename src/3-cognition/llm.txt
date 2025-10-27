@@ -1,0 +1,55 @@
+# Layer 3: Cognition
+> Mind & Learning - Q-Learning, Skills, WorldMind
+
+## What & Why
+Entities learn from experience, develop skills, and exhibit collective intelligence.
+Not just reactive - **adaptive and evolving**.
+
+## Philosophy
+"Cultivation, not Control"
+Entities learn autonomously through reinforcement (Q-learning).
+Skills improve with practice. Collective patterns emerge from individual behaviors.
+
+## Structure
+```
+3-cognition/
+├── learning/
+│   └── q-learning.ts       # Reinforcement learning (state-action-reward)
+├── skills/
+│   └── system.ts           # Skill progression (novice → expert)
+├── world-mind/
+│   ├── collective.ts       # Population-level intelligence
+│   └── intelligence.ts     # Pattern detection, statistics
+└── index.ts                # Re-exports 5-network for convenience
+```
+
+## Dependencies
+✅ Can import: 0-foundation, 1-ontology, schema
+⚠️  Re-exports: 5-network (P2P systems) for convenience
+❌ Cannot import: 2-physics, 4-communication, 6-world, 7-interface
+🔄 Used by: 0-foundation/entity (learning/skills), 6-world (WorldMind)
+
+## Key Patterns
+**Learning:** `entity.learn(state, action, reward)` → Q-table updated
+**Experience:** `createExperience(state, action, reward)` → learning data point
+**Skills:** `entity.addSkill('conversation', 0.3)` → improves with use
+**WorldMind:** `CollectiveIntelligence.detectPatterns(entities)` → emergent behaviors
+
+## Anti-Patterns
+❌ Assume learning is always enabled (it's optional)
+❌ Force specific learning outcomes (let it emerge)
+❌ Ignore exploration vs exploitation tradeoff
+❌ WorldMind without enough entities (needs population)
+
+## Common Tasks
+**Enable learning:** `entity.enableLearning({ alpha: 0.1, gamma: 0.9 })`
+**Add skill:** `entity.addSkill('empathy', initialLevel)`
+**Train:** `entity.learn(state, action, reward)` after interactions
+**Analyze patterns:** `CollectiveIntelligence.calculateCollectiveEmotion(entities)`
+
+## Notes for AI
+- Q-learning: alpha = learning rate, gamma = discount factor
+- Skills: 0 (novice) → 1 (expert), improve with practice
+- WorldMind requires population (3+ entities recommended)
+- Re-exports 5-network for P2P features (CognitiveLink, etc.)
+- Learning is autonomous - don't micromanage

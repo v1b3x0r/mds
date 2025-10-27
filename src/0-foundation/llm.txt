@@ -1,0 +1,56 @@
+# Layer 0: Foundation
+> Absolute base - Engine, Entity, Field, Registry, Validator, Utils
+
+## What & Why
+Bottom-most layer. Zero dependencies = maximum stability.
+Provides core primitives: Engine (simulation loop), Entity (living material), Field (influence zones).
+
+## Philosophy
+"Simplicity through constraints"
+- Pure functions preferred
+- Factory over constructors
+- Type-safe by design
+- Immutable operations
+
+## Structure
+```
+0-foundation/
+├── engine.ts         # Simulation loop, spawn/destroy
+├── entity.ts         # Living material (integration point for all features)
+├── field.ts          # Environmental influence zones
+├── registry.ts       # Material storage & inheritance
+├── validator.ts      # Schema validation
+├── utils.ts          # Deep merge, type checks
+├── math.ts           # clamp, distance, lerp
+├── events.ts         # Time parsing, rules
+├── random.ts         # Seeded randomness
+└── types.ts          # Shared interfaces
+```
+
+## Dependencies
+✅ Can import: `../schema/*`, itself
+❌ Cannot import: Any layer 1-7
+⚠️  Exception: entity.ts imports upper layers (intentional - it's the integration vessel)
+
+## Key Patterns
+- Factory: `world.spawn(material, x, y)` not `new Entity()`
+- Immutable: Return new values, don't mutate inputs
+- Seeded random: `seededRandom(seed)` for determinism
+- Type guards: `isEntity(obj)` for safe validation
+
+## Anti-Patterns
+❌ Import from upper layers (except Entity integration)
+❌ Domain logic here (belongs in 1-ontology+)
+❌ Direct console.log
+❌ Mutating input parameters
+
+## Common Tasks
+**Add utility:** Choose file (math/events/random/utils) → export → re-export from index.ts
+**Modify Entity:** Think first - does it belong in upper layer? Entity should only have core lifecycle.
+**Optimize:** Profile first. Hot paths: Engine.tick(), Entity.update()
+
+## Notes for AI
+- Changes here = major version bump
+- Entity complexity is intentional (integration point)
+- Use seededRandom() not Math.random() for reproducibility
+- Read /docs/llm.txt for system context

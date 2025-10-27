@@ -1,0 +1,52 @@
+# Layer 2: Physics
+> Material World - Environment, Collision, Energy, Weather, Coupling
+
+## What & Why
+Simulates the physical world: collision, forces, energy transfer, weather.
+**Key insight:** Info-physics = data has gravity, emotions have physical effects.
+
+## Philosophy
+"Symbolic-Physical Coupling"
+Emotion → Physics mapping (joy = fast, sadness = slow/heavy)
+Environment shapes behavior (temperature, weather affect entities)
+
+## Structure
+```
+2-physics/
+├── environment.ts   # Thermal zones, wind, gravity
+├── collision.ts     # Entity-entity and entity-field collision
+├── energy.ts        # Energy transfer between entities
+├── weather.ts       # Rain, snow, storm effects
+└── coupling.ts      # Emotion → Physics (PAD → speed/mass/force/color)
+```
+
+## Dependencies
+✅ Can import: 0-foundation, 1-ontology (for emotion coupling), schema
+❌ Cannot import: 3-cognition, 4-communication, 5-network, 6-world, 7-interface
+🔄 Used by: 6-world (orchestrates physics), 0-foundation/entity (physics updates)
+
+## Key Patterns
+**Environment:** `createEnvironment({ temperature, gravity, viscosity })`
+**Collision:** `detectCollisions(entities)` → callbacks on impact
+**Energy:** `transferEnergy(from, to, amount)` → kinetic/thermal transfer
+**Weather:** `createWeather('rain')` → affects visibility, movement
+**Coupling:** `emotionToSpeed(emotion)` → joy = 2x speed, sadness = 0.5x speed
+
+## Anti-Patterns
+❌ Assume ontology (emotion) always exists
+❌ Hardcode physics values (use config/presets)
+❌ Skip collision detection optimization (use spatial partitioning)
+❌ Make coupling mandatory (it's optional enhancement)
+
+## Common Tasks
+**Enable collision:** `world.enableCollision({ radius, elasticity })`
+**Add environment:** `world.setEnvironment({ temperature: 25, gravity: 0.1 })`
+**Apply weather:** `world.setWeather('storm')`
+**Use coupling:** `entity.enableCoupling(COUPLING_PRESETS.expressive)`
+
+## Notes for AI
+- Coupling is **optional** - physics works without emotion
+- PAD → Physics: valence = speed, arousal = force, dominance = mass
+- Weather affects multiple systems (movement, vision, energy)
+- Collision is expensive - profile and optimize
+- COUPLING_PRESETS available for common patterns

@@ -1,0 +1,57 @@
+# Layer 4: Communication
+> Language, Dialogue, Messages, Semantics
+
+## What & Why
+Entities communicate through messages, engage in dialogues, and understand semantic meaning.
+Not just collision - **conversation and understanding**.
+
+## Philosophy
+"Entities talk, not just react"
+Messages are queued (inbox/outbox).
+Dialogues are conditional trees (context-aware).
+Semantics via embeddings (similarity, clustering).
+
+## Structure
+```
+4-communication/
+├── language/
+│   └── generator.ts        # LLM-powered text generation
+├── dialogue/
+│   └── manager.ts          # Dialogue trees, conditions
+├── message/
+│   └── queue.ts            # Inbox/outbox message queuing
+├── semantics/
+│   ├── similarity.ts       # Semantic similarity (Jaccard, Levenshtein)
+│   └── embeddings.ts       # OpenAI/Cohere embedding providers
+└── types.ts                # MessageSender, MessageReceiver, DialogueParticipant
+```
+
+## Dependencies
+✅ Can import: 0-foundation, 1-ontology, schema, types.ts
+❌ Cannot import: 2-physics, 3-cognition, 5-network, 6-world, 7-interface
+🔄 Used by: 0-foundation/entity (messages), 6-world (dialogue orchestration)
+
+## Key Patterns
+**Messages:** `entity.sendMessage(target, { type, content, priority })`
+**Dialogue:** `DialogueManager.respond(trigger, context)` → conditional responses
+**Semantics:** `findSimilar(text, candidates)` → Jaccard/Levenshtein similarity
+**LLM:** `LanguageGenerator.generate(prompt)` → OpenAI/Anthropic/OpenRouter
+
+## Anti-Patterns
+❌ Assume LLM is always available (provide fallbacks)
+❌ Block on message delivery (use async queues)
+❌ Hardcode dialogue responses (use conditional trees)
+❌ Skip semantic caching (embeddings are expensive)
+
+## Common Tasks
+**Send message:** `entity.sendMessage(targetId, { type: 'greeting', content: 'สวัสดี' })`
+**Setup dialogue:** `entity.addDialogue('intro', [{ lang: { th: 'สวัสดี', en: 'Hello' }}])`
+**Check similarity:** `similarity(text1, text2)` → 0..1 score
+**Enable LLM:** `enableLLM({ provider: 'openrouter', apiKey })`
+
+## Notes for AI
+- Messages use priority queues (high priority first)
+- Dialogues support multilingual (lang.th, lang.en)
+- Semantics: local methods (Jaccard) or embeddings (OpenAI)
+- LLM is optional - system works with local methods
+- types.ts breaks circular dependencies (lightweight interfaces)

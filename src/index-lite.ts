@@ -11,14 +11,14 @@
  */
 
 // Core engine (v4 legacy - fully supported)
-export { Engine } from './core/engine'
-export type { EngineOptions, WorldBounds, BoundaryBehavior } from './core/engine'
-export { Entity } from './core/entity'
-export { Field } from './core/field'
+export { Engine } from './0-foundation/engine'
+export type { EngineOptions, WorldBounds, BoundaryBehavior } from './0-foundation/engine'
+export { Entity } from './0-foundation/entity'
+export { Field } from './0-foundation/field'
 
 // World container (v5 - minimal ontology only)
-export { World } from './world'
-export type { WorldOptions, SpawnOptions, WorldEvent } from './world'
+export { World } from './6-world'
+export type { WorldOptions, SpawnOptions, WorldEvent } from './6-world'
 
 // Basic ontology (memory, emotion, intent, relationship)
 export {
@@ -28,7 +28,7 @@ export {
   emotionDistance,
   createMemory,
   createIntent
-} from './ontology'
+} from './1-ontology'
 
 export type {
   Memory,
@@ -37,23 +37,23 @@ export type {
   Intent,
   IntentGoal,
   RelationshipEntry
-} from './ontology'
+} from './1-ontology'
 
 // Renderer (DOM only for lite bundle)
-export { DOMRenderer, HeadlessRenderer, StateMapper } from './render'
-export type { RendererAdapter, VisualStyle } from './render'
+export { DOMRenderer, HeadlessRenderer, StateMapper } from './7-interface/render'
+export type { RendererAdapter, VisualStyle } from './7-interface/render'
 
 // IO (loader only, no LLM)
-export { loadMaterial, loadMaterials } from './io/loader'
+export { loadMaterial, loadMaterials } from './7-interface/io/loader'
 
 // Schema types
 export type { MdsMaterial } from './schema/mdspec'
 export type { MdsField } from './schema/fieldspec'
 
 // Utilities
-export { distance, clamp, similarity, lerp } from './utils/math'
-export { parseSeconds, applyRule } from './utils/events'
+export { distance, clamp, similarity, lerp } from './0-foundation/math'
+export { parseSeconds, applyRule } from './0-foundation/events'
 
 // Registry (MaterialRegistry not needed in lite bundle - use World.registerMaterial)
 // Validator
-export { validateName } from './core/validator'
+export { validateName } from './0-foundation/validator'
