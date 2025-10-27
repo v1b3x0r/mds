@@ -34,8 +34,8 @@ import { fileURLToPath } from 'url'
 import { ContextAnalyzer} from './ContextAnalyzer.js'
 import { MemoryPromptBuilder } from './MemoryPromptBuilder.js'
 import { GrowthTracker } from './GrowthTracker.js'
-import { OSSensor } from '../sensors/OSSensor.js'
-import { ExtendedSensors } from '../sensors/ExtendedSensors.js'
+// import { OSSensor } from '../sensors/OSSensor.js'  // Removed in v2.0
+// import { ExtendedSensors } from '../sensors/ExtendedSensors.js'  // Removed in v2.0
 import { CompanionLoader } from './CompanionLoader.js'
 import { DialogueEnhancer } from './DialogueEnhancer.js'
 import { CategoryMapper } from './CategoryMapper.js'

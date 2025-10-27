@@ -150,7 +150,7 @@ export class MDSRuntime extends EventEmitter {
     if (config.os !== false) {
       // Lazy-load sensor modules
       try {
-        const { OSSensor } = require('../sensors/OSSensor')
+        const { OSSensor } = require('./sensors/OSSensor')
         this.osSensor = new OSSensor()
       } catch (error) {
         console.warn('OSSensor not available:', error)
@@ -160,7 +160,7 @@ export class MDSRuntime extends EventEmitter {
     // Network sensor (default: enabled)
     if (config.network !== false) {
       try {
-        const { NetworkSensor } = require('../sensors/NetworkSensor')
+        const { NetworkSensor } = require('./sensors/NetworkSensor')
         this.networkSensor = new NetworkSensor()
       } catch (error) {
         console.warn('NetworkSensor not available:', error)
@@ -170,7 +170,7 @@ export class MDSRuntime extends EventEmitter {
     // Weather sensor (default: enabled if world.weather exists)
     if (config.weather !== false && this.world.weather) {
       try {
-        const { WeatherSensor } = require('../sensors/WeatherSensor')
+        const { WeatherSensor } = require('./sensors/WeatherSensor')
         this.weatherSensor = new WeatherSensor(this.world.weather)
       } catch (error) {
         console.warn('WeatherSensor not available:', error)
@@ -192,11 +192,15 @@ export class MDSRuntime extends EventEmitter {
     }
 
     if (this.networkSensor) {
-      Object.assign(context, this.networkSensor.getContext())
+      const networkMetrics = this.networkSensor.getMetrics()
+      const networkContext = this.networkSensor.mapToContext(networkMetrics)
+      Object.assign(context, networkContext)
     }
 
     if (this.weatherSensor) {
-      Object.assign(context, this.weatherSensor.getContext())
+      const weatherState = this.weatherSensor.getState()
+      const weatherContext = this.weatherSensor.mapToContext(weatherState)
+      Object.assign(context, weatherContext)
     }
 
     if (Object.keys(context).length > 0) {

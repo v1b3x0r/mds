@@ -40,7 +40,7 @@ class NameMemoryTester {
 
     // Create session (v6 uses companionId instead of companionPath)
     this.session = new WorldSession({ companionId: 'hi_introvert' })
-    this.session.setSilentMode(true)  // Hide logs during test
+    this.session.setSilentMode(false)  // Show DEBUG logs (temporarily)
 
     console.log('\x1b[2m✓ Session initialized\x1b[0m')
     console.log(`\x1b[2m✓ Companion: ${this.session.companionId}\x1b[0m`)

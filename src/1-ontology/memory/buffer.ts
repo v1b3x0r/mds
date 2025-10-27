@@ -30,6 +30,8 @@ export interface Memory {
   subject: string        // Entity ID or "self" or "world"
   content: any           // Flexible payload (JSON-serializable)
   salience: number       // Importance (0..1, decays over time)
+  keywords?: string[]    // Topic tags for semantic retrieval (v6.8)
+  confidence?: number    // Retrieval confidence (0-1, computed dynamically)
 }
 
 /**
@@ -41,6 +43,7 @@ export interface MemoryFilter {
   minSalience?: number
   since?: number         // Only memories after this timestamp
   before?: number        // Only memories before this timestamp
+  keywords?: string[]    // Filter by topic tags (v6.8)
 }
 
 /**
@@ -117,6 +120,11 @@ export class MemoryBuffer {
    */
   recall(filter?: MemoryFilter): Memory[] {
     if (!filter) return [...this.buffer]
+
+    // If keywords provided, use semantic retrieval
+    if (filter.keywords && filter.keywords.length > 0) {
+      return this.recallByTopic(filter.keywords)
+    }
 
     return this.buffer.filter(m => {
       if (filter.type && m.type !== filter.type) return false
@@ -195,6 +203,103 @@ export class MemoryBuffer {
    */
   clear(): void {
     this.buffer = []
+  }
+
+  /**
+   * Recall memories by topic (semantic retrieval)
+   * v6.8: Topic-based search using keyword overlap
+   *
+   * @param keywords - Topic keywords to search for
+   * @param limit - Max memories to return (default: 10)
+   * @returns Memories ranked by relevance (keyword overlap × salience)
+   */
+  recallByTopic(keywords: string[], limit: number = 10): Memory[] {
+    if (keywords.length === 0) return []
+
+    // Score each memory by keyword overlap
+    const scored = this.buffer
+      .map(memory => {
+        if (!memory.keywords || memory.keywords.length === 0) {
+          return { memory, score: 0 }
+        }
+
+        // Calculate Jaccard similarity (keyword overlap)
+        const memKeywords = new Set(memory.keywords)
+        const intersection = keywords.filter(kw => memKeywords.has(kw))
+        const union = new Set([...memory.keywords, ...keywords])
+
+        const overlap = intersection.length / union.size
+
+        // Relevance = overlap × salience
+        const score = overlap * memory.salience
+
+        return { memory, score }
+      })
+      .filter(item => item.score > 0)  // Only relevant memories
+      .sort((a, b) => b.score - a.score)  // Sort by relevance
+
+    return scored.slice(0, limit).map(item => item.memory)
+  }
+
+  /**
+   * Find similar memory (duplicate detection)
+   * v6.8: Checks if content is similar to existing memory
+   *
+   * @param content - Content to check (must have .text field)
+   * @param threshold - Similarity threshold (default: 0.9)
+   * @returns Similar memory if found, null otherwise
+   */
+  findSimilar(content: any, threshold: number = 0.9): Memory | null {
+    if (!content || typeof content.text !== 'string') return null
+
+    const queryText = content.text.toLowerCase()
+
+    for (const memory of this.buffer) {
+      if (!memory.content || typeof memory.content.text !== 'string') continue
+
+      const memoryText = memory.content.text.toLowerCase()
+
+      // Simple Jaccard similarity (word-based)
+      const wordsA = new Set(queryText.split(/\s+/))
+      const wordsB = new Set(memoryText.split(/\s+/))
+      const intersection = [...wordsA].filter(w => wordsB.has(w))
+      const union = new Set([...wordsA, ...wordsB])
+
+      const similarity = intersection.length / union.size
+
+      if (similarity >= threshold) {
+        return memory
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Boost memory salience (when info is repeated)
+   * v6.8: Reinforce existing memory instead of creating duplicate
+   *
+   * @param memory - Memory to boost
+   * @param amount - Amount to boost (default: 0.2)
+   */
+  boostSalience(memory: Memory, amount: number = 0.2): void {
+    memory.salience = Math.min(1.0, memory.salience + amount)
+  }
+
+  /**
+   * Calculate retrieval confidence
+   * v6.8: Confidence = salience × recency_factor
+   *
+   * @param memory - Memory to calculate confidence for
+   * @param currentTime - Current timestamp
+   * @returns Confidence score (0-1)
+   */
+  calculateConfidence(memory: Memory, currentTime: number): number {
+    // Recency factor: exponential decay based on age
+    const age = currentTime - memory.timestamp
+    const recencyFactor = Math.exp(-age / 10000)  // Decay over ~10k ticks
+
+    return memory.salience * recencyFactor
   }
 
   /**
