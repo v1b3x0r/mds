@@ -35,7 +35,10 @@ import { ContextAnalyzer} from './ContextAnalyzer.js'
 import { MemoryPromptBuilder } from './MemoryPromptBuilder.js'
 import { GrowthTracker } from './GrowthTracker.js'
 import { OSSensor } from '../sensors/OSSensor.js'
+import { ExtendedSensors } from '../sensors/ExtendedSensors.js'
 import { CompanionLoader } from './CompanionLoader.js'
+import { DialogueEnhancer } from './DialogueEnhancer.js'
+import { CategoryMapper } from './CategoryMapper.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -100,6 +103,7 @@ export class WorldSession extends EventEmitter {
   // v6.2: Environment System
   environment: Environment                     // MDS environment (temperature, light, humidity)
   osSensor: OSSensor                          // OS metrics → environment mapping
+  extendedSensors: ExtendedSensors            // v6.3: Extended OS sensors (network, storage, circadian, etc.)
   weather: Weather                            // Weather system (rain, wind, clouds)
   energySystem: EnergySystem                  // Thermal energy transfer
 
@@ -118,6 +122,11 @@ export class WorldSession extends EventEmitter {
 
   // v1.2: Companion metadata
   companionId: string  // e.g. "hi_introvert" or "orz-archivist"
+
+  // v6.5: Dialogue Enhancement (micro-variations, emotional breathing)
+  dialogueEnhancer: DialogueEnhancer
+  categoryMapper: CategoryMapper  // v6.5 Phase 2: Context-aware category mapping
+  recentCategories: string[] = [] // Track recent dialogue categories for variety
 
   constructor(options?: { companionId?: string }) {
     super()  // Call EventEmitter constructor
@@ -169,6 +178,9 @@ export class WorldSession extends EventEmitter {
     })
     this.osSensor = new OSSensor()
 
+    // v6.3: Initialize extended sensors (network, storage, circadian, etc.)
+    this.extendedSensors = new ExtendedSensors()
+
     // v6.2: Initialize weather system (variable preset)
     this.weather = new Weather({
       rainProbability: 0.15,
@@ -188,8 +200,18 @@ export class WorldSession extends EventEmitter {
     this.memoryConsolidation = new MemoryConsolidation({
       similarityThreshold: 0.7,
       forgettingRate: 0.001,
-      consolidationInterval: 60000  // 1 minute
+      consolidationInterval: 45000  // 45 seconds (v6.5: faster to preserve memories before decay)
     })
+
+    // v6.5: Initialize dialogue enhancer (micro-variations, emotional breathing)
+    this.dialogueEnhancer = new DialogueEnhancer({
+      emotionalBreathing: true,
+      memoryContext: true,
+      repetitionDamping: true
+    })
+
+    // v6.5 Phase 2: Initialize category mapper (context-aware dialogue selection)
+    this.categoryMapper = new CategoryMapper()
 
     // v6.2: Initialize advanced systems (Tasks 8-14)
     this.coupler = new SymbolicPhysicalCoupler({
@@ -328,7 +350,8 @@ export class WorldSession extends EventEmitter {
     const entity = this.world.spawn(material, x, y)
 
     // Enable all features (autonomous by default)
-    entity.enable('memory', 'learning', 'relationships', 'skills')  // v6.1: Added skills
+    // v6.4: Added 'consolidation' - was missing wiring!
+    entity.enable('memory', 'learning', 'relationships', 'skills', 'consolidation')
     entity.enableAutonomous()
 
     // v6.2: Initialize thermal properties
@@ -539,15 +562,13 @@ export class WorldSession extends EventEmitter {
           cloudCover: weatherState.cloudCover
         })
 
-        // Rain affects emotion (slightly negative valence, calm arousal)
-        for (const entityInfo of this.entities.values()) {
-          const entity = entityInfo.entity
-          entity.emotion = {
-            valence: Math.max(-1, entity.emotion.valence - 0.05 * weatherState.rainIntensity),
-            arousal: Math.max(0, entity.emotion.arousal - 0.03 * weatherState.rainIntensity),
-            dominance: entity.emotion.dominance
-          }
-        }
+        // v6.3: Broadcast weather context → let MDM triggers handle emotion
+        // (Removed direct emotion manipulation for ontology-first compliance)
+        this.world.broadcastContext({
+          'weather.rain': weatherState.rainIntensity,
+          'weather.cloudCover': weatherState.cloudCover,
+          'weather.windStrength': weatherState.windStrength
+        })
       }
     }, 2000)  // 2 seconds
     this.intervals.push(weatherInterval)
@@ -561,9 +582,38 @@ export class WorldSession extends EventEmitter {
         const consolidated = this.memoryConsolidation.consolidate(companion.memory.memories)
 
         if (consolidated.length > 0) {
+          // v6.4: Apply consolidated memories back to buffer (was missing!)
+          // Replace weak memories with strong consolidated ones
+          const weakMemories = companion.memory.memories
+            .map((m, i) => ({ memory: m, index: i }))
+            .filter(item => item.memory.salience < 0.3)
+            .sort((a, b) => a.memory.salience - b.memory.salience)  // Weakest first
+
+          const strongConsolidated = consolidated
+            .filter(cm => cm.strength > 0.7)
+            .slice(0, Math.min(10, weakMemories.length))  // Max 10 replacements per cycle
+
+          // Replace weakest memories with strongest consolidated
+          // v6.4: Add bounds check to prevent index out of bounds
+          const maxReplacements = Math.min(strongConsolidated.length, weakMemories.length)
+          for (let i = 0; i < maxReplacements; i++) {
+            const cm = strongConsolidated[i]
+            const targetIndex = weakMemories[i].index
+
+            // Convert ConsolidatedMemory → Memory format
+            companion.memory.memories[targetIndex] = {
+              type: cm.type,
+              subject: cm.subject,
+              content: cm.content,
+              salience: cm.salience,
+              timestamp: cm.lastRehearsal
+            }
+          }
+
           this.emit('memory-consolidation', {
             entity: 'companion',
             count: consolidated.length,
+            replacedCount: strongConsolidated.length,
             strongest: consolidated.slice(0, 3).map((m: any) => ({
               subject: m.subject,
               strength: m.strength.toFixed(2),
@@ -582,6 +632,58 @@ export class WorldSession extends EventEmitter {
       }
     }, 60000)  // 1 minute
     this.intervals.push(memoryInterval)
+
+    // v6.3: Extended OS sensors (every 30 seconds)
+    const extendedSensorsInterval = setInterval(() => {
+      const ext = this.extendedSensors.getAllMetrics()
+
+      // Broadcast all extended sensor contexts to world
+      this.world.broadcastContext({
+        // Network state
+        'network.connected': ext.network.connected ? 1 : 0,
+        'network.interfaceCount': ext.network.interfaceCount,
+        'network.hasIPv6': ext.network.hasIPv6 ? 1 : 0,
+        'network.latency': ext.network.latency || 0,
+
+        // Storage metrics
+        'storage.totalGB': ext.storage.totalGB,
+        'storage.freeGB': ext.storage.freeGB,
+        'storage.usagePercent': ext.storage.usagePercent,
+
+        // Circadian phase (map to numeric for triggers)
+        'circadian.phase': ext.circadian,
+        'circadian.isDawn': ext.circadian === 'dawn' ? 1 : 0,
+        'circadian.isMorning': ext.circadian === 'morning' ? 1 : 0,
+        'circadian.isNoon': ext.circadian === 'noon' ? 1 : 0,
+        'circadian.isAfternoon': ext.circadian === 'afternoon' ? 1 : 0,
+        'circadian.isDusk': ext.circadian === 'dusk' ? 1 : 0,
+        'circadian.isEvening': ext.circadian === 'evening' ? 1 : 0,
+        'circadian.isNight': ext.circadian === 'night' ? 1 : 0,
+
+        // Brightness
+        'screen.brightness': ext.brightness,
+
+        // Process count (system busyness)
+        'system.processCount': ext.processCount,
+
+        // Git state (developer companion feature)
+        'git.inRepo': ext.git.inRepo ? 1 : 0,
+        'git.diffLines': ext.git.diffLines,
+        'git.stagedLines': ext.git.stagedLines,
+        'git.hasChanges': ext.git.hasChanges ? 1 : 0
+      })
+
+      // Emit for monitoring
+      this.emit('extended-sensors', {
+        network: ext.network,
+        storage: ext.storage,
+        circadian: ext.circadian,
+        brightness: ext.brightness,
+        processCount: ext.processCount,
+        git: ext.git
+      })
+    }, 30000)  // 30 seconds
+    this.intervals.push(extendedSensorsInterval)
 
     // v6.2: Energy + Collision system (every 1 second)
     const energyInterval = setInterval(() => {
@@ -739,14 +841,14 @@ export class WorldSession extends EventEmitter {
     // 2. Analyze context (from companion's perspective)
     const context = this.contextAnalyzer.analyzeIntent(message, companion)
 
-    // 3. Apply emotion hint to companion (traveler's message affects companion's emotion)
+    // 3. Broadcast context emotion hint → let MDM triggers handle emotion
+    // v6.3: Removed direct emotion manipulation for ontology-first compliance
     if (context.emotionHint) {
-      const current = companion.emotion
-      companion.emotion = {
-        valence: (current.valence + context.emotionHint.valence) / 2,
-        arousal: (current.arousal + context.emotionHint.arousal) / 2,
-        dominance: current.dominance
-      }
+      this.world.broadcastContext({
+        'context.valence': context.emotionHint.valence,
+        'context.arousal': context.emotionHint.arousal,
+        'user.intent': context.intent
+      })
     }
 
     // 4. Traveler "speaks" (controlled by user)
@@ -761,13 +863,55 @@ export class WorldSession extends EventEmitter {
     }
 
     // 5. Companion remembers traveler's message
+    // v6.5: Higher salience for user messages (1.0 instead of 0.7)
+    // User conversations are always important and should persist longer
     companion.remember({
       type: 'interaction',
       subject: 'traveler',
       content: { message, intent: context.intent },
       timestamp: Date.now(),
-      salience: 0.7
+      salience: 1.0  // Maximum salience for user messages
     })
+
+    // v6.6: Name extraction (human-like memory)
+    // Extract names from message and store as semantic units
+    // Works for any entity (not just traveler) - cultivation, not hardcode
+    const namePatterns = [
+      { pattern: /(?:ผม|ฉัน|กู)ชื่อ\s+(\w+)/gi, owner: 'self' },           // "ผมชื่อ X" → self
+      { pattern: /(?:my|our)\s+name\s+is\s+(\w+)/gi, owner: 'self' },       // "my name is X" → self
+      { pattern: /call\s+me\s+(\w+)/gi, owner: 'self' },                    // "call me X" → self
+      { pattern: /เพื่อน(?:ผม|ฉัน|กู)ชื่อ\s+(\w+)/gi, owner: 'other' },   // "เพื่อนผมชื่อ X" → other
+      { pattern: /friend.*?name.*?is\s+(\w+)/gi, owner: 'other' },          // "friend's name is X" → other
+      { pattern: /คุณชื่อ\s+(\w+)/gi, owner: 'addressee' },                 // "คุณชื่อ X" → addressee (companion)
+      { pattern: /your\s+name\s+is\s+(\w+)/gi, owner: 'addressee' }         // "your name is X" → addressee
+    ]
+
+    for (const { pattern, owner } of namePatterns) {
+      const matches = [...message.matchAll(pattern)]
+      for (const match of matches) {
+        const name = match[1]
+        if (name && name.length > 1) {
+          // Determine actual owner based on context
+          let nameOwner: string
+          if (owner === 'self') {
+            nameOwner = 'traveler'  // Speaker introduces themselves
+          } else if (owner === 'addressee') {
+            nameOwner = this.companionEntity.name  // Speaker addresses companion
+          } else {
+            nameOwner = 'other'  // Third party
+          }
+
+          // Store name as separate semantic memory
+          companion.remember({
+            type: 'interaction',  // Keep same type for ContextAnalyzer compatibility
+            subject: name,  // Name is now searchable subject
+            content: { type: 'name', owner: nameOwner, introducedAt: Date.now() },
+            timestamp: Date.now(),
+            salience: 1.0  // Names are very important
+          })
+        }
+      }
+    }
 
     // 6. Form/reinforce cognitive link (entity-to-entity)
     if (companion.cognitiveLinks && traveler.cognitiveLinks) {
@@ -809,10 +953,35 @@ export class WorldSession extends EventEmitter {
 
     // 11. Update growth tracker (v5.8.3: Use world.lexicon)
     this.conversationCount++
+
+    // v6.4: Calculate emotional maturity (was missing!)
+    const memoryCount = companion.memory?.memories?.length || 0
+    const emotionHistory = companion.memory?.memories.filter(m => m.type === 'emotion') || []
+
+    // Calculate average emotional intensity (0 = stable, 1 = volatile)
+    // Default to 0.5 if no emotion history (neutral/moderate stability)
+    const avgValence = emotionHistory.length > 0
+      ? emotionHistory.reduce((sum, m) => sum + Math.abs((m.content as any).valence || 0), 0) / emotionHistory.length
+      : 0.5
+
+    // Stability: Low avgValence = high stability (mature)
+    // Fixed: was `1 - Math.min(1, avgValence / 0.5)` which could go negative!
+    const emotionStability = 1 - Math.min(1, avgValence)
+
+    const relationshipStrength = companion.relationships?.get('traveler')?.strength || 0
+
+    const emotionalMaturity = Math.min(1, (
+      (this.conversationCount / 100) * 0.3 +     // Experience weight (30%)
+      (memoryCount / 500) * 0.2 +                // Memory depth (20%)
+      emotionStability * 0.3 +                   // Stability (30%)
+      relationshipStrength * 0.2                 // Bonding (20%)
+    ))
+
     this.growthTracker.update({
       vocabularySize: this.world.lexicon.size,
       conversationCount: this.conversationCount,
-      memoryCount: companion.memory?.memories?.length || 0
+      memoryCount,
+      emotionalMaturity  // ✅ Now calculated!
     })
 
     // Track concepts learned
@@ -858,28 +1027,114 @@ export class WorldSession extends EventEmitter {
     // 1. Try MDM dialogue first (based on intent)
     let response: string | undefined
 
-    // Map intent to dialogue categories (expanded for better variety)
-    const categoryMap: Record<string, string> = {
-      'greeting': 'intro',
-      'praise': 'happy',
-      'criticism': 'sad',
-      'question': 'thinking',
-      'farewell': 'intro',
-      'curiosity': 'curious',
-      'excitement': 'excited',
-      'confusion': 'confused',
-      'neutral': 'self_monologue',
-      'introspection': 'self_monologue'
+    // v6.5 Phase 2: Use CategoryMapper for context-aware category selection
+    const mappingResult = this.categoryMapper.map({
+      intent: context.intent,
+      keywords: context.keywords,
+      memoryRelevance: context.relevantMemories.length,
+      recentCategories: this.recentCategories,
+      userMessage
+    }, entity)
+
+    const category = mappingResult.category
+
+    // Log mapping decision (for debugging)
+    if (!this.silentMode && mappingResult.reason) {
+      console.log(`   [CategoryMapper] ${mappingResult.reason}`)
     }
 
-    const category = categoryMap[context.intent]
     if (category) {
       response = entity.speak(category)
+
+      // Track this category for future repetition avoidance
+      this.recentCategories.unshift(category)
+      if (this.recentCategories.length > 10) {
+        this.recentCategories.pop()
+      }
+    }
+
+    // v6.5: Memory-aware context (check for strong memories to influence dialogue)
+    if (!response && entity.memory) {
+      const memoryContextKeys = this.dialogueEnhancer.getMemoryContextKeys(entity, 5)
+
+      // If user message matches a strong memory subject, trigger nostalgic response
+      const matchingMemory = memoryContextKeys.find(subject =>
+        userMessage.toLowerCase().includes(subject.toLowerCase())
+      )
+
+      if (matchingMemory) {
+        // 40% chance to respond with nostalgic tone when memory is triggered
+        if (Math.random() < 0.4) {
+          response = entity.speak('nostalgic')
+        }
+      }
+
+      // If entity has many recent memories (>20), show focus/inspired state
+      const recentMemories = entity.memory.memories.filter(m =>
+        Date.now() - m.timestamp < 60000  // Last 60 seconds
+      )
+      if (!response && recentMemories.length > 20) {
+        response = entity.speak(Math.random() < 0.5 ? 'focused' : 'inspired')
+      }
+    }
+
+    // v6.5: Boost salience of recalled memories (rehearsal effect)
+    // When user mentions something that triggers relevant memories, strengthen those memories
+    if (context.relevantMemories.length > 0 && entity.memory) {
+      for (const memory of context.relevantMemories) {
+        // Find the memory in buffer and boost its salience
+        const memoryInBuffer = entity.memory.memories.find(m =>
+          m.timestamp === memory.timestamp &&
+          m.subject === memory.subject
+        )
+        if (memoryInBuffer) {
+          memoryInBuffer.salience = Math.min(1.0, memoryInBuffer.salience + 0.15)  // Boost by 15%
+        }
+      }
     }
 
     // If new words learned, acknowledge (v5.8.3: Check world.lexicon)
     if (!response && context.keywords.some(k => this.world.lexicon.get(k.toLowerCase()) === undefined)) {
       response = entity.speak('learned_new_word')
+    }
+
+    // v6.6: Emergent name recall (human-like memory)
+    // If user asks about name and we have name memories, respond with actual name
+    if (!response && context.intent === 'question' && context.relevantMemories.length > 0) {
+      const nameKeywords = ['ชื่อ', 'name', 'called']
+      const asksAboutName = nameKeywords.some(kw => userMessage.toLowerCase().includes(kw))
+
+      if (asksAboutName) {
+        // Find name memories (those with content.type === 'name')
+        const nameMemories = context.relevantMemories
+          .filter(m => m.content?.type === 'name')
+          .sort((a, b) => b.salience - a.salience)  // Strongest memory first
+
+        if (nameMemories.length > 0) {
+          const bestMemory = nameMemories[0]
+
+          // Salience-based confidence (human-like fuzzy recall)
+          if (bestMemory.salience > 0.8) {
+            // Clear memory - confident response
+            response = `จำได้! คุณชื่อ ${bestMemory.subject}`
+          } else if (bestMemory.salience > 0.4) {
+            // Fuzzy memory - uncertain response
+            const firstChar = bestMemory.subject[0]
+            response = `เอ่อ... ${firstChar} อะไรสักอย่าง? 🤔`
+          } else {
+            // Very weak memory - guess with doubt
+            response = `จำได้แต่ไม่แน่ใจ... ${bestMemory.subject} ใช่ไหม? 😅`
+          }
+        } else {
+          // Has relevantMemories but not name type - check if name in subject
+          const possibleNames = context.relevantMemories.filter(m =>
+            m.subject !== 'traveler' && m.subject !== 'self' && m.subject.length > 1
+          )
+          if (possibleNames.length > 0) {
+            response = `จำได้! คุณชื่อ ${possibleNames[0].subject}`
+          }
+        }
+      }
     }
 
     // If confused (low memory relevance)
@@ -982,6 +1237,11 @@ export class WorldSession extends EventEmitter {
     if (!response) {
       response = entity.speak('intro') || '...'
     }
+
+    // v6.5: Apply dialogue enhancement (micro-variations, emotional breathing)
+    // Detect language from response (simple heuristic: Thai chars = Thai, else English)
+    const language: 'th' | 'en' = /[\u0E00-\u0E7F]/.test(response) ? 'th' : 'en'
+    response = this.dialogueEnhancer.enhance(response, entity, language)
 
     return response
   }
