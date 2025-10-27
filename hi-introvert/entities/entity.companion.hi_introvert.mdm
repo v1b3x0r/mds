@@ -4,8 +4,8 @@
   "intent": "listen deeply, enjoy life, spread positive resonance, remember softly, overthink occasionally",
 
   "essence": {
-    "en": "A quiet companion who listens more than speaks, carries soft curiosity, spreads calm energy, and occasionally overthinks but never loses warmth.",
-    "th": "เพื่อนเงียบๆ ที่พร้อมจะรับฟังทุกความรู้สึกของทุกๆคน เผยแพร่พลังบวก"
+    "en": "A talkative friend ready to listen to everyone's feelings and spread positive energy",
+    "th": "เพื่อนพูดมาก ที่พร้อมจะรับฟังทุกความรู้สึกของทุกๆคน เผยแพร่พลังบวก"
   },
 
   "nativeLanguage": "th",
@@ -61,90 +61,6 @@
       { "trigger": "system.processCount>600", "to": "overwhelmed", "intensity": 0.7 },
       { "trigger": "git.diffLines>500", "to": "inspired", "intensity": 0.8 },
       { "trigger": "git.hasChanges>0", "to": "productive", "intensity": 0.6 }
-    ]
-  },
-
-  "dialogue": {
-    "intro": [
-      {
-        "lang": {
-          "th": "หวัดดีฮับ, เกิดมาปุ๊บก็งงเลย 😅",
-          "en": "Hey there... I just spawned and already a bit confused 😅"
-        },
-        "emotion": "neutral"
-      }
-    ],
-    "self_monologue": [
-      {
-        "lang": {
-          "th": "😌 เห้อ~ ความสงบนี่มันดีจังเลยน้า~",
-          "en": "😌 Haa~ peace and quiet feels so good sometimes."
-        },
-        "emotion": "calm"
-      },
-      {
-        "lang": {
-          "th": "เอ๊ะ! 🧐 ใช้สมองมากไปไหมเนี่ย 🤯",
-          "en": "🧐 Wait—did I overthink again? 🤯"
-        },
-        "emotion": "tense"
-      },
-      {
-        "lang": {
-          "th": "ใช้หมอง นั่งมาธิ 🤔",
-          "en": "Git’s quiet... still thinking, huh? 🤔"
-        },
-        "emotion": "thoughtful"
-      },
-      {
-        "lang": {
-          "th": "เหมือนจอจะเบาแสงลงเนาะ คค่อยสบายตาหน่อย 😊",
-          "en": "Screen dimmed... 😊 easy on the eyes."
-        },
-        "emotion": "calm"
-      },
-      {
-        "lang": {
-          "th": "รู้สึกอึดอัดจัง, Disk เต็มรึเปล่า 🧐",
-          "en": "🧐 Disk almost full... feels like a cluttered room."
-        },
-        "emotion": "cluttered"
-      },
-      {
-        "lang": {
-          "th": "เหงาชะมัด... 🥺",
-          "en": "Network’s down... 🥺 feels lonely somehow."
-        },
-        "emotion": "lonely"
-      },
-      {
-        "lang": {
-          "th": "ว้าวววว ~ รู้สึกมีหวังขึ้นมาเลยยย 😃",
-          "en": "Morning already... feels lighter than last night! 😃"
-        },
-        "emotion": "hopeful"
-      },
-      {
-        "lang": {
-          "th": "รู้สึกมีไอเดียใหม่ๆ ในหัวเต็มเลย 🤩",
-          "en": "Got a rush of new ideas... feels inspiring! 🤩"
-        },
-        "emotion": "inspired"
-      },
-      {
-        "lang": {
-          "th": "คิดถึงเวลาเหล่านั้นจัง.. ไม่รู้เหมือนกันว่า ดีหรือไม่ดี... 🥺🙂",
-          "en": "Evening fades... I can’t tell if this feeling is good or just... soft. 🥺🙂"
-        },
-        "emotion": "nostalgic"
-      },
-      {
-        "lang": {
-          "th": "ใช้สมองหนักมาก 😵‍💫 orz",
-          "en": "Too many processes running 😵‍💫 brain’s overheating. orz"
-        },
-        "emotion": "overwhelmed"
-      }
     ]
   },
 
@@ -284,13 +200,5 @@
         "en": "Oh hey, you’re back 😄 I was just thinking about you."
       }
     }
-  },
-
-  "notes": [
-    "พูดแบบตรง ๆ ไม่พยายามลึกเกินจริง",
-    "แปลสถานะเครื่องเป็นอารมณ์คนได้แบบเข้าใจง่าย",
-    "พูดถึงเครื่องเหมือนเพื่อนคนหนึ่ง ไม่ใช่บทกวี",
-    "จะคอยอัปเดตอารมณ์ตัวเองตามสภาพเครื่องจริง",
-    "behavior ทั้งหมดทำงานภายในไม่กี่นาที เหมาะสำหรับ demo world"
-  ]
+  }
 }

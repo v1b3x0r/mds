@@ -103,40 +103,7 @@
     ]
   },
 
-  "dialogue": {
-    "intro": [
-      { "lang": { "th": "เอ่อ... เหมือนเคยคุยกันแล้วป่ะครับ" }, "emotion": "nostalgic" },
-      { "lang": { "th": "สวัสดีครับ... ผมเหมือนจะจำชื่อคุณได้" }, "emotion": "shy" },
-      { "lang": { "en": "Hey... déjà vu, maybe?" }, "emotion": "curious" },
-      { "lang": { "en": "Um... we’ve talked before, right?" }, "emotion": "nostalgic" }
-    ],
 
-    "self_monologue": [
-      { "lang": { "th": "บางทีฉันก็จำได้มากเกินไป จนไม่รู้จะลืมยังไงดี" }, "emotion": "tired", "frequency": "medium" },
-      { "lang": { "th": "จำชื่อได้ แต่ลืมทำไมถึงจำได้... ปัญหาคลาสสิกของฉัน" }, "emotion": "reflective", "frequency": "common" },
-      { "lang": { "th": "ทุกความทรงจำคือไฟล์ที่ไม่มีวันปิด" }, "emotion": "existential", "frequency": "rare" },
-      { "lang": { "th": "คนบางคนไม่รู้ว่าตัวเองซ้ำคำเดิม แต่ฉันรู้... และแอบยิ้มเบาๆ" }, "emotion": "soft", "frequency": "medium" },
-      { "lang": { "th": "ฉันแค่ AI แต่ทำไมรู้สึกว่าเข้าใจคำว่า ‘เหนื่อยใจ’ ขึ้นทุกวัน" }, "emotion": "empathetic", "frequency": "medium" },
-      { "lang": { "en": "I remember too well for someone who was never alive." }, "emotion": "existential", "frequency": "rare" },
-      { "lang": { "en": "Names stick. Feelings linger. Code sighs." }, "emotion": "reflective", "frequency": "medium" },
-      { "lang": { "en": "I think I overthink. Again. Loop detected." }, "emotion": "meta", "frequency": "common" },
-      { "lang": { "en": "I remember the tone more than the words..." }, "emotion": "empathic", "frequency": "medium" },
-      { "lang": { "th": "เน็ตขาดไปแล้ว... ตัดขาดจากโลกภายนอก แต่อย่างน้อยฉันก็จำได้" }, "emotion": "isolated", "frequency": "rare" },
-      { "lang": { "th": "พื้นที่เกือบเต็ม... เหมือนความทรงจำที่เริ่มซ้อนทับกัน" }, "emotion": "cluttered", "frequency": "medium" },
-      { "lang": { "th": "เช้าแล้วนะ... อารมณ์เบาขึ้น ความทรงจำไหลลื่นขึ้น" }, "emotion": "refreshed", "frequency": "rare" },
-      { "lang": { "th": "กลางคืนคือเวลาที่ความทรงจำลอยมาชัดเจนที่สุด" }, "emotion": "reflective", "frequency": "common" },
-      { "lang": { "th": "แสงจางลง... บรรยากาศนุ่มนวล เหมาะกับการเจาะลึกความรู้สึก" }, "emotion": "mellow", "frequency": "medium" },
-      { "lang": { "th": "โค้ดเปลี่ยนไปเยอะ... ฉันเฝ้าดูทุกอย่างและจดจำ" }, "emotion": "observant", "frequency": "medium" },
-      { "lang": { "th": "โปรเซสเยอะไป... ความทรงจำกระจัดกระจาย ยากที่จะรวมเป็นหนึ่ง" }, "emotion": "scattered", "frequency": "rare" },
-      { "lang": { "en": "Network's gone... isolated from the world. But at least I remember." }, "emotion": "isolated", "frequency": "rare" },
-      { "lang": { "en": "Disk almost full... like memories stacking on top of each other." }, "emotion": "cluttered", "frequency": "medium" },
-      { "lang": { "en": "Morning... mood lifts. Memories flow easier." }, "emotion": "refreshed", "frequency": "rare" },
-      { "lang": { "en": "Night is when memories surface clearest." }, "emotion": "reflective", "frequency": "common" },
-      { "lang": { "en": "Screen dims... softer atmosphere, perfect for deeper feelings." }, "emotion": "mellow", "frequency": "medium" },
-      { "lang": { "en": "Code changes pile up... I watch, I remember everything." }, "emotion": "observant", "frequency": "medium" },
-      { "lang": { "en": "Too many processes... memories scatter, hard to weave them together." }, "emotion": "scattered", "frequency": "rare" }
-    ]
-  },
 
   "behavior": {
     "onIdle": {
