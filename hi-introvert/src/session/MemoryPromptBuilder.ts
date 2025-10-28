@@ -10,7 +10,7 @@
  * Design: Essence-first (no hardcoded personality), entity grows naturally
  */
 
-import type { Entity, World } from '@v1b3x0r/mds-core'
+import type { Entity, World, LexiconEntry } from '@v1b3x0r/mds-core'
 import type { ContextAnalysis } from './ContextAnalyzer'
 
 /**
@@ -69,14 +69,14 @@ export class MemoryPromptBuilder {
 
     // 3. Vocabulary constraints (optional) - v5.8.3: Use world.lexicon
     if (includeVocabulary) {
-      const vocabSize = this.world.lexicon.size
-      const recentLearned = this.world.lexicon.getRecent(60000)  // Last 1 minute
+      const vocabSize = this.world.lexicon?.size ?? 0
+      const recentLearned = this.world.lexicon?.getRecent(60000) ?? []  // Last 1 minute
 
       prompt += `# Vocabulary\n`
       prompt += `- You know ${vocabSize} terms (crystallized from conversations)\n`
 
       if (recentLearned.length > 0) {
-        prompt += `- Recently learned: ${recentLearned.map(e => e.term).join(', ')}\n`
+        prompt += `- Recently learned: ${recentLearned.map((entry: LexiconEntry) => entry.term).join(', ')}\n`
       }
 
       prompt += `- Use simple words a 12-year-old would know\n`
@@ -163,7 +163,8 @@ export class MemoryPromptBuilder {
     }
 
     if (entity.languageWeights) {
-      const weights = Object.entries(entity.languageWeights)
+      const languageWeights = entity.languageWeights as Record<string, number>
+      const weights = Object.entries(languageWeights)
         .map(([lang, weight]) => `${lang} (${(weight * 100).toFixed(0)}%)`)
         .join(', ')
       info += `- Language preference: ${weights}\n`

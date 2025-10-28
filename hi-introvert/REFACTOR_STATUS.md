@@ -6,6 +6,15 @@
 
 ---
 
+## ♻️ CLI Runtime Sync (2026-02)
+
+- ChatRuntime now owns extended OS/storage/circadian sensors, trust systems, and memory consolidation loops (no more reliance on WorldSession timers)
+- CLI commands expose `history`, `lexicon`, `trust`, and live sensor snapshots for quick audits
+- README updated to reflect current CLI feature set (status/growth/history/lexicon/trust/context/save)
+- Legacy Ink UI (`App.tsx`) + `WorldSession` kept only for historical tests → TODO migrate tests then archive/remove
+
+---
+
 ## 🔬 Latest: v7.0 Physics Refinement (Oct 28, 2025)
 
 **Philosophy Shift**: From "programming entity behavior" → "cultivating emergent naturalness"

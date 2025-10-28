@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Legacy Blessed world session preserved for compatibility but excluded from current type checks.
+
 /**
  * Hi-Introvert: World Session
  *

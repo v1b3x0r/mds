@@ -20,6 +20,7 @@ import {
   CollectiveIntelligence,
   toWorldFile,
   fromWorldFile,
+  type LexiconEntry,
   type WorldOptions,
   type MdsMaterial,
   type WorldFile
@@ -115,11 +116,10 @@ export class MDSRuntime extends EventEmitter {
 
     // Spawn entities
     for (const { name, material, x, y } of config.entities) {
-      const entity = this.world.spawn(
-        material,
-        x ?? Math.random() * 400,
-        y ?? Math.random() * 400
-      )
+      const entity = this.world.spawn(material, {
+        x: x ?? Math.random() * 400,
+        y: y ?? Math.random() * 400
+      })
       this.entities.set(name, entity)
       this.emit('entity:spawned', { name, entity })
     }
@@ -214,7 +214,7 @@ export class MDSRuntime extends EventEmitter {
     this.emitAnalytics(context)
 
     // 4. Emit tick event
-    this.emit('tick', { time: this.world.time })
+    this.emit('tick', { time: this.world.worldTime })
   }
 
   /**
@@ -230,8 +230,11 @@ export class MDSRuntime extends EventEmitter {
 
     // Growth metrics
     const vocabularySize = this.world.lexicon?.size || 0
-    const vocabularyWords = this.world.lexicon?.getRecent(10).map(e => e.term) || []
-    const totalMemories = entities.reduce((sum, e) => sum + (e.memory?.count() || 0), 0)
+    const vocabularyWords = this.world.lexicon?.getRecent(10).map((entry: LexiconEntry) => entry.term) || []
+    const totalMemories = entities.reduce(
+      (sum: number, entity: Entity) => sum + (entity.memory?.count() || 0),
+      0
+    )
 
     // Entity metrics
     const entityMetrics = Array.from(this.entities.entries()).map(([name, entity]) => ({
@@ -330,12 +333,12 @@ export class MDSRuntime extends EventEmitter {
     this.stopTicking()
 
     // Load world
-    this.world = fromWorldFile(worldFile, this.config.world)
+    this.world = fromWorldFile(worldFile)
 
     // Rebuild entities map (TODO: need entity name persistence)
     this.entities.clear()
     // For now, just assign numeric names
-    this.world.entities.forEach((entity, index) => {
+    this.world.entities.forEach((entity: Entity, index: number) => {
       this.entities.set(`entity_${index}`, entity)
     })
 

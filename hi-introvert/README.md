@@ -19,11 +19,15 @@ npx hi-introvert
 ```
 
 **Commands:**
-- `/status` — ดู emotion + memory + vocabulary
-- `/growth` — lexicon stats (nerd mode)
-- `/save` / `/load` — session persistence
-- `/clear` — reset chat
-- `/exit` — bye (auto-saves)
+- `/status` — อัปเดต emotion/memory/trust + สภาพแวดล้อม
+- `/growth` — ดู lexicon/concept growth
+- `/history` — world events ล่าสุด (time_update, weather ฯลฯ)
+- `/lexicon` — ศัพท์ที่ crystallize แล้ว
+- `/trust` — ความไว้ใจกับ entity อื่น
+- `/context` — ค่าจาก sensors (OS/network/weather)
+- `/save` — เซฟ world (auto-save ทุก 60 วิ)
+- `/help` — แสดงรายการคำสั่ง
+- `/exit` — ออกจากโปรแกรม
 
 **Keys:**
 - `Tab` → focus input

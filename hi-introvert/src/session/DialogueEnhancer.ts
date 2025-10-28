@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Legacy Blessed UI helper retained for archive only.
+
 /**
  * Hi-Introvert: Dialogue Enhancer (v6.5)
  *

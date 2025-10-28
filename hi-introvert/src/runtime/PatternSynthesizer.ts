@@ -16,9 +16,7 @@
  * v1.0 (2025-10-28): Initial stable foundation
  */
 
-import type { Utterance } from '../../src/6-world/linguistics/transcript'
-import type { LexiconEntry } from '../../src/6-world/linguistics/lexicon'
-import type { Memory } from '../../src/1-ontology/memory/buffer'
+import type { Utterance, LexiconEntry, Memory } from '@v1b3x0r/mds-core'
 
 /**
  * Conversation pattern extracted from transcript

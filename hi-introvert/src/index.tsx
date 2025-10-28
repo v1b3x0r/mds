@@ -6,10 +6,11 @@
 
 import readline from 'readline'
 import chalk from 'chalk'
-import { ChatRuntime } from './apps/hi-introvert/ChatRuntime.js'
+import { ChatRuntime } from './ChatRuntime.js'
+import type { LexiconEntry } from '@v1b3x0r/mds-core'
 
 // Export for testing
-export { ChatRuntime } from './apps/hi-introvert/ChatRuntime.js'
+export { ChatRuntime } from './ChatRuntime.js'
 export { CompanionLoader } from './session/CompanionLoader.js'
 
 // Parse CLI args
@@ -165,21 +166,36 @@ function handleCommand(cmd: string) {
     console.log(chalk.dim('─'.repeat(40)))
     console.log(`  Companion: ${runtime.companion.id}`)
     console.log(`  Age: ${Math.floor(runtime.companion.age / 1000)}s`)
-    console.log(`  Emotion: ${runtime.companion.emotion.valence.toFixed(2)}`)
+    const companionEmotion = runtime.companion.emotion
+    console.log(
+      `  Emotion: ${companionEmotion ? companionEmotion.valence.toFixed(2) : 'n/a'}`
+    )
     console.log(`  Memories: ${runtime.companion.memory?.memories?.length || 0}`)
     console.log(`  Vocabulary: ${runtime.world.lexicon?.size || 0}`)
     console.log(`  Relationships: ${runtime.companion.relationships?.size || 0}`)
+    const trustSnapshot = runtime.getTrustSnapshot()
+    if (trustSnapshot.length > 0) {
+      const trustLine = trustSnapshot
+        .map(entry => `${entry.target}: ${entry.trust.toFixed(2)}`)
+        .join(', ')
+      console.log(`  Trust → ${trustLine}`)
+    }
 
     // Show environment context (safely check for properties)
-    if (runtime.world.environment && runtime.world.environment.temperature !== undefined) {
+    const environment = runtime.world.environment
+    if (environment) {
+      const { temperature, humidity } = environment.getState(runtime.companion.x, runtime.companion.y)
       console.log(chalk.dim('\n  Environment:'))
-      console.log(`    Temp: ${runtime.world.environment.temperature.toFixed(1)}°C`)
-      console.log(`    Humidity: ${(runtime.world.environment.humidity * 100).toFixed(0)}%`)
+      const tempC = temperature - 273.15
+      console.log(`    Temp: ${tempC.toFixed(1)}°C`)
+      console.log(`    Humidity: ${(humidity * 100).toFixed(0)}%`)
     }
-    if (runtime.world.weather && runtime.world.weather.condition) {
+    const weather = runtime.world.weather
+    if (weather) {
+      const state = weather.getState()
       console.log(chalk.dim('  Weather:'))
-      console.log(`    Condition: ${runtime.world.weather.condition}`)
-      console.log(`    Intensity: ${(runtime.world.weather.intensity * 100).toFixed(0)}%`)
+      console.log(`    Condition: ${state.rain ? 'rain' : 'clear'}`)
+      console.log(`    Intensity: ${(state.rainIntensity * 100).toFixed(0)}%`)
     }
     console.log()
     return
@@ -193,6 +209,61 @@ function handleCommand(cmd: string) {
     console.log(`  Vocabulary: ${g.vocabularySize}`)
     console.log(`  Maturity: ${(g.maturity * 100).toFixed(1)}%`)
     console.log(`  Top words: ${g.vocabularyWords.slice(0, 5).join(', ')}`)
+    console.log()
+    return
+  }
+
+  if (c === 'history') {
+    const events = (runtime.world.events ?? []).slice(-10)
+    console.log(chalk.cyan('\n📜 Recent Events'))
+    console.log(chalk.dim('─'.repeat(40)))
+    if (events.length === 0) {
+      console.log('  (no events yet)')
+    } else {
+      for (const event of events) {
+        const time = typeof event.time === 'number' ? event.time.toFixed(1) : '-'
+        const payload = event.data ? JSON.stringify(event.data).slice(0, 80) : ''
+        console.log(`  [${time}] ${event.type}${payload ? ` → ${payload}` : ''}`)
+      }
+    }
+    console.log()
+    return
+  }
+
+  if (c === 'lexicon') {
+    const lexicon = runtime.world.lexicon
+    console.log(chalk.cyan('\n🔤 Lexicon'))
+    console.log(chalk.dim('─'.repeat(40)))
+    if (!lexicon || lexicon.size === 0) {
+      console.log('  (no crystallized terms yet)')
+    } else {
+      const entries = lexicon
+        .getAll()
+        .sort((a: LexiconEntry, b: LexiconEntry) => b.usageCount - a.usageCount)
+        .slice(0, 10)
+      for (const entry of entries) {
+        console.log(
+          `  ${entry.term} · usage ${entry.usageCount} · origin ${entry.origin}`
+        )
+      }
+    }
+    console.log()
+    return
+  }
+
+  if (c === 'trust') {
+    const snapshot = runtime.getTrustSnapshot()
+    console.log(chalk.cyan('\n🤝 Trust'))
+    console.log(chalk.dim('─'.repeat(40)))
+    if (snapshot.length === 0) {
+      console.log('  (no trust data yet)')
+    } else {
+      for (const entry of snapshot) {
+        console.log(
+          `  ${entry.target}: ${entry.trust.toFixed(2)} (${entry.interactions} interactions)`
+        )
+      }
+    }
     console.log()
     return
   }
@@ -241,13 +312,49 @@ function handleCommand(cmd: string) {
     return
   }
 
+  if (c === 'monologue') {
+    const on = runtime.toggleMonologue()
+    console.log(on ? '\n🗣️  Monologue: on\n' : '\n🧘 Monologue: off\n')
+    return
+  }
+
+  if (c === 'log') {
+    const mode = cmd.split(' ')[1]
+    if (mode === 'on' || mode === 'off') {
+      const enabled = mode === 'on' ? (runtime.isLogging() ? true : runtime.toggleLogging()) : (runtime.isLogging() ? runtime.toggleLogging() : false)
+      console.log(`\n📝 Logging: ${enabled ? 'on' : 'off'} (file: sessions/world.log.ndjson)\n`)
+    } else {
+      const toggled = runtime.toggleLogging()
+      console.log(`\n📝 Logging: ${toggled ? 'on' : 'off'} (file: sessions/world.log.ndjson)\n`)
+    }
+    return
+  }
+
+  if (c === 'tail') {
+    const parts = cmd.split(' ')
+    const n = Math.max(1, Math.min(200, Number(parts[1]) || 20))
+    const lines = runtime.tailLog(n)
+    console.log(chalk.cyan(`\n📄 Log (last ${n})`))
+    console.log(chalk.dim('─'.repeat(40)))
+    if (lines.length === 0) console.log(chalk.dim('  (no log yet)'))
+    for (const line of lines) console.log('  ' + line)
+    console.log()
+    return
+  }
+
   if (c === 'help') {
     console.log(chalk.cyan('\n📖 Commands'))
     console.log(chalk.dim('─'.repeat(40)))
     console.log('  /quit    - Exit')
     console.log('  /status  - Show status')
     console.log('  /growth  - Show growth')
+    console.log('  /history - Show recent world events')
+    console.log('  /lexicon - Show emergent vocabulary')
+    console.log('  /trust   - Show trust levels')
     console.log('  /context - Show live sensors')
+    console.log('  /monologue - Toggle idle monologue')
+    console.log('  /log [on|off] - Toggle/force NDJSON logging')
+    console.log('  /tail [n] - Show last n log lines')
     console.log('  /save    - Save world (auto-saves every 60s)')
     console.log('  /help    - This message')
     console.log()

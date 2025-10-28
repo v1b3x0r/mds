@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Legacy Ink UI component retained for reference only.
+
 import React from 'react'
 import { Box, Text } from 'ink'
 import type { Message } from '../types/index.js'

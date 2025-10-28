@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Legacy Blessed UI helper retained for archive only.
+
 /**
  * Hi-Introvert: Phrase Selector (v6.5 Phase 2)
  *

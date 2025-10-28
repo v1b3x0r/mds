@@ -217,6 +217,8 @@ export function isInBaseVocabulary(word: string): boolean {
 /**
  * Get vocabulary by category
  */
-export function getVocabularyByCategory(category: keyof typeof VOCABULARY_CATEGORIES): string[] {
-  return VOCABULARY_CATEGORIES[category] || []
+export function getVocabularyByCategory(
+  category: keyof typeof VOCABULARY_CATEGORIES
+): readonly string[] {
+  return VOCABULARY_CATEGORIES[category] ?? ([] as const)
 }

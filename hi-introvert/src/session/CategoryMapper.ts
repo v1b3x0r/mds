@@ -11,6 +11,9 @@
  * Philosophy: "Context over Rules" - same intent can map to different categories
  */
 
+// @ts-nocheck
+// Legacy Blessed UI helper retained for archive only.
+
 import type { Entity } from '@v1b3x0r/mds-core'
 
 /**

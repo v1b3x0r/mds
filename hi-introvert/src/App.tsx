@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Legacy Ink UI kept for archival purposes. Current CLI does not depend on this file.
+
 import React, { useState, useEffect } from 'react'
 import { Box, Text, useInput } from 'ink'
 import TextInput from 'ink-text-input'

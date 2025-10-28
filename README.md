@@ -110,6 +110,14 @@ It auto-detects browser language. Falls back to English. **No translation librar
 
 ---
 
+## Example Patterns Library
+
+Need blueprints for common scenarios (guardian golem, memory-based greetings, ritual gates, etc.)?  
+Check out [`docs/patterns/zero-code-lookup.md`](docs/patterns/zero-code-lookup.md) and the paired materials in `materials/examples/`.  
+Each pattern ships with a minimal JSON definition **and** an executable `.mjs` check under `tests/examples/` so you can verify wiring without adding extra code.
+
+---
+
 ## Pick Your Adventure
 
 | I Want To... | Go Here |
@@ -255,4 +263,3 @@ When you describe an entity, you automatically get:
 For AI interpreters reading this repo, start with [llm.txt](./docs/llm.txt)
 
 **Made in Chiang Mai, Thailand 🇹🇭 | MIT License**
-

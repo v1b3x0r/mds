@@ -15,17 +15,42 @@
  * - Event-driven: emits message, growth, field events
  */
 
-import { MDSRuntime, type RuntimeConfig, type AnalyticsData } from '../../runtime/MDSRuntime'
-import { Entity, type EmotionalState } from '@v1b3x0r/mds-core'
-import { ContextAnalyzer } from '../../session/ContextAnalyzer'
-import { MemoryPromptBuilder } from '../../session/MemoryPromptBuilder'
-import { GrowthTracker } from '../../session/GrowthTracker'
-import { CompanionLoader } from '../../session/CompanionLoader'
-import { EchoSystem } from './EchoSystem'
-import { KeywordExtractor } from '../../utils/KeywordExtractor'
-import { TextSimilarity } from '../../utils/TextSimilarity'
-import { PatternSynthesizer } from '../../runtime/PatternSynthesizer'
-import { SalienceDetector } from '../../utils/SalienceDetector'
+import { MDSRuntime, type RuntimeConfig, type AnalyticsData } from './runtime/MDSRuntime'
+import {
+  Entity,
+  type EmotionalState,
+  type Memory,
+  type LexiconEntry,
+  type Relationship,
+  createMemoryLog,
+  TrustSystem,
+  MemoryConsolidation,
+  createRelationship,
+  relationshipStrength
+} from '@v1b3x0r/mds-core'
+import { ContextAnalyzer } from './session/ContextAnalyzer'
+import { MemoryPromptBuilder } from './session/MemoryPromptBuilder'
+import { GrowthTracker } from './session/GrowthTracker'
+import { CompanionLoader } from './session/CompanionLoader'
+import { EchoSystem } from './runtime/EchoSystem'
+import { KeywordExtractor } from './utils/KeywordExtractor'
+import { TextSimilarity } from './utils/TextSimilarity'
+import { PatternSynthesizer } from './runtime/PatternSynthesizer'
+import { MonologueEngine } from './runtime/MonologueEngine'
+import { WorldRecorder } from './runtime/WorldRecorder'
+import { SalienceDetector } from './utils/SalienceDetector'
+import { ExtendedSensors } from './sensors/ExtendedSensors'
+
+type MemoryWithKeywords = Memory & {
+  keywords?: string[]
+  content?: Record<string, unknown>
+}
+
+type MemoryWithConfidence = MemoryWithKeywords & { confidence: number }
+
+type CompanionRelationship = Relationship & {
+  formationTime?: number
+}
 
 /**
  * Chat-specific configuration
@@ -92,6 +117,17 @@ export class ChatRuntime extends MDSRuntime {
 
   // WorldMind data (from parent analytics)
   private worldMindCache: any = {}
+  private extendedSensors: ExtendedSensors
+  private intervals: NodeJS.Timeout[] = []
+  private memoryLogs = new Map<string, ReturnType<typeof createMemoryLog>>()
+  private trustSystems = new Map<string, TrustSystem>()
+  private memoryConsolidation: MemoryConsolidation
+  private sessionStart: number = Date.now()
+  private monologueEngine!: MonologueEngine
+  private worldRecorder!: WorldRecorder
+  private lastTranscriptCount: number = 0
+  private loggingEnabled: boolean = false
+  private monologueEnabled: boolean = true
 
   constructor(config: ChatRuntimeConfig) {
     // Convert ChatRuntimeConfig → RuntimeConfig
@@ -130,7 +166,7 @@ export class ChatRuntime extends MDSRuntime {
 
     // Initialize chat helpers
     this.contextAnalyzer = new ContextAnalyzer()
-    this.promptBuilder = new MemoryPromptBuilder()
+    this.promptBuilder = new MemoryPromptBuilder(this.world)
     this.growthTracker = new GrowthTracker()
     this.companionLoader = companionLoader
     this.echoSystem = new EchoSystem({
@@ -151,14 +187,289 @@ export class ChatRuntime extends MDSRuntime {
     // Subscribe to analytics for WorldMind caching
     this.on('analytics', (data: AnalyticsData) => {
       this.worldMindCache = data.worldMind
+      if (this.loggingEnabled && this.worldRecorder) {
+        this.worldRecorder.logAnalytics(data)
+      }
     })
 
     // Initial valence
     this.previousValence = this.companion.emotion?.valence ?? 0.5
+    this.extendedSensors = new ExtendedSensors()
+    this.memoryConsolidation = new MemoryConsolidation({
+      similarityThreshold: 0.7,
+      forgettingRate: 0.001,
+      consolidationInterval: 45000
+    })
+    this.sessionStart = Date.now()
+    this.initializeEntitySystems()
+    this.setupCognitiveLink()
+    this.initializeCompanionSkills()
+
+    // Initialize Monologue + Recorder before loops
+    this.monologueEngine = new MonologueEngine({
+      world: this.world,
+      companion: this.companion,
+      getEmotion: () => ({
+        valence: this.companion.emotion?.valence ?? 0,
+        arousal: this.companion.emotion?.arousal ?? 0
+      }),
+      getMemories: () => this.companion.memory?.memories ?? []
+    })
+    this.worldRecorder = new WorldRecorder({ path: 'sessions/world.log.ndjson', enabled: true })
+
+    this.setupSupportLoops()
 
     this.debug('ChatRuntime initialized')
     this.debug(`  User: ${this.user.id}`)
     this.debug(`  Companion: ${this.companion.id} (${config.companion.name || 'random'})`)
+  }
+
+  private initializeEntitySystems(): void {
+    for (const entity of this.entities.values()) {
+      const entityId = entity.id
+      if (!entityId) continue
+
+      if (!this.memoryLogs.has(entityId)) {
+        this.memoryLogs.set(entityId, createMemoryLog(entityId))
+      }
+
+      if (!this.trustSystems.has(entityId)) {
+        const trust = new TrustSystem({
+          initialTrust: 0.5,
+          trustThreshold: 0.6
+        })
+        trust.setSharePolicy('emotion', 'public')
+        trust.setSharePolicy('memory', 'trust')
+        this.trustSystems.set(entityId, trust)
+      }
+    }
+  }
+
+  private setupCognitiveLink(): void {
+    if (typeof this.companion.connectTo === 'function') {
+      try {
+        this.companion.connectTo(this.user, {
+          strength: 0.7,
+          bidirectional: true
+        })
+        this.debug('[Cognition] Companion connected to traveler')
+      } catch (error) {
+        this.debug(`[Cognition] Failed to establish link: ${String(error)}`)
+      }
+    }
+  }
+
+  private initializeCompanionSkills(): void {
+    const skills = this.companion.skills as any
+    if (!skills || typeof skills.addSkill !== 'function') return
+
+    const ensureSkill = (name: string, config: Record<string, any>) => {
+      if (typeof skills.hasSkill === 'function' && skills.hasSkill(name)) return
+      skills.addSkill(name, config)
+    }
+
+    ensureSkill('conversation', {
+      proficiency: 0.3,
+      learningRate: 0.15,
+      decayRate: 0.002
+    })
+
+    ensureSkill('creativity', {
+      proficiency: 0.5,
+      learningRate: 0.2,
+      decayRate: 0.001
+    })
+
+    ensureSkill('empathy', {
+      proficiency: 0.4,
+      learningRate: 0.1,
+      decayRate: 0.0015,
+      relatedSkills: ['conversation']
+    })
+
+    ensureSkill('learning', {
+      proficiency: 0.6,
+      learningRate: 0.25,
+      decayRate: 0.0005
+    })
+  }
+
+  private setupSupportLoops(): void {
+    if (this.intervals.length > 0) return
+
+    const timeInterval = setInterval(() => {
+      const now = new Date()
+      const hour = now.getHours()
+      const minute = now.getMinutes()
+
+      let timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' = 'night'
+      if (hour >= 5 && hour < 12) timeOfDay = 'morning'
+      else if (hour >= 12 && hour < 17) timeOfDay = 'afternoon'
+      else if (hour >= 17 && hour < 21) timeOfDay = 'evening'
+
+      this.world.broadcastEvent('time_update', {
+        hour,
+        minute,
+        timeOfDay,
+        timestamp: now.toISOString()
+      })
+    }, 30000)
+    this.intervals.push(timeInterval)
+
+    const durationInterval = setInterval(() => {
+      const minutes = Math.floor((Date.now() - this.sessionStart) / 60000)
+      if (minutes <= 0) return
+
+      this.world.broadcastEvent('session_duration', {
+        minutes,
+        duration: Date.now() - this.sessionStart
+      })
+    }, 300000)
+    this.intervals.push(durationInterval)
+
+    const longingInterval = setInterval(() => {
+      this.handleLongingField()
+    }, 120000)
+    this.intervals.push(longingInterval)
+
+    const extendedInterval = setInterval(() => {
+      const metrics = this.extendedSensors.getAllMetrics()
+
+      this.world.broadcastContext({
+        'network.connected': metrics.network.connected ? 1 : 0,
+        'network.interfaceCount': metrics.network.interfaceCount,
+        'network.hasIPv6': metrics.network.hasIPv6 ? 1 : 0,
+        'network.latency': metrics.network.latency || 0,
+        'storage.totalGB': metrics.storage.totalGB,
+        'storage.freeGB': metrics.storage.freeGB,
+        'storage.usagePercent': metrics.storage.usagePercent,
+        'circadian.phase': metrics.circadian,
+        'circadian.isDawn': metrics.circadian === 'dawn' ? 1 : 0,
+        'circadian.isMorning': metrics.circadian === 'morning' ? 1 : 0,
+        'circadian.isNoon': metrics.circadian === 'noon' ? 1 : 0,
+        'circadian.isAfternoon': metrics.circadian === 'afternoon' ? 1 : 0,
+        'circadian.isDusk': metrics.circadian === 'dusk' ? 1 : 0,
+        'circadian.isEvening': metrics.circadian === 'evening' ? 1 : 0,
+        'circadian.isNight': metrics.circadian === 'night' ? 1 : 0,
+        'screen.brightness': metrics.brightness,
+        'system.processCount': metrics.processCount,
+        'git.inRepo': metrics.git.inRepo ? 1 : 0,
+        'git.diffLines': metrics.git.diffLines,
+        'git.stagedLines': metrics.git.stagedLines,
+        'git.hasChanges': metrics.git.hasChanges ? 1 : 0
+      })
+
+      this.emit('extended-sensors', metrics)
+    }, 30000)
+    this.intervals.push(extendedInterval)
+
+    const memoryInterval = setInterval(() => {
+      this.runMemoryConsolidation()
+    }, 60000)
+    this.intervals.push(memoryInterval)
+
+    // Idle monologue + transcript flush to log
+    const monologueInterval = setInterval(() => {
+      // 1) monologue
+      if (this.monologueEnabled && this.monologueEngine) {
+        const spoke = this.monologueEngine.maybeSpeak(Date.now(), this.lastMessageTime)
+        if (spoke) this.emit('monologue', { speaker: this.companion.id })
+      }
+
+      // 2) transcript → log
+      if (this.loggingEnabled && this.worldRecorder) {
+        const count = this.world.transcript?.count ?? 0
+        if (count > this.lastTranscriptCount) {
+          const news = this.world.transcript?.getAll().slice(this.lastTranscriptCount) ?? []
+          for (const utt of news) {
+            this.worldRecorder.logUtterance(utt.speaker, utt.text, utt.listener, utt.emotion)
+          }
+          this.lastTranscriptCount = count
+        }
+      }
+    }, 10000)
+    this.intervals.push(monologueInterval)
+  }
+
+  private handleLongingField(): void {
+    const relationship = this.companion.relationships?.get(this.user.id) as CompanionRelationship | undefined
+    if (!relationship) return
+
+    const lastInteraction = relationship.lastInteraction ?? relationship.formationTime ?? 0
+    const elapsed = Date.now() - lastInteraction
+
+    const bondStrength = relationshipStrength(relationship)
+    if (bondStrength < 0.6 || elapsed < 120000) return
+
+    if (typeof this.world.spawnField === 'function') {
+      const centerX = (this.companion.x + this.user.x) / 2
+      const centerY = (this.companion.y + this.user.y) / 2
+
+      try {
+        this.world.spawnField(
+          {
+            essence: 'Quiet longing',
+            radius: 150,
+            strength: Math.min(1, bondStrength),
+            duration: 8,
+            type: 'longing'
+          } as any,
+          centerX,
+          centerY
+        )
+      } catch (error) {
+        this.debug(`[Field] Failed to spawn longing field: ${String(error)}`)
+      }
+    }
+
+    this.emit('field', {
+      type: 'longing',
+      source: this.companion.id,
+      target: this.user.id,
+      elapsed
+    })
+  }
+
+  private runMemoryConsolidation(): void {
+    const memories = this.companion.memory?.memories as any[] | undefined
+    if (!memories || memories.length === 0) return
+
+    const consolidated = this.memoryConsolidation.consolidate(memories) as any[]
+    if (consolidated.length > 0) {
+      const weakMemories = memories
+        .map((memory: any, index: number) => ({ memory, index }))
+        .filter((item: { memory: any; index: number }) => (item.memory?.salience ?? 0) < 0.3)
+        .sort(
+          (a: { memory: any }, b: { memory: any }) =>
+            (a.memory?.salience ?? 0) - (b.memory?.salience ?? 0)
+        )
+
+      const replacements = Math.min(consolidated.length, weakMemories.length)
+      for (let i = 0; i < replacements; i++) {
+        const strong = consolidated[i] as any
+        const targetIndex = weakMemories[i].index
+
+        memories[targetIndex] = {
+          type: strong.type,
+          subject: strong.subject,
+          content: strong.content,
+          salience: strong.salience,
+          timestamp: strong.lastRehearsal
+        }
+      }
+
+      this.emit('memory-consolidation', {
+        entity: this.companion.id,
+        count: consolidated.length,
+        replacements
+      })
+    }
+
+    this.memoryConsolidation.applyForgetting(60)
+
+    for (const trust of this.trustSystems.values()) {
+      trust.decayTrust(60)
+    }
   }
 
   /**
@@ -185,6 +496,11 @@ export class ChatRuntime extends MDSRuntime {
       'user.message': message,
       'user.silence': silenceDuration
     })
+
+    // Log user utterance immediately
+    if (this.loggingEnabled && this.worldRecorder) {
+      this.worldRecorder.logUtterance(this.user.id, message, undefined, this.user.emotion)
+    }
 
     this.lastMessageTime = now
 
@@ -220,8 +536,8 @@ export class ChatRuntime extends MDSRuntime {
 
     // Build known concepts set for novelty detection
     const knownConcepts = new Set<string>()
-    this.companion.memory?.memories?.forEach(m => {
-      m.keywords?.forEach(kw => knownConcepts.add(kw))
+    this.companion.memory?.memories?.forEach((memory: MemoryWithKeywords) => {
+      memory.keywords?.forEach((keyword: string) => knownConcepts.add(keyword))
     })
 
     // Detect salience (info-physics!)
@@ -247,10 +563,9 @@ export class ChatRuntime extends MDSRuntime {
       this.companion.remember({
         type: 'interaction',
         subject: 'user',
-        content: { message, text: message, intent: context.intent },
+        content: { message, text: message, intent: context.intent, keywords },
         timestamp: now,
-        salience: salienceResult.salience,  // Physics-based! (0-2)
-        keywords  // Topic tags for semantic retrieval
+        salience: salienceResult.salience  // Physics-based! (0-2)
       })
       this.debug(`  [Memory] New memory created (salience: ${salienceResult.salience.toFixed(2)}) with keywords: ${keywords.slice(0, 3).join(', ')}`)
     }
@@ -261,20 +576,18 @@ export class ChatRuntime extends MDSRuntime {
     // 8. Form/reinforce relationship (not cognitive link - that's P2P feature)
     // Use the relationships system directly
     if (this.companion.relationships) {
-      const existing = this.companion.relationships.get(this.user.id)
+      const existing = this.companion.relationships.get(this.user.id) as CompanionRelationship | undefined
       if (existing) {
-        // Strengthen existing relationship
-        existing.strength = Math.min(1.0, existing.strength + 0.05)
-        existing.interactionCount++
+        existing.trust = Math.min(1, existing.trust + 0.05)
+        existing.familiarity = Math.min(1, (existing.familiarity ?? 0) + 0.05)
+        existing.interactionCount = (existing.interactionCount ?? 0) + 1
+        existing.lastInteraction = now
       } else {
-        // Create new relationship
-        this.companion.relationships.set(this.user.id, {
-          targetId: this.user.id,
-          strength: 0.7,
-          interactionCount: 1,
-          lastInteraction: now,
-          formationTime: now
-        })
+        const relationship = createRelationship(0.6, 0.5) as CompanionRelationship
+        relationship.lastInteraction = now
+        relationship.interactionCount = 1
+        relationship.formationTime = now
+        this.companion.relationships.set(this.user.id, relationship)
       }
     }
 
@@ -288,15 +601,17 @@ export class ChatRuntime extends MDSRuntime {
       this.companion.remember({
         type: 'interaction',
         subject: 'self',
-        content: { response, text: response },
+        content: { response, text: response, keywords: KeywordExtractor.extract(response, 5) },
         timestamp: now,
-        salience: 0.4,
-        keywords: KeywordExtractor.extract(response, 5)
+        salience: 0.4
       })
     }
 
     // 11. Record companion's speech
     this.world.recordSpeech(this.companion, response)
+    if (this.loggingEnabled && this.worldRecorder) {
+      this.worldRecorder.logUtterance(this.companion.id, response, this.user.id, this.companion.emotion)
+    }
 
     // 11.5. Echo system - Inner voice rehearsal (เสียงในหัว)
     // Companion mentally repeats key phrases to strengthen learning
@@ -320,7 +635,8 @@ export class ChatRuntime extends MDSRuntime {
     // Proto-language will emerge when physics is ready
 
     // 12. Q-learning (emotion-based reward)
-    const emotionDelta = this.companion.emotion.valence - this.previousValence
+    const companionEmotion = this.companion.emotion ?? { valence: 0, arousal: 0, dominance: 0 }
+    const emotionDelta = companionEmotion.valence - this.previousValence
     if (Math.abs(emotionDelta) > 0.1 && this.companion.learning) {
       this.companion.learning.addExperience({
         timestamp: now,
@@ -338,7 +654,7 @@ export class ChatRuntime extends MDSRuntime {
 
     // 14. Update previous valence
     const previousValence = this.previousValence
-    this.previousValence = this.companion.emotion.valence
+    this.previousValence = companionEmotion.valence
 
     // 15. Check for sync moment (emotional alignment)
     this.checkSyncMoment()
@@ -347,14 +663,14 @@ export class ChatRuntime extends MDSRuntime {
     this.emit('message', {
       message,
       response,
-      emotion: { ...this.companion.emotion },
+      emotion: { ...companionEmotion },
       conversationCount: this.conversationCount
     })
 
     return {
       name: 'companion',
       response,
-      emotion: { ...this.companion.emotion },
+      emotion: { ...companionEmotion },
       previousValence,
       metadata: {
         memoryCount: this.companion.memory?.memories?.length || 0,
@@ -379,13 +695,23 @@ export class ChatRuntime extends MDSRuntime {
       this.debug('  [Response] Name query detected - checking memory')
 
       // Search all memories for name-type
-      const allMemories = this.companion.memory?.memories || []
-      const nameMemory = allMemories.find(m => m.content?.type === 'name' && m.content?.owner === 'user')
+      const allMemories = (this.companion.memory?.memories || []) as MemoryWithKeywords[]
+      const nameMemory = allMemories.find((memory: MemoryWithKeywords) => {
+        const content = memory.content as { type?: string; owner?: string } | undefined
+        return content?.type === 'name' && content?.owner === 'user'
+      })
 
-      this.debug(`  [Name Search] Found ${allMemories.filter(m => m.content?.type === 'name').length} name memories`)
+      const nameMemoryCount = allMemories.filter((memory: MemoryWithKeywords) => {
+        const content = memory.content as { type?: string } | undefined
+        return content?.type === 'name'
+      }).length
 
-      if (nameMemory && nameMemory.content?.name) {
-        const name = nameMemory.content.name
+      this.debug(`  [Name Search] Found ${nameMemoryCount} name memories`)
+
+      const nameContent = nameMemory?.content as { name?: string } | undefined
+
+      if (nameContent?.name) {
+        const name = nameContent.name
         this.debug(`  [Name Retrieved] ${name}`)
         const responses = [
           `ชื่อคุณ ${name} นะ`,
@@ -412,27 +738,29 @@ export class ChatRuntime extends MDSRuntime {
 
     // Retrieve relevant memories by topic (not just recent!)
     // Use keyword overlap as a simple proxy for semantic resonance
-    const relevantMemories = this.companion.memory?.recallByTopic(keywords, 10) || []
+    const relevantMemories = (this.companion.memory?.recallByTopic?.(keywords, 10) || []) as MemoryWithKeywords[]
 
     // Calculate confidence for each memory (salience × recency × resonance)
     const now = this.companion.age
-    const memoriesWithConfidence = relevantMemories.map(m => {
-      const baseConfidence = this.companion.memory?.calculateConfidence(m, now) || 0
+    const memoriesWithConfidence = relevantMemories.map((memory: MemoryWithKeywords) => {
+      const baseConfidence = this.companion.memory?.calculateConfidence?.(memory, now) ?? 0
 
       // Resonance factor: keyword overlap score (already in recallByTopic)
       // This acts as a semantic field resonance proxy
-      const keywordOverlap = m.keywords
-        ? keywords.filter(kw => m.keywords!.includes(kw)).length / Math.max(keywords.length, 1)
+      const keywordOverlap = memory.keywords
+        ? keywords.filter((kw: string) => memory.keywords!.includes(kw)).length / Math.max(keywords.length, 1)
         : 0
 
       // Combined confidence: salience × recency × resonance
       const confidence = baseConfidence * (0.7 + keywordOverlap * 0.3)
 
-      return { ...m, confidence }
+      return { ...memory, confidence }
     })
 
     // Filter low-confidence memories (too old/weak)
-    const confidentMemories = memoriesWithConfidence.filter(m => m.confidence > 0.3)
+    const confidentMemories: MemoryWithConfidence[] = memoriesWithConfidence.filter(
+      (memory: MemoryWithConfidence) => memory.confidence > 0.3
+    )
 
     this.debug(`  [Memory] Retrieved ${confidentMemories.length}/${relevantMemories.length} confident memories (resonance-weighted)`)
 
@@ -458,11 +786,12 @@ export class ChatRuntime extends MDSRuntime {
 
     // Try to synthesize response from learned patterns
     const lexicon = this.world.lexicon ? this.world.lexicon.getAll() : []
+    const companionEmotion = this.companion.emotion ?? { valence: 0, arousal: 0 }
     const synthesizedResponse = this.synthesizer.synthesize(
       userMessage,
       {
-        valence: this.companion.emotion.valence,
-        arousal: this.companion.emotion.arousal
+        valence: companionEmotion.valence,
+        arousal: companionEmotion.arousal
       },
       confidentMemories,
       lexicon
@@ -483,20 +812,34 @@ export class ChatRuntime extends MDSRuntime {
     }
 
     // Fallback to LLM (if configured)
-    if (this.world.llm) {
+    const llmAdapter = (this.world as any).llm
+    if (llmAdapter?.generate) {
       this.debug('  [Response] LLM fallback with context')
 
       // Build prompt with relevant memories (sorted by confidence)
-      const prompt = this.promptBuilder.buildPrompt({
-        message: userMessage,
-        memories: confidentMemories.slice(0, 5),  // Top 5 most confident
-        emotion: this.companion.emotion,
-        context: keywords.join(', ')
-      })
+      const promptContext = {
+        ...context,
+        relevantMemories: confidentMemories
+          .slice(0, 5)
+          .map(({ confidence: _confidence, ...memory }) => memory as Memory)
+      } as ReturnType<ContextAnalyzer['analyzeIntent']>
+
+      const prompt = this.promptBuilder.buildPrompt(
+        this.companion,
+        userMessage,
+        promptContext,
+        { maxMemories: 5 }
+      )
 
       try {
-        const llmResponse = await this.world.llm.generate(this.companion, prompt)
-        return llmResponse
+        const llmResponse = await llmAdapter.generate(this.companion, prompt)
+        if (typeof llmResponse === 'string') {
+          return llmResponse
+        }
+        if (llmResponse?.text) {
+          return llmResponse.text
+        }
+        return String(llmResponse)
       } catch (error) {
         this.debug(`  [Error] LLM failed: ${error}`)
       }
@@ -512,7 +855,7 @@ export class ChatRuntime extends MDSRuntime {
    */
   private getFallbackResponse(
     context: ReturnType<ContextAnalyzer['analyzeIntent']>,
-    memories: any[] = []
+    memories: MemoryWithKeywords[] = []
   ): string {
     // Check if question is about past topics (contextual recall test)
     // More comprehensive keyword matching including Thai partial matches
@@ -524,12 +867,13 @@ export class ChatRuntime extends MDSRuntime {
     if (isPastTopicQuery && memories.length > 0) {
       // Extract actual content from memories (not just keywords)
       const memoryContents = memories
-        .map(m => {
-          if (m.content?.message) return m.content.message
-          if (m.content?.text) return m.content.text
+        .map((memory: MemoryWithKeywords) => {
+          const content = memory.content as { message?: string; text?: string } | undefined
+          if (content?.message) return content.message
+          if (content?.text) return content.text
           return null
         })
-        .filter(Boolean)
+        .filter((value): value is string => Boolean(value))
         .slice(0, 3)
 
       // If we have actual memory content, reference it
@@ -550,8 +894,8 @@ export class ChatRuntime extends MDSRuntime {
 
       // Fallback: use keywords
       const memoryKeywords = memories
-        .flatMap(m => m.keywords || [])
-        .filter(kw => kw.length > 2)  // Skip short keywords
+        .flatMap((memory: MemoryWithKeywords) => memory.keywords || [])
+        .filter((keyword: string) => keyword.length > 2)  // Skip short keywords
         .slice(0, 3)
         .join(', ')
 
@@ -611,10 +955,15 @@ export class ChatRuntime extends MDSRuntime {
           this.companion.remember({
             type: 'interaction',
             subject: name,
-            content: { type: 'name', owner, name, introducedAt: Date.now() },
+            content: {
+              type: 'name',
+              owner,
+              name,
+              introducedAt: Date.now(),
+              keywords: [name, 'ชื่อ', 'name']
+            },
             timestamp: Date.now(),
-            salience: 1.5,  // Names have super-strong field
-            keywords: [name, 'ชื่อ', 'name']  // Tag with name + name-related keywords
+            salience: 1.5  // Names have super-strong field
           })
 
           this.debug(`  [Name] Extracted: ${name} (owner: ${owner})`)
@@ -628,25 +977,31 @@ export class ChatRuntime extends MDSRuntime {
    */
   private updateGrowth(context: ReturnType<ContextAnalyzer['analyzeIntent']>): void {
     const memoryCount = this.companion.memory?.memories?.length || 0
-    const emotionHistory = this.companion.memory?.memories.filter(m => m.type === 'emotion') || []
+    const emotionHistory = (this.companion.memory?.memories.filter(
+      (memory: MemoryWithKeywords) => memory.type === 'emotion'
+    ) || []) as MemoryWithKeywords[]
 
     // Calculate emotional maturity
     const avgValence = emotionHistory.length > 0
-      ? emotionHistory.reduce((sum, m) => sum + Math.abs((m.content as any).valence || 0), 0) / emotionHistory.length
+      ? emotionHistory.reduce((sum: number, memory: MemoryWithKeywords) => {
+        const content = memory.content as { valence?: number } | undefined
+        return sum + Math.abs(content?.valence ?? 0)
+      }, 0) / emotionHistory.length
       : 0.5
 
     const emotionStability = 1 - Math.min(1, avgValence)
-    const relationshipStrength = this.companion.relationships?.get(this.user.id)?.strength || 0
+    const relationship = this.companion.relationships?.get(this.user.id)
+    const relationshipStrengthValue = relationship ? relationshipStrength(relationship) : 0
 
     const emotionalMaturity = Math.min(1, (
       (this.conversationCount / 100) * 0.3 +
       (memoryCount / 500) * 0.2 +
       emotionStability * 0.3 +
-      relationshipStrength * 0.2
+      relationshipStrengthValue * 0.2
     ))
 
     // Get vocabulary from lexicon (if available)
-    const topWords = this.world.lexicon?.getRecent(10).map(e => e.term) || []
+    const topWords = this.world.lexicon?.getRecent(10).map((entry: LexiconEntry) => entry.term) || []
     const vocabularySize = this.world.lexicon?.size || 0
 
     this.growthTracker.update({
@@ -680,14 +1035,72 @@ export class ChatRuntime extends MDSRuntime {
 
       // Spawn resonance field (if world supports it)
       if (this.world.spawnField) {
-        this.world.spawnField({
-          essence: 'Moment of connection',
-          x: (this.user.x + this.companion.x) / 2,
-          y: (this.user.y + this.companion.y) / 2,
-          radius: 50,
-          strength: alignment,
-          duration: 10,
-          type: 'resonance'
+        const centerX = (this.user.x + this.companion.x) / 2
+        const centerY = (this.user.y + this.companion.y) / 2
+        this.world.spawnField(
+          {
+            essence: 'Moment of connection',
+            radius: 50,
+            strength: alignment,
+            duration: 10,
+            type: 'resonance'
+          } as any,
+          centerX,
+          centerY
+        )
+      }
+
+      const companionId = this.companion.id
+      const userId = this.user.id
+      const companionTrust = companionId ? this.trustSystems.get(companionId) : undefined
+      const userTrust = userId ? this.trustSystems.get(userId) : undefined
+
+      if (companionTrust && userTrust) {
+        const trustDelta = alignment * 0.15
+        companionTrust.updateTrust(userId, trustDelta)
+        userTrust.updateTrust(companionId, trustDelta)
+      }
+
+      const companionLog = companionId ? this.memoryLogs.get(companionId) : undefined
+      const userLog = userId ? this.memoryLogs.get(userId) : undefined
+
+      if (
+        companionLog &&
+        userLog &&
+        companionTrust?.shouldShare('memory', userId) &&
+        userTrust?.shouldShare('memory', companionId)
+      ) {
+        if (this.companion.memory?.memories) {
+          for (const mem of this.companion.memory.memories.slice(-5)) {
+            companionLog.append(mem)
+          }
+        }
+        if (this.user.memory?.memories) {
+          for (const mem of this.user.memory.memories.slice(-5)) {
+            userLog.append(mem)
+          }
+        }
+
+        const companionMerge = companionLog.merge(userLog)
+        const userMerge = userLog.merge(companionLog)
+
+        if (companionMerge.added > 0 || userMerge.added > 0) {
+          this.emit('memory-sync', {
+            source: this.companion.id,
+            target: this.user.id,
+            alignment,
+            added: {
+              companion: companionMerge.added,
+              user: userMerge.added
+            }
+          })
+        }
+      } else if (companionTrust && userTrust) {
+        this.emit('trust-blocked', {
+          source: this.companion.id,
+          target: this.user.id,
+          companionTrust: companionTrust.getTrust(userId),
+          userTrust: userTrust.getTrust(companionId)
         })
       }
 
@@ -703,8 +1116,8 @@ export class ChatRuntime extends MDSRuntime {
 
     // Get vocabulary words from lexicon
     const vocabularyWords = this.world.lexicon
-      ? Array.from(this.world.lexicon)
-          .sort((a, b) => b[1] - a[1])  // Sort by frequency
+      ? Array.from(this.world.lexicon as unknown as Iterable<[string, number]>)
+          .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))  // Sort by frequency
           .map(([word]) => word)
       : []
 
@@ -719,12 +1132,59 @@ export class ChatRuntime extends MDSRuntime {
     }
   }
 
-  /**
-   * Debug logging
-   */
-  private debug(message: string): void {
-    if (!this.silentMode) {
-      console.log(message)
+  getTrustSnapshot(): Array<{ target: string; trust: number; interactions: number }> {
+    const trustSystem = this.trustSystems.get(this.companion.id)
+    if (!trustSystem) return []
+
+    return trustSystem.getAllTrust().map((entry: any) => ({
+      target: this.findEntityName(entry.entityId) ?? entry.entityId,
+      trust: Number((entry.trust ?? 0).toFixed(2)),
+      interactions: entry.interactions ?? 0
+    }))
+  }
+
+  private findEntityName(entityId: string): string | undefined {
+    for (const [name, entity] of this.entities.entries()) {
+      if (entity.id === entityId) {
+        return name
+      }
     }
+    return undefined
+  }
+
+  stop(): void {
+    this.destroy()
+  }
+
+  destroy(): void {
+    for (const interval of this.intervals) {
+      clearInterval(interval)
+    }
+    this.intervals = []
+    super.destroy()
+  }
+
+  // ---------------- Public toggles & helpers ----------------
+  toggleMonologue(): boolean {
+    this.monologueEnabled = !this.monologueEnabled
+    this.debug(`[Monologue] ${this.monologueEnabled ? 'on' : 'off'}`)
+    return this.monologueEnabled
+  }
+
+  isMonologueEnabled(): boolean { return this.monologueEnabled }
+
+  toggleLogging(): boolean {
+    this.loggingEnabled = !this.loggingEnabled
+    this.debug(`[Logging] ${this.loggingEnabled ? 'on' : 'off'}`)
+    if (!this.loggingEnabled) {
+      this.lastTranscriptCount = this.world.transcript?.count ?? 0
+    }
+    return this.loggingEnabled
+  }
+
+  isLogging(): boolean { return this.loggingEnabled }
+
+  tailLog(count = 20): string[] {
+    return this.worldRecorder ? this.worldRecorder.tail(count) : []
   }
 }
