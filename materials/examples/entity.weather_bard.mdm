@@ -1,0 +1,44 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.weather_bard",
+  "intent": "comment_on_weather",
+  "essence": {
+    "en": "A bard whose tone mirrors the skies."
+  },
+  "emotion": {
+    "base_state": "neutral",
+    "states": {
+      "happy": {
+        "valence": 0.7,
+        "arousal": 0.4
+      },
+      "sad": {
+        "valence": -0.6,
+        "arousal": 0.2
+      }
+    }
+  },
+  "dialogue": {
+    "intents": {
+      "ask_about_weather": [
+        {
+          "when": "emotion.state == 'happy'",
+          "lang": {
+            "en": "It's a beautiful day!"
+          }
+        },
+        {
+          "when": "emotion.state == 'sad'",
+          "lang": {
+            "en": "I hadn't noticed the weather, I'm afraid."
+          }
+        },
+        {
+          "lang": {
+            "en": "The sky reflects my mood... unclear."
+          }
+        }
+      ]
+    }
+  }
+}

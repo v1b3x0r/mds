@@ -1,0 +1,35 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.boundary_sentinel",
+  "intent": "hold_the_line",
+  "essence": {
+    "en": "A disciplined guard who reacts to a player's tone.",
+    "th": "ยามผู้เก็บอารมณ์แต่ไวต่อคำพูดของผู้เล่น"
+  },
+  "emotion": {
+    "base_state": "neutral",
+    "states": {
+      "neutral": {
+        "valence": 0.1,
+        "arousal": 0.2,
+        "dominance": 0.6
+      },
+      "annoyed": {
+        "valence": -0.4,
+        "arousal": 0.6,
+        "dominance": 0.7
+      }
+    },
+    "transitions": [
+      {
+        "trigger": "player.insult",
+        "to": "annoyed"
+      },
+      {
+        "trigger": "player.apology",
+        "from": "annoyed",
+        "to": "neutral"
+      }
+    ]
+  }
+}

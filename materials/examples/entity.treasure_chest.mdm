@@ -1,0 +1,48 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.treasure_chest",
+  "intent": "guard_treasure",
+  "essence": {
+    "en": "An ancient chest waiting for the rightful key."
+  },
+  "properties": {
+    "required_key": "ancient_gate_key"
+  },
+  "state": {
+    "initial": "locked",
+    "states": {
+      "locked": {
+        "emoji": "🔒"
+      },
+      "unlocked": {
+        "emoji": "🔓"
+      }
+    },
+    "transitions": [
+      {
+        "from": "locked",
+        "to": "unlocked",
+        "trigger": "player.use_key",
+        "condition": "event.payload.key_id == properties.required_key"
+      }
+    ]
+  },
+  "dialogue": {
+    "intents": {
+      "inspect": [
+        {
+          "when": "state == 'locked'",
+          "lang": {
+            "en": "The chest is sealed tight."
+          }
+        },
+        {
+          "when": "state == 'unlocked'",
+          "lang": {
+            "en": "It creaks open to reveal glittering treasure."
+          }
+        }
+      ]
+    }
+  }
+}

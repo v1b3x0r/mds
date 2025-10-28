@@ -1,0 +1,28 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.guard_B",
+  "intent": "support_guard_A",
+  "essence": {
+    "en": "Second watchman who trusts his partner's instincts."
+  },
+  "emotion": {
+    "base_state": "calm",
+    "states": {
+      "calm": {
+        "valence": 0.2,
+        "arousal": 0.2
+      },
+      "alert": {
+        "valence": 0.0,
+        "arousal": 0.7
+      }
+    },
+    "transitions": [
+      {
+        "trigger": "guard.alert",
+        "to": "alert",
+        "intensity": 0.5
+      }
+    ]
+  }
+}

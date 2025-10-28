@@ -1,0 +1,39 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.guard_A",
+  "intent": "protect_gatehouse",
+  "essence": {
+    "en": "First watchman of the northern gate."
+  },
+  "emotion": {
+    "base_state": "calm",
+    "states": {
+      "calm": {
+        "valence": 0.1,
+        "arousal": 0.2
+      },
+      "hostile": {
+        "valence": -0.6,
+        "arousal": 0.8
+      }
+    },
+    "transitions": [
+      {
+        "trigger": "player.trespass",
+        "to": "hostile"
+      }
+    ]
+  },
+  "behavior": {
+    "onEmotion": {
+      "hostile": {
+        "broadcast": {
+          "event": "guard.alert",
+          "payload": {
+            "source": "guard_A"
+          }
+        }
+      }
+    }
+  }
+}

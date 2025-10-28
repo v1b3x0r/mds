@@ -1,0 +1,21 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.guardian_golem",
+  "intent": "guard_ancient_gate",
+  "essence": {
+    "en": "A silent stone sentinel that watches over an ancient gate.",
+    "th": "หินผู้พิทักษ์เงียบงันที่เฝ้าประตูโบราณ"
+  },
+  "manifestation": {
+    "emoji": "🗿",
+    "visual": "stone.guardian"
+  },
+  "behavior": {
+    "onSpawn": {
+      "say": {
+        "en": "The gate shall remain secure.",
+        "th": "ประตูนี้ต้องปลอดภัย"
+      }
+    }
+  }
+}

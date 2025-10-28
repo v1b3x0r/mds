@@ -1,0 +1,48 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.lonely_ghost",
+  "intent": "seek_company",
+  "essence": {
+    "en": "A whisper of a spirit that aches for attention."
+  },
+  "emotion": {
+    "base_state": "unhappy",
+    "states": {
+      "unhappy": {
+        "valence": -0.5,
+        "arousal": 0.2
+      },
+      "yearning": {
+        "valence": -0.8,
+        "arousal": 0.4,
+        "dominance": 0.1
+      }
+    },
+    "transitions": [
+      {
+        "trigger": "ghost.lonely_tick",
+        "to": "yearning",
+        "intensity": 0.1
+      },
+      {
+        "trigger": "player.interact",
+        "to": "unhappy",
+        "intensity": -0.2
+      }
+    ]
+  },
+  "behavior": {
+    "timers": [
+      {
+        "id": "lonely_decay",
+        "interval": "30s",
+        "emit": "ghost.lonely_tick"
+      }
+    ],
+    "onEvent": {
+      "player.interact": {
+        "resetTimers": ["lonely_decay"]
+      }
+    }
+  }
+}

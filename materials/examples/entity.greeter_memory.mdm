@@ -1,0 +1,43 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.greeter_memory",
+  "intent": "welcome_returning_players",
+  "essence": {
+    "en": "A friendly host who never forgets a name.",
+    "th": "เจ้าบ้านที่จำชื่อผู้มาเยือนได้เสมอ"
+  },
+  "memory": {
+    "long_term": {
+      "retention": "infinite",
+      "events": ["player.introduce"]
+    },
+    "bindings": [
+      {
+        "trigger": "player.introduce",
+        "type": "fact",
+        "target": "player_name",
+        "value": "{{event.payload.name}}",
+        "salience": 0.9
+      }
+    ]
+  },
+  "dialogue": {
+    "intents": {
+      "welcome_back": [
+        {
+          "when": "memory.player_name",
+          "lang": {
+            "en": "Welcome back, {{memory.player_name}}.",
+            "th": "ยินดีต้อนรับกลับนะ {{memory.player_name}}"
+          }
+        },
+        {
+          "lang": {
+            "en": "Hello again! What should I call you?",
+            "th": "สวัสดีอีกครั้ง! ฉันควรเรียกคุณว่าอะไรดี?"
+          }
+        }
+      ]
+    }
+  }
+}

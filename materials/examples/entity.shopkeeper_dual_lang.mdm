@@ -1,0 +1,28 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.shopkeeper_dual_lang",
+  "intent": "trade_goods",
+  "essence": {
+    "en": "A patient shopkeeper who adapts to the customer's language."
+  },
+  "languageProfile": {
+    "native": "en",
+    "weights": {
+      "en": 0.5,
+      "de": 0.5
+    },
+    "adaptToContext": true
+  },
+  "dialogue": {
+    "intents": {
+      "greet": [
+        {
+          "lang": {
+            "en": "Hello, how can I help you?",
+            "de": "Hallo, wie kann ich Ihnen helfen?"
+          }
+        }
+      ]
+    }
+  }
+}

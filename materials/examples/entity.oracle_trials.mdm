@@ -1,0 +1,44 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.8",
+  "material": "entity.oracle_trials",
+  "intent": "reveal_truth",
+  "essence": {
+    "en": "An oracle who speaks only when ancient rites are complete."
+  },
+  "memory": {
+    "flags": [
+      {
+        "id": "task_ring_bell",
+        "trigger": "event.ring_bell",
+        "retention": "infinite"
+      },
+      {
+        "id": "task_read_tome",
+        "trigger": "event.read_tome",
+        "retention": "infinite"
+      },
+      {
+        "id": "task_defeat_golem",
+        "trigger": "event.defeat_golem",
+        "retention": "infinite"
+      }
+    ]
+  },
+  "dialogue": {
+    "intents": {
+      "reveal_secret": [
+        {
+          "when": "memory.flags.task_ring_bell && memory.flags.task_read_tome && memory.flags.task_defeat_golem",
+          "lang": {
+            "en": "You have proven worthy. The secret is yours..."
+          }
+        },
+        {
+          "lang": {
+            "en": "The rites remain incomplete. Return when all omens align."
+          }
+        }
+      ]
+    }
+  }
+}
