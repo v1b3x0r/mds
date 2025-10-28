@@ -39,6 +39,26 @@ export interface MdsBehaviorRule {
   after?: string              // e.g., "12s" duration
 }
 
+export interface MdsBehaviorTimer {
+  id: string
+  interval: string
+  emit: string
+  payload?: Record<string, any>
+  context?: Record<string, any>
+}
+
+export interface MdsBehaviorEmotionRule {
+  broadcast?: {
+    event?: string
+    payload?: Record<string, any>
+    context?: Record<string, any>
+  }
+}
+
+export interface MdsBehaviorEventRule {
+  resetTimers?: string[]
+}
+
 /**
  * Physics properties for material movement
  */
@@ -83,6 +103,50 @@ export interface MdsMemoryConfig {
   emotional_trace?: {
     keys?: string[]           // e.g., ["trust", "curiosity", "fear"]
   }
+  bindings?: MdsMemoryBinding[]
+  flags?: MdsMemoryFlag[]
+}
+
+export type MdsMemoryType =
+  | 'interaction'
+  | 'emotion'
+  | 'observation'
+  | 'field_spawn'
+  | 'intent_change'
+  | 'spawn'
+  | 'fact'
+  | 'custom'
+
+export interface MdsMemoryBinding {
+  trigger: string
+  target: string
+  value: string
+  type?: MdsMemoryType
+  salience?: number
+}
+
+export interface MdsMemoryFlag {
+  id: string
+  trigger: string
+  retention?: string   // e.g., "infinite", "3600s"
+}
+
+export interface MdsStateConfig {
+  initial: string
+  states: Record<string, MdsStateDefinition>
+  transitions?: MdsStateTransition[]
+}
+
+export interface MdsStateDefinition {
+  emoji?: string
+}
+
+export interface MdsStateTransition {
+  from?: string
+  to: string
+  trigger: string
+  condition?: string
+  effect?: string
 }
 
 /**
@@ -90,12 +154,20 @@ export interface MdsMemoryConfig {
  */
 export interface MdsEmotionConfig {
   base_state?: string         // e.g., "neutral", "curious"
+  states?: Record<string, MdsEmotionStateDefinition>
   transitions?: Array<{
     trigger: string           // e.g., "player.gaze>5s", "distance<2"
+    from?: string              // optional source emotion filter
     to: string                // target emotion: "uneasy", "happy", "angry"
     intensity?: number        // 0..1 strength of emotion change
     expression?: string       // visual effect: "particle.flicker", "dim.fade"
   }>
+}
+
+export interface MdsEmotionStateDefinition {
+  valence?: number
+  arousal?: number
+  dominance?: number
 }
 
 /**
@@ -106,6 +178,7 @@ export interface MdsDialoguePhrase {
   emotion?: string              // emotion tag: "curious", "sad", "reflective"
   voice_hint?: string           // voice style: "whisper.low", "echo.distorted"
   frequency?: 'rare' | 'medium' | 'common'  // for self_monologue
+  when?: string                 // declarative condition, e.g., "memory.flags.quest_done"
 }
 
 /**
@@ -195,6 +268,7 @@ export interface MdsMaterial {
   material: string            // unique ID (e.g., "paper.shy", "entity.heroblind")
   intent?: string             // short verb/noun (e.g., "observe", "resonate")
   essence?: LangText          // semantic description (essence-first design)
+  properties?: Record<string, any>
 
   // v5.7: Language autonomy
   nativeLanguage?: string     // Shorthand for language.native
@@ -207,11 +281,15 @@ export interface MdsMaterial {
     onProximity?: MdsBehaviorRule
     onBind?: MdsBehaviorRule
     onDesync?: MdsBehaviorRule
+    timers?: MdsBehaviorTimer[]
+    onEmotion?: Record<string, MdsBehaviorEmotionRule>
+    onEvent?: Record<string, MdsBehaviorEventRule>
   }
 
   physics?: MdsPhysics
   manifestation?: MdsManifest
   ai_binding?: MdsAiBinding
+  state?: MdsStateConfig
 
   // v5.1 Declarative configuration
   memory?: MdsMemoryConfig

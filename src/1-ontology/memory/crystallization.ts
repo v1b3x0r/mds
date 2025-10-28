@@ -199,6 +199,7 @@ export class MemoryCrystallizer {
       field_spawn: `${count} field events with ${subject}`,
       intent_change: `${count} goal changes regarding ${subject}`,
       spawn: `Birth memory of ${subject}`,
+      fact: `${count} facts recorded about ${subject}`,
       custom: `${count} events related to ${subject}`
     }
 

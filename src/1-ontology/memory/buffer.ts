@@ -19,6 +19,7 @@ export type MemoryType =
   | 'field_spawn'     // Created or entered a field
   | 'intent_change'   // Goal changed
   | 'spawn'           // Entity was created
+  | 'fact'            // Declarative fact recorded from bindings
   | 'custom'          // User-defined event
 
 /**

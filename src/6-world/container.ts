@@ -604,6 +604,13 @@ export class World {
       }
     }
 
+    if (typeof (entity as any).attachWorldBridge === 'function') {
+      entity.attachWorldBridge({
+        broadcastEvent: (type: string, payload?: any) => this.broadcastEvent(type, payload),
+        broadcastContext: (context: Record<string, any>) => this.broadcastContext(context)
+      })
+    }
+
     // Delegate rendering to renderer
     this.renderer.spawn(entity)
 
@@ -675,6 +682,15 @@ export class World {
     // Phase 3: Relational update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
       this.updateRelational(dt)
+    }
+
+    for (const entity of this.entities) {
+      if (typeof entity.pruneDeclarativeState === 'function') {
+        entity.pruneDeclarativeState(this.worldTime)
+      }
+      if (typeof entity.updateBehaviorTimers === 'function') {
+        entity.updateBehaviorTimers(dt, this.worldTime)
+      }
     }
 
     // Phase 3.5: Cognitive update (Phase 7 - if enabled)
@@ -1274,6 +1290,12 @@ export class World {
           }
           entity.inbox.enqueue(systemMessage)
         }
+      }
+    }
+
+    for (const entity of this.entities) {
+      if (typeof entity.handleDeclarativeEvent === 'function') {
+        entity.handleDeclarativeEvent(type, data, this.worldTime)
       }
     }
   }

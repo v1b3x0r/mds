@@ -143,6 +143,10 @@ export function validateMaterial(
     validateMemoryConfig(material.memory, errors, warnings)
   }
 
+  if (material.state) {
+    validateStateConfig(material.state, errors, warnings)
+  }
+
   if (material.emotion) {
     validateEmotionConfig(material.emotion, errors, warnings)
   }
@@ -240,7 +244,8 @@ function validateBehavior(
 
   const validHooks = [
     'onHover', 'onIdle', 'onRepeatHover',
-    'onProximity', 'onBind', 'onDesync'
+    'onProximity', 'onBind', 'onDesync',
+    'timers', 'onEmotion', 'onEvent'
   ]
 
   const b = behavior as Record<string, unknown>
@@ -251,6 +256,130 @@ function validateBehavior(
         message: `Unknown behavior hook "${hook}"`,
         severity: 'warning'
       })
+      continue
+    }
+
+    if (hook === 'timers') {
+      if (!Array.isArray(rule)) {
+        errors.push({
+          field: 'behavior.timers',
+          message: 'Field "timers" must be an array',
+          severity: 'error'
+        })
+        continue
+      }
+
+      for (const [index, timer] of (rule as any[]).entries()) {
+        if (typeof timer !== 'object' || timer === null) {
+          errors.push({
+            field: `behavior.timers[${index}]`,
+            message: 'Timer entry must be an object',
+            severity: 'error'
+          })
+          continue
+        }
+
+        const t = timer as Record<string, unknown>
+        if (typeof t.id !== 'string' || t.id.length === 0) {
+          errors.push({
+            field: `behavior.timers[${index}].id`,
+            message: 'Timer "id" must be a non-empty string',
+            severity: 'error'
+          })
+        }
+        if (typeof t.interval !== 'string') {
+          errors.push({
+            field: `behavior.timers[${index}].interval`,
+            message: 'Timer "interval" must be a duration string',
+            severity: 'error'
+          })
+        }
+        if (typeof t.emit !== 'string' || t.emit.length === 0) {
+          errors.push({
+            field: `behavior.timers[${index}].emit`,
+            message: 'Timer "emit" must be a non-empty string',
+            severity: 'error'
+          })
+        }
+      }
+
+      continue
+    }
+
+    if (hook === 'onEmotion') {
+      if (typeof rule !== 'object' || rule === null) {
+        errors.push({
+          field: 'behavior.onEmotion',
+          message: 'Field "onEmotion" must be an object',
+          severity: 'error'
+        })
+        continue
+      }
+
+      for (const [state, value] of Object.entries(rule as Record<string, unknown>)) {
+        if (typeof value !== 'object' || value === null) {
+          errors.push({
+            field: `behavior.onEmotion.${state}`,
+            message: 'Emotion rule must be an object',
+            severity: 'error'
+          })
+          continue
+        }
+
+        const v = value as Record<string, unknown>
+        if (v.broadcast !== undefined) {
+          if (typeof v.broadcast !== 'object' || v.broadcast === null) {
+            errors.push({
+              field: `behavior.onEmotion.${state}.broadcast`,
+              message: 'Broadcast must be an object',
+              severity: 'error'
+            })
+          } else {
+            const bcast = v.broadcast as Record<string, unknown>
+            if (bcast.event !== undefined && typeof bcast.event !== 'string') {
+              errors.push({
+                field: `behavior.onEmotion.${state}.broadcast.event`,
+                message: 'Broadcast event must be a string',
+                severity: 'error'
+              })
+            }
+          }
+        }
+      }
+
+      continue
+    }
+
+    if (hook === 'onEvent') {
+      if (typeof rule !== 'object' || rule === null) {
+        errors.push({
+          field: 'behavior.onEvent',
+          message: 'Field "onEvent" must be an object',
+          severity: 'error'
+        })
+        continue
+      }
+
+      for (const [eventName, value] of Object.entries(rule as Record<string, unknown>)) {
+        if (typeof value !== 'object' || value === null) {
+          errors.push({
+            field: `behavior.onEvent.${eventName}`,
+            message: 'Event rule must be an object',
+            severity: 'error'
+          })
+          continue
+        }
+
+        const v = value as Record<string, unknown>
+        if (v.resetTimers !== undefined && !Array.isArray(v.resetTimers)) {
+          errors.push({
+            field: `behavior.onEvent.${eventName}.resetTimers`,
+            message: 'resetTimers must be an array of timer IDs',
+            severity: 'error'
+          })
+        }
+      }
+
       continue
     }
 
@@ -447,6 +576,90 @@ function validateMemoryConfig(
   }
 }
 
+function validateStateConfig(
+  state: unknown,
+  errors: ValidationError[],
+  _warnings: ValidationError[]
+): void {
+  if (typeof state !== 'object' || state === null) {
+    errors.push({
+      field: 'state',
+      message: 'Field "state" must be an object',
+      severity: 'error'
+    })
+    return
+  }
+
+  const s = state as Record<string, unknown>
+
+  if (typeof s.initial !== 'string' || s.initial.length === 0) {
+    errors.push({
+      field: 'state.initial',
+      message: 'Field "initial" must be a non-empty string',
+      severity: 'error'
+    })
+  }
+
+  if (s.states === undefined || typeof s.states !== 'object' || s.states === null) {
+    errors.push({
+      field: 'state.states',
+      message: 'Field "states" must be an object',
+      severity: 'error'
+    })
+  }
+
+  if (s.transitions !== undefined) {
+    if (!Array.isArray(s.transitions)) {
+      errors.push({
+        field: 'state.transitions',
+        message: 'Field "transitions" must be an array',
+        severity: 'error'
+      })
+    } else {
+      s.transitions.forEach((transition, index) => {
+        if (typeof transition !== 'object' || transition === null) {
+          errors.push({
+            field: `state.transitions[${index}]`,
+            message: 'Transition must be an object',
+            severity: 'error'
+          })
+          return
+        }
+
+        const t = transition as Record<string, unknown>
+        if (t.from !== undefined && typeof t.from !== 'string') {
+          errors.push({
+            field: `state.transitions[${index}].from`,
+            message: 'Field "from" must be a string',
+            severity: 'error'
+          })
+        }
+        if (!t.to || typeof t.to !== 'string') {
+          errors.push({
+            field: `state.transitions[${index}].to`,
+            message: 'Missing or invalid "to" field',
+            severity: 'error'
+          })
+        }
+        if (!t.trigger || typeof t.trigger !== 'string') {
+          errors.push({
+            field: `state.transitions[${index}].trigger`,
+            message: 'Missing or invalid "trigger" field',
+            severity: 'error'
+          })
+        }
+        if (t.condition !== undefined && typeof t.condition !== 'string') {
+          errors.push({
+            field: `state.transitions[${index}].condition`,
+            message: 'Field "condition" must be a string',
+            severity: 'error'
+          })
+        }
+      })
+    }
+  }
+}
+
 /**
  * Validate emotion config
  */
@@ -493,6 +706,13 @@ function validateEmotionConfig(
         }
 
         const transition = t as Record<string, unknown>
+        if (transition.from !== undefined && typeof transition.from !== 'string') {
+          errors.push({
+            field: `emotion.transitions[${i}].from`,
+            message: 'Field "from" must be a string',
+            severity: 'error'
+          })
+        }
         if (!transition.trigger || typeof transition.trigger !== 'string') {
           errors.push({
             field: `emotion.transitions[${i}].trigger`,
@@ -506,6 +726,38 @@ function validateEmotionConfig(
             message: 'Missing or invalid "to" field',
             severity: 'error'
           })
+        }
+      })
+    }
+  }
+
+  if (e.states !== undefined) {
+    if (typeof e.states !== 'object' || e.states === null || Array.isArray(e.states)) {
+      errors.push({
+        field: 'emotion.states',
+        message: 'Field "states" must be an object map',
+        severity: 'error'
+      })
+    } else {
+      Object.entries(e.states as Record<string, unknown>).forEach(([stateName, definition]) => {
+        if (typeof definition !== 'object' || definition === null || Array.isArray(definition)) {
+          errors.push({
+            field: `emotion.states.${stateName}`,
+            message: 'Emotion state definition must be an object',
+            severity: 'error'
+          })
+          return
+        }
+
+        const def = definition as Record<string, unknown>
+        for (const key of ['valence', 'arousal', 'dominance']) {
+          if (def[key] !== undefined && typeof def[key] !== 'number') {
+            errors.push({
+              field: `emotion.states.${stateName}.${key}`,
+              message: `Field "${key}" must be a number`,
+              severity: 'error'
+            })
+          }
         }
       })
     }

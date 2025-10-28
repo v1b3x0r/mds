@@ -44,10 +44,61 @@ import { MemoryConsolidation as MemoryConsolidationImpl } from '../1-ontology/me
 import type { CognitiveLink } from '../5-network/p2p/cognitive-link'
 import { CognitiveLinkManager } from '../5-network/p2p/cognitive-link'
 import type { CognitiveSignal } from '../5-network/p2p/resonance'
+import type { MemoryType } from '../1-ontology/memory/buffer'
 
 // v5.1: Declarative config parser
-import { parseMaterial, getDialoguePhrase, replacePlaceholders } from '../7-interface/io/mdm-parser'
-import type { TriggerContext } from '../7-interface/io/mdm-parser'
+import {
+  parseMaterial,
+  getDialoguePhrase,
+  replacePlaceholders,
+  evaluateConditionExpression
+} from '../7-interface/io/mdm-parser'
+import type {
+  TriggerContext,
+  ParsedMemoryBinding,
+  ParsedMemoryFlag,
+  ParsedStateConfig,
+  ParsedMaterialConfig,
+  EmotionStateDefinition
+} from '../7-interface/io/mdm-parser'
+
+export interface EntityWorldBridge {
+  broadcastEvent: (type: string, payload?: any) => void
+  broadcastContext?: (context: Record<string, any>) => void
+}
+
+export interface MemoryFactRecord {
+  value: unknown
+  timestamp: number
+}
+
+interface BehaviorTimerState {
+  id: string
+  interval: number
+  elapsed: number
+  emit: string
+  payload?: Record<string, any>
+  context?: Record<string, any>
+}
+
+interface BehaviorEmotionAction {
+  broadcast?: {
+    event?: string
+    payload?: Record<string, any>
+    context?: Record<string, any>
+  }
+}
+
+interface BehaviorEventAction {
+  resetTimers?: string[]
+}
+
+export interface DeclarativeSnapshot {
+  state?: string
+  memoryFlags?: Array<{ id: string; expiry?: number }>
+  memoryFacts?: Record<string, MemoryFactRecord>
+  behaviorTimers?: Array<{ id: string; elapsed: number }>
+}
 
 /**
  * Entity class - Living material instance
@@ -117,9 +168,35 @@ export class Entity implements MessageParticipant {
   private dialoguePhrases?: import('../7-interface/io/mdm-parser').ParsedDialogue
   private emotionTriggers?: import('../7-interface/io/mdm-parser').EmotionTrigger[]
   private triggerContext: import('../7-interface/io/mdm-parser').TriggerContext = {}
+  private memoryBindings?: ParsedMemoryBinding[]
+  private memoryFlags?: ParsedMemoryFlag[]
+  private memoryFlagState?: Map<string, { expiry?: number }>
+  private memoryFacts: Map<string, MemoryFactRecord> = new Map()
+  private stateMachine?: ParsedStateConfig
+  private currentState?: string
+  private baseEmoji?: string
+  private worldBridge?: EntityWorldBridge
+  private behaviorTimers?: BehaviorTimerState[]
+  private behaviorEmotionActions?: Map<string, BehaviorEmotionAction>
+  private behaviorEventActions?: Map<string, BehaviorEventAction>
+  private emotionStates?: Map<string, EmotionStateDefinition>
 
   // v5.6: Autonomous behavior flag
   private _isAutonomous: boolean = false
+
+  private static readonly BUILTIN_EMOTION_VECTORS: Record<string, { valence: number; arousal: number; dominance: number }> = {
+    happy: { valence: 0.8, arousal: 0.6, dominance: 0.6 },
+    sad: { valence: -0.7, arousal: 0.3, dominance: 0.3 },
+    angry: { valence: -0.6, arousal: 0.9, dominance: 0.8 },
+    anger: { valence: -0.6, arousal: 0.9, dominance: 0.8 },
+    uneasy: { valence: -0.3, arousal: 0.7, dominance: 0.4 },
+    curious: { valence: 0.5, arousal: 0.8, dominance: 0.5 },
+    sorrow: { valence: -0.8, arousal: 0.2, dominance: 0.2 },
+    calm: { valence: 0.3, arousal: 0.2, dominance: 0.5 },
+    fearful: { valence: -0.7, arousal: 0.9, dominance: 0.2 },
+    neutral: { valence: 0, arousal: 0.5, dominance: 0.5 },
+    annoyed: { valence: -0.4, arousal: 0.6, dominance: 0.6 }
+  }
 
   // v5.7: Language autonomy
   nativeLanguage?: string
@@ -143,6 +220,10 @@ export class Entity implements MessageParticipant {
     return langText.en || langText.th || langText.ja || langText.es || langText.zh || undefined
   }
 
+  attachWorldBridge(bridge: EntityWorldBridge): void {
+    this.worldBridge = bridge
+  }
+
   constructor(
     m: MdsMaterial,
     x?: number,
@@ -163,6 +244,8 @@ export class Entity implements MessageParticipant {
       this.opacity = m.manifestation.aging.start_opacity
     }
 
+    this.baseEmoji = m.manifestation?.emoji ?? '📄'
+
     // v5: Assign persistent UUID
     this.id = this.generateUUID()
 
@@ -172,7 +255,15 @@ export class Entity implements MessageParticipant {
     }
 
     // v5.1: Parse declarative config (dialogue, emotion triggers, skills)
-    if (m.dialogue || m.emotion?.transitions || m.skills) {
+    if (
+      m.dialogue ||
+      m.emotion?.transitions ||
+      m.emotion?.states ||
+      m.skills ||
+      m.memory?.bindings ||
+      m.memory?.flags ||
+      m.state
+    ) {
       const parsed = parseMaterial(m)
 
       if (parsed.dialogue) {
@@ -181,6 +272,61 @@ export class Entity implements MessageParticipant {
 
       if (parsed.emotionTriggers.length > 0) {
         this.emotionTriggers = parsed.emotionTriggers
+      }
+
+      if (parsed.memoryBindings.length > 0) {
+        this.memoryBindings = parsed.memoryBindings
+      }
+
+      if (parsed.memoryFlags.length > 0) {
+        this.memoryFlags = parsed.memoryFlags
+        this.memoryFlagState = new Map()
+        for (const flag of parsed.memoryFlags) {
+          this.triggerContext[`memory.flags.${flag.id}`] = false
+        }
+      }
+
+      if (parsed.emotionStates) {
+        this.emotionStates = parsed.emotionStates
+      }
+
+      if (parsed.stateMachine) {
+        this.initializeStateMachine(parsed.stateMachine)
+      }
+
+      if ((parsed.memoryBindings.length > 0 || parsed.memoryFlags.length > 0) && !this.memory) {
+        this.enable('memory')
+      }
+
+      this.applyBaselineEmotion(m, parsed)
+    }
+
+    if (m.behavior?.timers && Array.isArray(m.behavior.timers)) {
+      this.behaviorTimers = m.behavior.timers.map(timer => ({
+        id: timer.id,
+        interval: this.parseDuration(timer.interval),
+        elapsed: 0,
+        emit: timer.emit,
+        payload: timer.payload,
+        context: timer.context
+      }))
+    }
+
+    if (m.behavior?.onEmotion) {
+      this.behaviorEmotionActions = new Map()
+      for (const [state, rule] of Object.entries(m.behavior.onEmotion)) {
+        this.behaviorEmotionActions.set(state, {
+          broadcast: rule.broadcast
+        })
+      }
+    }
+
+    if (m.behavior?.onEvent) {
+      this.behaviorEventActions = new Map()
+      for (const [eventName, rule] of Object.entries(m.behavior.onEvent)) {
+        this.behaviorEventActions.set(eventName, {
+          resetTimers: rule.resetTimers
+        })
       }
     }
 
@@ -204,8 +350,7 @@ export class Entity implements MessageParticipant {
       this.el.dataset.id = this.id
 
       // Set emoji
-      const emoji = m.manifestation?.emoji ?? '📄'
-      this.el.textContent = emoji
+      this.el.textContent = this.baseEmoji
 
       // Attach event handlers
       this.attachDOMHandlers()
@@ -260,6 +405,7 @@ export class Entity implements MessageParticipant {
     // @ts-ignore - v5 schema extension
     const emotionBaseline = m.ontology?.emotionBaseline ?? EMOTION_BASELINES.neutral
     this.emotion = { ...emotionBaseline }
+    this.triggerContext['emotion.state'] = this.triggerContext['emotion.state'] ?? 'neutral'
 
     // Intent stack
     this.intent = new IntentStack()
@@ -606,7 +752,8 @@ export class Entity implements MessageParticipant {
         this.dialoguePhrases,
         category || 'intro',
         selectedLang,
-        this.languageWeights  // v5.7: Pass weights for autonomous selection
+        this.languageWeights,
+        this.triggerContext
       )
     }
 
@@ -622,7 +769,14 @@ export class Entity implements MessageParticipant {
         essence: this.essence || '',
         valence: this.emotion?.valence.toFixed(2) || '0',
         arousal: this.emotion?.arousal.toFixed(2) || '0.5',
-        dominance: this.emotion?.dominance.toFixed(2) || '0.5'
+        dominance: this.emotion?.dominance.toFixed(2) || '0.5',
+        memory: this.getMemoryFactsContext(),
+        'memory.flags': this.memoryFlagState ? Object.fromEntries(
+          Array.from(this.memoryFlagState.entries()).map(([flagId]) => [flagId, true])
+        ) : {},
+        properties: this.m.properties ?? {},
+        state: this.currentState || '',
+        timers: this.getBehaviorTimersContext()
       })
     }
 
@@ -714,38 +868,544 @@ export class Entity implements MessageParticipant {
     this.triggerContext = { ...this.triggerContext, ...context }
   }
 
+  private applyBaselineEmotion(m: MdsMaterial, parsed: ParsedMaterialConfig): void {
+    const baseStateName = m.emotion?.base_state
+
+    const baselineVector = parsed.baselineEmotion
+      ? {
+          valence: parsed.baselineEmotion.valence,
+          arousal: parsed.baselineEmotion.arousal,
+          dominance: parsed.baselineEmotion.dominance
+        }
+      : undefined
+
+    const stateVector = baseStateName ? this.resolveEmotionVector(baseStateName) : undefined
+    const vector = baselineVector ?? stateVector
+
+    if (!vector) {
+      if (this.emotion) {
+        this.triggerContext['emotion.state'] = this.triggerContext['emotion.state'] ?? 'neutral'
+      }
+      return
+    }
+
+    if (!this.emotion) {
+      this.emotion = {
+        valence: vector.valence ?? 0,
+        arousal: vector.arousal ?? 0.5,
+        dominance: vector.dominance ?? 0.5
+      } as EmotionalState
+    } else {
+      if (vector.valence !== undefined) this.emotion.valence = vector.valence
+      if (vector.arousal !== undefined) this.emotion.arousal = vector.arousal
+      if (vector.dominance !== undefined) this.emotion.dominance = vector.dominance
+    }
+
+    if (baseStateName) {
+      this.triggerContext['emotion.state'] = baseStateName
+    } else if (parsed.baselineEmotion) {
+      this.triggerContext['emotion.state'] = this.triggerContext['emotion.state'] ?? 'neutral'
+    }
+  }
+
+  private resolveEmotionVector(state: string): { valence: number; arousal: number; dominance: number } {
+    const fromConfig = this.emotionStates?.get(state)
+    if (fromConfig) {
+      return {
+        valence: fromConfig.valence ?? 0,
+        arousal: fromConfig.arousal ?? 0.5,
+        dominance: fromConfig.dominance ?? 0.5
+      }
+    }
+
+    const builtin = Entity.BUILTIN_EMOTION_VECTORS[state] ?? Entity.BUILTIN_EMOTION_VECTORS.neutral
+    return {
+      valence: builtin.valence,
+      arousal: builtin.arousal,
+      dominance: builtin.dominance
+    }
+  }
+
+  private initializeStateMachine(config: ParsedStateConfig): void {
+    this.stateMachine = config
+
+    let initialState = config.initial
+    if (!config.states.has(initialState)) {
+      const firstState = config.states.keys().next()
+      if (!firstState.done) {
+        initialState = firstState.value
+      }
+    }
+
+    this.currentState = initialState
+    this.triggerContext.state = initialState
+    this.applyStateVisual(initialState)
+  }
+
+  private applyStateVisual(state: string): void {
+    const definition = this.stateMachine?.states.get(state)
+    const emoji = definition?.emoji ?? this.baseEmoji
+    if (emoji && this.el) {
+      this.el.textContent = emoji
+    }
+    if (emoji) {
+      this.triggerContext['state.emoji'] = emoji
+    }
+  }
+
+  private parseDuration(duration: string): number {
+    const match = /^(-?\d+(?:\.\d+)?)(ms|s|m|h)?$/i.exec(duration.trim())
+    if (!match) return parseFloat(duration) || 0
+
+    const value = parseFloat(match[1])
+    const unit = match[2]?.toLowerCase()
+
+    switch (unit) {
+      case 'ms':
+        return value / 1000
+      case 'm':
+        return value * 60
+      case 'h':
+        return value * 3600
+      case 's':
+      case undefined:
+        return value
+      default:
+        return value
+    }
+  }
+
+  handleDeclarativeEvent(eventType: string, payload: any, worldTime: number): void {
+    const previousEventType = this.triggerContext['event.type']
+    const previousEventPayload = this.triggerContext['event.payload']
+
+    this.triggerContext['event.type'] = eventType
+    this.triggerContext['event.payload'] = payload
+    this.triggerContext['event.timestamp'] = worldTime
+    this.triggerContext[eventType] = true
+
+    if (this.memoryFlags?.length) {
+      this.applyMemoryFlags(eventType, worldTime)
+    }
+
+    if (this.memoryBindings?.length) {
+      this.applyMemoryBindings(eventType, payload, worldTime)
+    }
+
+    const eventAction = this.behaviorEventActions?.get(eventType)
+    if (eventAction?.resetTimers) {
+      this.resetBehaviorTimers(eventAction.resetTimers)
+    }
+
+    if (this.emotionTriggers?.length) {
+      this.checkEmotionTriggers()
+    }
+
+    if (this.stateMachine) {
+      this.applyStateTransitions(eventType, payload)
+    }
+
+    this.triggerContext['event.last'] = eventType
+    this.triggerContext['event.lastAt'] = worldTime
+    delete this.triggerContext[eventType]
+
+    if (previousEventType !== undefined) {
+      this.triggerContext['event.type'] = previousEventType
+    } else {
+      delete this.triggerContext['event.type']
+    }
+
+    if (previousEventPayload !== undefined) {
+      this.triggerContext['event.payload'] = previousEventPayload
+    } else {
+      delete this.triggerContext['event.payload']
+    }
+  }
+
+  pruneDeclarativeState(currentTime: number): void {
+    if (!this.memoryFlagState) return
+
+    for (const [flagId, state] of this.memoryFlagState.entries()) {
+      if (state.expiry !== undefined && currentTime > state.expiry) {
+        this.memoryFlagState.delete(flagId)
+        this.triggerContext[`memory.flags.${flagId}`] = false
+      }
+    }
+  }
+
+  updateBehaviorTimers(dt: number, worldTime: number): void {
+    if (!this.behaviorTimers || this.behaviorTimers.length === 0) return
+
+    for (const timer of this.behaviorTimers) {
+      timer.elapsed += dt
+
+      if (timer.elapsed >= timer.interval && timer.interval > 0) {
+        while (timer.elapsed >= timer.interval) {
+          timer.elapsed -= timer.interval
+          this.triggerBehaviorTimer(timer, worldTime)
+        }
+      }
+
+      this.triggerContext[`timer.${timer.id}.elapsed`] = timer.elapsed
+    }
+  }
+
+  private triggerBehaviorTimer(timer: BehaviorTimerState, worldTime: number): void {
+    const payload = {
+      source: this.id,
+      timerId: timer.id,
+      ...timer.payload
+    }
+
+    this.worldBridge?.broadcastEvent?.(timer.emit, payload)
+
+    if (timer.context && this.worldBridge?.broadcastContext) {
+      this.worldBridge.broadcastContext({ ...timer.context })
+    }
+
+    this.triggerContext[`timer.${timer.id}.last` ] = worldTime
+  }
+
+  private resetBehaviorTimers(timerIds?: string[]): void {
+    if (!this.behaviorTimers) return
+
+    const targets = timerIds && timerIds.length > 0
+      ? new Set(timerIds)
+      : new Set(this.behaviorTimers.map(t => t.id))
+
+    for (const timer of this.behaviorTimers) {
+      if (targets.has(timer.id)) {
+        timer.elapsed = 0
+        this.triggerContext[`timer.${timer.id}.elapsed`] = 0
+      }
+    }
+  }
+
+  private handleEmotionBehavior(state: string): void {
+    const action = this.behaviorEmotionActions?.get(state)
+    if (!action) return
+
+    if (action.broadcast?.event) {
+      const payload = {
+        source: this.id,
+        emotion: state,
+        ...action.broadcast.payload
+      }
+      this.worldBridge?.broadcastEvent?.(action.broadcast.event, payload)
+    }
+
+    if (action.broadcast?.context && this.worldBridge?.broadcastContext) {
+      this.worldBridge.broadcastContext({ ...action.broadcast.context })
+    }
+  }
+
   /**
    * v5.1: Check and apply emotion triggers
    */
   checkEmotionTriggers(): void {
-    if (!this.emotionTriggers || !this.emotion) return
+    if (!this.emotionTriggers || this.emotionTriggers.length === 0) return
+
+    if (!this.emotion) {
+      this.emotion = {
+        valence: 0,
+        arousal: 0.5,
+        dominance: 0.5
+      } as EmotionalState
+    }
 
     for (const trigger of this.emotionTriggers) {
-      if (trigger.condition(this.triggerContext)) {
-        // Map emotion name to PAD values
-        const emotionMap: Record<string, { valence: number; arousal: number }> = {
-          'happy': { valence: 0.8, arousal: 0.6 },
-          'sad': { valence: -0.7, arousal: 0.3 },
-          'angry': { valence: -0.6, arousal: 0.9 },
-          'anger': { valence: -0.6, arousal: 0.9 },  // alias for angry
-          'uneasy': { valence: -0.3, arousal: 0.7 },
-          'curious': { valence: 0.5, arousal: 0.8 },
-          'sorrow': { valence: -0.8, arousal: 0.2 },
-          'calm': { valence: 0.3, arousal: 0.2 },
-          'fearful': { valence: -0.7, arousal: 0.9 },
-          'neutral': { valence: 0, arousal: 0.5 }
-        }
+      if (!trigger.condition(this.triggerContext)) continue
 
-        const targetEmotion = emotionMap[trigger.to] || { valence: 0, arousal: 0.5 }
+      const currentLabel = this.triggerContext['emotion.state']
+      if (trigger.from && currentLabel && trigger.from !== currentLabel) {
+        continue
+      }
 
-        // Apply emotion change with intensity
-        this.emotion.valence = targetEmotion.valence * trigger.intensity
-        this.emotion.arousal = targetEmotion.arousal * trigger.intensity
+      const target = this.resolveEmotionVector(trigger.to)
+      const intensity = clamp(trigger.intensity ?? 1, 0, 1)
 
-        // TODO: Apply visual expression (trigger.expression)
-        // This would require access to renderer/DOM
+      this.emotion.valence = this.emotion.valence + (target.valence - this.emotion.valence) * intensity
+      this.emotion.arousal = this.emotion.arousal + (target.arousal - this.emotion.arousal) * intensity
+      const currentDominance = typeof this.emotion.dominance === 'number' ? this.emotion.dominance : 0.5
+      this.emotion.dominance = currentDominance + (target.dominance - currentDominance) * intensity
+
+      this.triggerContext['emotion.state'] = trigger.to
+
+      // TODO: Apply visual expression (trigger.expression)
+      // This would require access to renderer/DOM
+
+      this.handleEmotionBehavior(trigger.to)
+    }
+  }
+
+  private applyMemoryFlags(eventType: string, worldTime: number): void {
+    if (!this.memoryFlags || !this.memoryFlagState) return
+
+    for (const flag of this.memoryFlags) {
+      if (flag.trigger !== eventType) continue
+
+      const expiry = flag.retention === Infinity ? undefined : worldTime + flag.retention / 1000
+      this.memoryFlagState.set(flag.id, { expiry })
+      this.triggerContext[`memory.flags.${flag.id}`] = true
+    }
+  }
+
+  private applyMemoryBindings(eventType: string, payload: any, worldTime: number): void {
+    if (!this.memoryBindings || !this.memory) return
+
+    for (const binding of this.memoryBindings) {
+      if (binding.trigger !== eventType) continue
+
+      const value = this.resolveBindingValue(binding.value, eventType, payload)
+      const memoryType = this.mapBindingType(binding.type)
+
+      this.memory.add({
+        timestamp: worldTime,
+        type: memoryType,
+        subject: binding.target,
+        content: {
+          key: binding.target,
+          value
+        },
+        salience: binding.salience
+      })
+
+      this.setMemoryFact(binding.target, value, worldTime)
+      this.triggerContext[`memory.${binding.target}`] = value
+    }
+  }
+
+  private applyStateTransitions(eventType: string, payload: any): void {
+    if (!this.stateMachine) return
+    const transitions = this.stateMachine.transitions.get(eventType)
+    if (!transitions || transitions.length === 0) return
+
+    const context = this.buildConditionContext(eventType, payload)
+
+    for (const transition of transitions) {
+      if (transition.from && transition.from !== this.currentState) continue
+      if (transition.condition) {
+        const passed = evaluateConditionExpression(transition.condition, context)
+        if (!passed) continue
+      }
+      this.setStateInternal(transition.to)
+      break
+    }
+  }
+
+  private buildConditionContext(eventType: string, payload: any): Record<string, any> {
+    const memoryContext: Record<string, any> = { ...this.getMemoryFactsContext() }
+    memoryContext.flags = this.getMemoryFlagsMap()
+
+    return {
+      event: { type: eventType, payload },
+      state: this.currentState,
+      properties: this.m.properties ?? {},
+      memory: memoryContext,
+      timers: this.getBehaviorTimersContext()
+    }
+  }
+
+  private setStateInternal(newState: string): void {
+    if (!this.stateMachine || !this.stateMachine.states.has(newState)) {
+      return
+    }
+    if (this.currentState === newState) {
+      return
+    }
+
+    const previous = this.currentState
+    this.currentState = newState
+    this.triggerContext.state = newState
+    if (previous) {
+      this.triggerContext['state.previous'] = previous
+    }
+    this.applyStateVisual(newState)
+  }
+
+  private getMemoryFlagsMap(): Record<string, boolean> {
+    const map: Record<string, boolean> = {}
+    if (this.memoryFlags) {
+      for (const flag of this.memoryFlags) {
+        map[flag.id] = this.memoryFlagState?.has(flag.id) ?? false
       }
     }
+    return map
+  }
+
+  private getBehaviorTimersContext(): Record<string, any> {
+    const context: Record<string, any> = {}
+    if (!this.behaviorTimers) return context
+    for (const timer of this.behaviorTimers) {
+      context[timer.id] = {
+        elapsed: timer.elapsed,
+        interval: timer.interval
+      }
+    }
+    return context
+  }
+
+  getState(): string | undefined {
+    return this.currentState
+  }
+
+  getMemoryFlagsSnapshot(): Array<{ id: string; active: boolean; expiry?: number }> {
+    if (!this.memoryFlags) return []
+    return this.memoryFlags.map(flag => {
+      const state = this.memoryFlagState?.get(flag.id)
+      return {
+        id: flag.id,
+        active: state !== undefined,
+        expiry: state?.expiry
+      }
+    })
+  }
+
+  getBehaviorTimersSnapshot(): Array<{ id: string; elapsed: number }> {
+    if (!this.behaviorTimers) return []
+    return this.behaviorTimers.map(timer => ({ id: timer.id, elapsed: timer.elapsed }))
+  }
+
+  getMemoryFactsSnapshot(): Record<string, MemoryFactRecord> {
+    const snapshot: Record<string, MemoryFactRecord> = {}
+    for (const [key, record] of this.memoryFacts.entries()) {
+      snapshot[key] = { value: record.value, timestamp: record.timestamp }
+    }
+    return snapshot
+  }
+
+  getDeclarativeSnapshot(): DeclarativeSnapshot | undefined {
+    const state = this.currentState
+    const memoryFlags = this.getMemoryFlagsSnapshot()
+      .filter(flag => flag.active)
+      .map(flag => ({ id: flag.id, expiry: flag.expiry }))
+    const memoryFacts = this.getMemoryFactsSnapshot()
+    const behaviorTimers = this.getBehaviorTimersSnapshot()
+
+    if (!state && memoryFlags.length === 0 && Object.keys(memoryFacts).length === 0 && behaviorTimers.length === 0) {
+      return undefined
+    }
+
+    const snapshot: DeclarativeSnapshot = {}
+    if (state) snapshot.state = state
+    if (memoryFlags.length > 0) snapshot.memoryFlags = memoryFlags
+    if (Object.keys(memoryFacts).length > 0) snapshot.memoryFacts = memoryFacts
+    if (behaviorTimers.length > 0) snapshot.behaviorTimers = behaviorTimers
+    return snapshot
+  }
+
+  restoreDeclarativeSnapshot(snapshot?: DeclarativeSnapshot | null): void {
+    if (!snapshot) return
+
+    if (snapshot.state) {
+      this.currentState = snapshot.state
+      this.triggerContext.state = snapshot.state
+      this.applyStateVisual(snapshot.state)
+    }
+
+    if (this.memoryFlags) {
+      this.memoryFlagState = this.memoryFlagState ?? new Map()
+      this.memoryFlagState.clear()
+      for (const flag of this.memoryFlags) {
+        this.triggerContext[`memory.flags.${flag.id}`] = false
+      }
+      if (snapshot.memoryFlags) {
+        for (const flag of snapshot.memoryFlags) {
+          this.memoryFlagState.set(flag.id, { expiry: flag.expiry })
+          this.triggerContext[`memory.flags.${flag.id}`] = true
+        }
+      }
+    }
+
+    if (snapshot.memoryFacts) {
+      this.memoryFacts = new Map()
+      for (const [key, record] of Object.entries(snapshot.memoryFacts)) {
+        this.memoryFacts.set(key, { value: record.value, timestamp: record.timestamp })
+        this.triggerContext[`memory.${key}`] = record.value
+      }
+    }
+
+    if (snapshot.behaviorTimers && this.behaviorTimers) {
+      const elapsedMap = new Map(snapshot.behaviorTimers.map(timer => [timer.id, timer.elapsed]))
+      for (const timer of this.behaviorTimers) {
+        if (elapsedMap.has(timer.id)) {
+          timer.elapsed = elapsedMap.get(timer.id) ?? timer.elapsed
+          this.triggerContext[`timer.${timer.id}.elapsed`] = timer.elapsed
+        }
+      }
+    }
+  }
+
+  private resolveBindingValue(template: string, eventType: string, payload: any): unknown {
+    if (!template.includes('{{')) {
+      return template
+    }
+
+    const memoryContext: Record<string, any> = { ...this.getMemoryFactsContext() }
+    memoryContext.flags = this.getMemoryFlagsMap()
+
+    const context = {
+      event: {
+        type: eventType,
+        payload
+      },
+      entity: {
+        id: this.id,
+        material: this.m.material
+      },
+      state: this.currentState,
+      properties: this.m.properties ?? {},
+      memory: memoryContext,
+      timers: this.getBehaviorTimersContext()
+    }
+
+    const singleMatch = template.match(/^\s*\{\{\s*([\w.]+)\s*\}\}\s*$/)
+    if (singleMatch) {
+      return this.getPath(context, singleMatch[1])
+    }
+
+    return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (match, key) => {
+      const value = this.getPath(context, key)
+      return value !== undefined ? String(value) : match
+    })
+  }
+
+  private getPath(source: Record<string, any>, path: string): any {
+    const parts = path.split('.')
+    let current: any = source
+    for (const part of parts) {
+      if (current == null) return undefined
+      current = current[part]
+    }
+    return current
+  }
+
+  private mapBindingType(type: string): MemoryType {
+    switch (type) {
+      case 'interaction':
+      case 'emotion':
+      case 'observation':
+      case 'field_spawn':
+      case 'intent_change':
+      case 'spawn':
+      case 'fact':
+      case 'custom':
+        return type
+      default:
+        return 'custom'
+    }
+  }
+
+  private setMemoryFact(key: string, value: unknown, timestamp: number): void {
+    this.memoryFacts.set(key, { value, timestamp })
+  }
+
+  private getMemoryFactsContext(): Record<string, unknown> {
+    const obj: Record<string, unknown> = {}
+    for (const [key, record] of this.memoryFacts.entries()) {
+      obj[key] = record.value
+    }
+    return obj
   }
 
   /**
@@ -982,9 +1642,50 @@ export class Entity implements MessageParticipant {
    * @returns Array of dialogue phrases
    */
   getDialogue(context: string): Array<{ lang: Record<string, string> }> {
+    if (this.dialoguePhrases) {
+      const variants =
+        this.dialoguePhrases.categories.get(context)
+        || (context === 'intro' ? this.dialoguePhrases.intro
+          : context === 'self_monologue' ? this.dialoguePhrases.self_monologue
+            : this.dialoguePhrases.events.get(context))
+
+      if (!variants || variants.length === 0) {
+        return []
+      }
+
+      return variants.map(variant => {
+        const langMap: Record<string, string> = {}
+        for (const [lang, texts] of Object.entries(variant.lang)) {
+          if (texts.length > 0) {
+            langMap[lang] = texts[0]
+          }
+        }
+        return { lang: langMap }
+      })
+    }
+
     const dialogue = this.m.dialogue as any
     if (!dialogue || !dialogue[context]) return []
     return dialogue[context]
+  }
+
+  listDialogueCategories(): string[] {
+    if (this.dialoguePhrases) {
+      return Array.from(this.dialoguePhrases.categories.keys())
+    }
+
+    const dialogue = this.m.dialogue as any
+    if (!dialogue) return []
+
+    const categories = new Set<string>()
+    for (const key of Object.keys(dialogue)) {
+      if (key === 'event' && typeof dialogue.event === 'object' && dialogue.event !== null) {
+        Object.keys(dialogue.event).forEach(eventKey => categories.add(eventKey))
+      } else {
+        categories.add(key)
+      }
+    }
+    return Array.from(categories)
   }
 
   /**

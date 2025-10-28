@@ -11,7 +11,9 @@ import type {
   MdsDialogueConfig,
   MdsDialoguePhrase,
   MdsSkillsConfig,
-  MdsRelationshipsConfig
+  MdsRelationshipsConfig,
+  MdsMemoryConfig,
+  MdsStateConfig
 } from '../../schema/mdspec'
 import { MULTILINGUAL_TRIGGERS } from './trigger-keywords'
 
@@ -21,13 +23,19 @@ import { MULTILINGUAL_TRIGGERS } from './trigger-keywords'
  */
 export interface ParsedDialogue {
   // Legacy fields (backward compatible)
-  intro: Map<string, string[]>          // lang → phrases
-  self_monologue: Map<string, string[]> // lang → phrases
-  events: Map<string, Map<string, string[]>>  // eventName → lang → phrases
+  intro: ParsedDialogueVariant[]
+  self_monologue: ParsedDialogueVariant[]
+  events: Map<string, ParsedDialogueVariant[]>
 
   // v5.7: Flexible category system
-  categories: Map<string, Map<string, string[]>>  // categoryName → lang → phrases
+  categories: Map<string, ParsedDialogueVariant[]>
   // Access any category: categories.get('intro'), categories.get('greeting'), etc.
+}
+
+export interface ParsedDialogueVariant {
+  when?: (context: TriggerContext) => boolean
+  lang: Record<string, string[]>
+  raw?: MdsDialoguePhrase
 }
 
 /**
@@ -35,9 +43,16 @@ export interface ParsedDialogue {
  */
 export interface EmotionTrigger {
   condition: (context: TriggerContext) => boolean
+  from?: string
   to: string
   intensity: number
   expression?: string
+}
+
+export interface EmotionStateDefinition {
+  valence?: number
+  arousal?: number
+  dominance?: number
 }
 
 /**
@@ -65,7 +80,41 @@ export interface ParsedMaterialConfig {
   emotionTriggers: EmotionTrigger[]
   skillNames: string[]
   relationshipTargets: string[]
+  memoryBindings: ParsedMemoryBinding[]
+  memoryFlags: ParsedMemoryFlag[]
+  stateMachine?: ParsedStateConfig
+  emotionStates?: Map<string, EmotionStateDefinition>
   baselineEmotion?: import('../../1-ontology/emotion').EmotionalState  // v5.8: Auto-detected from essence/dialogue
+}
+
+export interface ParsedMemoryBinding {
+  trigger: string
+  target: string
+  value: string
+  type: string
+  salience: number
+}
+
+export interface ParsedMemoryFlag {
+  id: string
+  trigger: string
+  retention: number
+}
+
+export interface ParsedStateConfig {
+  initial: string
+  states: Map<string, ParsedStateDefinition>
+  transitions: Map<string, ParsedStateTransition[]>
+}
+
+export interface ParsedStateDefinition {
+  emoji?: string
+}
+
+export interface ParsedStateTransition {
+  from?: string
+  to: string
+  condition?: string
 }
 
 /**
@@ -249,6 +298,16 @@ export class MdmParser {
       }
     }
 
+    const truthyMatch = trigger.match(/^[\w.]+$/)
+    if (truthyMatch) {
+      return (ctx) => {
+        if (ctx['event.type'] === trigger) {
+          return true
+        }
+        return Boolean(ctx[trigger])
+      }
+    }
+
     // Fallback: always false
     console.warn(`Unknown trigger pattern: "${trigger}", defaulting to false`)
     return () => false
@@ -262,10 +321,81 @@ export class MdmParser {
 
     return config.transitions.map(t => ({
       condition: this.parseTriggerCondition(t.trigger),
+      from: t.from,
       to: t.to,
       intensity: t.intensity ?? 0.5,
       expression: t.expression
     }))
+  }
+
+  parseEmotionStates(config: MdsEmotionConfig): Map<string, EmotionStateDefinition> | undefined {
+    if (!config.states) return undefined
+    const entries = Object.entries(config.states)
+    if (entries.length === 0) return undefined
+
+    const map = new Map<string, EmotionStateDefinition>()
+    for (const [name, def] of entries) {
+      if (!def) continue
+      map.set(name, {
+        valence: typeof def.valence === 'number' ? def.valence : undefined,
+        arousal: typeof def.arousal === 'number' ? def.arousal : undefined,
+        dominance: typeof def.dominance === 'number' ? def.dominance : undefined
+      })
+    }
+    return map
+  }
+
+  parseMemoryBindings(config: MdsMemoryConfig): ParsedMemoryBinding[] {
+    if (!config.bindings) return []
+
+    return config.bindings.map(binding => ({
+      trigger: binding.trigger,
+      target: binding.target,
+      value: binding.value,
+      type: binding.type ?? 'fact',
+      salience: binding.salience ?? 0.7
+    }))
+  }
+
+  parseMemoryFlags(config: MdsMemoryConfig): ParsedMemoryFlag[] {
+    if (!config.flags) return []
+
+    return config.flags.map(flag => ({
+      id: flag.id,
+      trigger: flag.trigger,
+      retention: flag.retention ? this.parseRetention(flag.retention) : Infinity
+    }))
+  }
+
+  parseStateMachine(config: MdsStateConfig): ParsedStateConfig {
+    const states = new Map<string, ParsedStateDefinition>()
+    if (config.states) {
+      for (const [name, def] of Object.entries(config.states)) {
+        states.set(name, {
+          emoji: def?.emoji
+        })
+      }
+    }
+
+    const transitions = new Map<string, ParsedStateTransition[]>()
+    if (config.transitions) {
+      for (const transition of config.transitions) {
+        if (!transitions.has(transition.trigger)) {
+          transitions.set(transition.trigger, [])
+        }
+        transitions.get(transition.trigger)!.push({
+          from: transition.from,
+          to: transition.to,
+          condition: transition.condition
+        })
+      }
+    }
+
+    return {
+      initial: config.initial,
+      states,
+      transitions
+    }
   }
 
   /**
@@ -274,49 +404,56 @@ export class MdmParser {
    */
   parseDialogue(config: MdsDialogueConfig): ParsedDialogue {
     const result: ParsedDialogue = {
-      intro: new Map(),
-      self_monologue: new Map(),
+      intro: [],
+      self_monologue: [],
       events: new Map(),
-      categories: new Map()  // v5.7: New flexible system
+      categories: new Map()
     }
 
-    // Parse all top-level categories
     for (const [categoryName, value] of Object.entries(config)) {
       if (categoryName === 'event') {
-        // Special case: Parse events (nested structure)
         for (const [eventName, phrases] of Object.entries(value)) {
-          const eventMap = new Map<string, string[]>()
-          this.addPhrasesToMap(eventMap, phrases as MdsDialoguePhrase[])
-          result.events.set(eventName, eventMap)
-          result.categories.set(eventName, eventMap)  // Also add to categories
+          const variants = this.createDialogueVariants(phrases as MdsDialoguePhrase[])
+          result.events.set(eventName, variants)
+          result.categories.set(eventName, variants)
         }
-      } else {
-        // Parse as regular category
-        const categoryMap = new Map<string, string[]>()
-        this.addPhrasesToMap(categoryMap, value as MdsDialoguePhrase[])
-        result.categories.set(categoryName, categoryMap)
+      } else if (Array.isArray(value)) {
+        const variants = this.createDialogueVariants(value as MdsDialoguePhrase[])
+        result.categories.set(categoryName, variants)
 
-        // Backward compatibility: populate legacy fields
-        if (categoryName === 'intro') result.intro = categoryMap
-        if (categoryName === 'self_monologue') result.self_monologue = categoryMap
+        if (categoryName === 'intro') result.intro = variants
+        if (categoryName === 'self_monologue') result.self_monologue = variants
+      } else if (typeof value === 'object' && value !== null) {
+        for (const [subCategory, phrases] of Object.entries(value)) {
+          if (!Array.isArray(phrases)) continue
+          const variants = this.createDialogueVariants(phrases as MdsDialoguePhrase[])
+          result.categories.set(subCategory, variants)
+        }
       }
     }
 
     return result
   }
 
-  /**
-   * Helper: add phrases to lang map
-   */
-  private addPhrasesToMap(map: Map<string, string[]>, phrases: MdsDialoguePhrase[]): void {
-    for (const phrase of phrases) {
+  private createDialogueVariants(phrases: MdsDialoguePhrase[]): ParsedDialogueVariant[] {
+    return phrases.map(phrase => {
+      const langMap: Record<string, string[]> = {}
+
       for (const [lang, text] of Object.entries(phrase.lang)) {
-        if (!map.has(lang)) {
-          map.set(lang, [])
+        if (!langMap[lang]) {
+          langMap[lang] = []
         }
-        map.get(lang)!.push(text)
+        langMap[lang].push(text)
       }
-    }
+
+      return {
+        when: phrase.when
+          ? ((ctx: TriggerContext) => evaluateConditionExpression(phrase.when!, ctx))
+          : undefined,
+        lang: langMap,
+        raw: phrase
+      }
+    })
   }
 
   /**
@@ -385,8 +522,12 @@ export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
   return {
     dialogue: material.dialogue ? parser.parseDialogue(material.dialogue) : undefined,
     emotionTriggers: material.emotion ? parser.parseEmotionTransitions(material.emotion) : [],
+    emotionStates: material.emotion ? parser.parseEmotionStates(material.emotion) : undefined,
     skillNames: material.skills ? parser.parseSkills(material.skills) : [],
     relationshipTargets: material.relationships ? parser.parseRelationships(material.relationships) : [],
+    memoryBindings: material.memory ? parser.parseMemoryBindings(material.memory) : [],
+    memoryFlags: material.memory ? parser.parseMemoryFlags(material.memory) : [],
+    stateMachine: material.state ? parser.parseStateMachine(material.state) : undefined,
     baselineEmotion
   }
 }
@@ -410,52 +551,77 @@ export function getDialoguePhrase(
   dialogue: ParsedDialogue,
   category: 'intro' | 'self_monologue' | string,
   lang?: string,
-  languageWeights?: Record<string, number>  // v5.7: Optional language weighting
+  languageWeights?: Record<string, number>,
+  context: TriggerContext = {}
 ): string | undefined {
   const targetLang = lang || detectLanguage()
 
-  // v5.7: Try flexible categories first
-  let map: Map<string, string[]> | undefined = dialogue.categories.get(category)
+  const variants = dialogue.categories.get(category)
+    || (category === 'intro' ? dialogue.intro
+      : category === 'self_monologue' ? dialogue.self_monologue
+        : dialogue.events.get(category))
 
-  // Fallback to legacy fields for backward compatibility
-  if (!map) {
-    if (category === 'intro') map = dialogue.intro
-    else if (category === 'self_monologue') map = dialogue.self_monologue
-    else map = dialogue.events.get(category)
+  if (!variants || variants.length === 0) return undefined
+
+  const eligible = variants.filter(variant => {
+    if (!variant.when) return true
+    try {
+      return variant.when(context)
+    } catch (err) {
+      console.warn('Error evaluating dialogue condition', err)
+      return false
+    }
+  })
+
+  const pool = eligible.length > 0 ? eligible : variants
+
+  const selectLangPhrases = (langCode: string): string[] | undefined => {
+    for (const variant of pool) {
+      const phrases = variant.lang[langCode]
+      if (phrases && phrases.length > 0) {
+        return phrases
+      }
+    }
+    return undefined
   }
 
-  if (!map) return undefined
+  let phrases: string[] | undefined
 
-  // v5.7: Use language weights if provided (entity autonomy)
   if (languageWeights) {
-    const selectedLang = selectLanguageByWeight(languageWeights, map)
-    if (selectedLang) {
-      const phrases = map.get(selectedLang)
-      if (phrases && phrases.length > 0) {
-        return phrases[Math.floor(Math.random() * phrases.length)]
+    const availableLangs = new Map<string, string[]>()
+    for (const variant of pool) {
+      for (const [language, texts] of Object.entries(variant.lang)) {
+        if (texts.length > 0) {
+          availableLangs.set(language, texts)
+        }
       }
+    }
+    const selectedLang = selectLanguageByWeight(languageWeights, availableLangs)
+    if (selectedLang) {
+      phrases = selectLangPhrases(selectedLang)
     }
   }
 
-  // Original fallback logic (no weights)
-  let phrases = map.get(targetLang)
-
-  // Fallback to English
-  if (!phrases || phrases.length === 0) {
-    phrases = map.get('en')
+  if (!phrases) {
+    phrases = selectLangPhrases(targetLang)
   }
 
-  // Fallback to any available language
-  if (!phrases || phrases.length === 0) {
-    const firstLang = Array.from(map.keys())[0]
-    if (firstLang) {
-      phrases = map.get(firstLang)
+  if (!phrases) {
+    phrases = selectLangPhrases('en')
+  }
+
+  if (!phrases) {
+    for (const variant of pool) {
+      const entry = Object.values(variant.lang).find(texts => texts.length > 0)
+      if (entry) {
+        phrases = entry
+        break
+      }
     }
   }
 
   if (!phrases || phrases.length === 0) return undefined
 
-  // Random selection
   return phrases[Math.floor(Math.random() * phrases.length)]
 }
 
@@ -466,13 +632,26 @@ function selectLanguageByWeight(
   weights: Record<string, number>,
   availableLangs: Map<string, string[]>
 ): string | undefined {
-  const rand = Math.random()
+  const candidates = Object.entries(weights).filter(([lang, weight]) =>
+    availableLangs.has(lang) && typeof weight === 'number' && weight > 0
+  )
+  if (candidates.length === 0) {
+    return undefined
+  }
+
+  const total = candidates.reduce((sum, [, weight]) => sum + weight, 0)
+  if (total <= 0) {
+    return undefined
+  }
+
+  const rand = Math.random() * total
   let cumulative = 0
 
-  for (const [lang, weight] of Object.entries(weights)) {
-    if (!availableLangs.has(lang)) continue
+  for (const [lang, weight] of candidates) {
     cumulative += weight
-    if (rand < cumulative) return lang
+    if (rand <= cumulative) {
+      return lang
+    }
   }
 
   return undefined
@@ -486,8 +665,142 @@ export function replacePlaceholders(
   text: string,
   context: Record<string, any>
 ): string {
-  return text.replace(/{(\w+)}/g, (match, key) => {
-    const value = context[key]
+  const flattened = flattenContext(context)
+  return text.replace(/\{\{?\s*([\w.]+)\s*\}\}?/g, (match, key) => {
+    const value = flattened[key]
     return value !== undefined ? String(value) : match
   })
+}
+
+function flattenContext(
+  context: Record<string, any>,
+  prefix = '',
+  target: Record<string, any> = {}
+): Record<string, any> {
+  for (const [key, value] of Object.entries(context)) {
+    const compositeKey = prefix ? `${prefix}.${key}` : key
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      flattenContext(value, compositeKey, target)
+    } else {
+      target[compositeKey] = value
+    }
+  }
+  return target
+}
+
+export function evaluateConditionExpression(
+  condition: string,
+  context: Record<string, any>
+): boolean {
+  const orParts = condition.split(/\|\|/)
+  for (const orPartRaw of orParts) {
+    const andParts = orPartRaw.split(/&&/)
+    let andResult = true
+    for (const andPartRaw of andParts) {
+      const part = andPartRaw.trim()
+      if (!part) continue
+      const result = evaluateSimpleCondition(part, context)
+      andResult = andResult && result
+      if (!andResult) break
+    }
+    if (andResult) {
+      return true
+    }
+  }
+  return false
+}
+
+function evaluateSimpleCondition(expr: string, context: Record<string, any>): boolean {
+  let expression = expr.trim()
+  let negated = false
+  if (expression.startsWith('!')) {
+    negated = true
+    expression = expression.slice(1).trim()
+  }
+
+  const comparison = expression.match(/^([\w.]+)\s*(==|!=|>=|<=|>|<)\s*(.+)$/)
+  let result: boolean
+
+  if (comparison) {
+    const leftValue = getPathValue(context, comparison[1])
+    const rightValue = resolveTokenValue(comparison[3].trim(), context)
+
+    switch (comparison[2]) {
+      case '==':
+        result = leftValue === rightValue
+        break
+      case '!=':
+        result = leftValue !== rightValue
+        break
+      case '>':
+      case '>=':
+      case '<':
+      case '<=': {
+        const leftNum = Number(leftValue)
+        const rightNum = Number(rightValue)
+        if (Number.isNaN(leftNum) || Number.isNaN(rightNum)) {
+          result = false
+        } else {
+          switch (comparison[2]) {
+            case '>':
+              result = leftNum > rightNum
+              break
+            case '>=':
+              result = leftNum >= rightNum
+              break
+            case '<':
+              result = leftNum < rightNum
+              break
+            case '<=':
+              result = leftNum <= rightNum
+              break
+            default:
+              result = false
+          }
+        }
+        break
+      }
+      default:
+        result = false
+    }
+  } else {
+    const value = resolveTokenValue(expression, context)
+    result = Boolean(value)
+  }
+
+  return negated ? !result : result
+}
+
+function resolveTokenValue(token: string, context: Record<string, any>): any {
+  const trimmed = token.trim()
+
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith('\'') && trimmed.endsWith('\''))) {
+    return trimmed.slice(1, -1)
+  }
+
+  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+    return Number(trimmed)
+  }
+
+  if (trimmed === 'true') return true
+  if (trimmed === 'false') return false
+  if (trimmed === 'null') return null
+  if (trimmed === 'undefined') return undefined
+
+  const pathValue = getPathValue(context, trimmed)
+  if (pathValue !== undefined) {
+    return pathValue
+  }
+
+  return trimmed
+}
+
+function getPathValue(source: Record<string, any>, path: string): any {
+  const parts = path.split('.')
+  let current: any = source
+  for (const part of parts) {
+    if (current == null) return undefined
+    current = current[part]
+  }
+  return current
 }

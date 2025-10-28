@@ -13,7 +13,7 @@ import { World } from '../../6-world/container'
 import type { WorldOptions } from '../../6-world/container'
 import type { MdsMaterial } from '../../schema/mdspec'
 import type { MdsField as MdsFieldSpec } from '../../schema/fieldspec'
-import type { Entity } from '../../0-foundation/entity'
+import type { Entity, DeclarativeSnapshot } from '../../0-foundation/entity'
 import type { EmotionalState, Memory, Intent, Relationship } from '../../1-ontology'
 
 /**
@@ -101,10 +101,29 @@ export interface SerializedEntity {
   memory?: Memory[]
   emotion?: EmotionalState
   intent?: Intent[]
+  state?: string
+  memoryFlags?: SerializedMemoryFlag[]
+  memoryFacts?: Record<string, SerializedMemoryFact>
+  behaviorTimers?: SerializedBehaviorTimer[]
 
   // Behavior state (optional - only if non-default)
   hoverCount?: number
   lastHoverTime?: number
+}
+
+export interface SerializedMemoryFlag {
+  id: string
+  expiry?: number
+}
+
+export interface SerializedMemoryFact {
+  value: any
+  timestamp: number
+}
+
+export interface SerializedBehaviorTimer {
+  id: string
+  elapsed: number
 }
 
 /**
@@ -182,6 +201,30 @@ export function toWorldFile(world: World, metadata?: WorldFile['metadata']): Wor
     // Add behavior state if non-default
     if (e.hoverCount > 0) base.hoverCount = e.hoverCount
     if (e.lastHoverTime > 0) base.lastHoverTime = e.lastHoverTime
+
+    const declarative: DeclarativeSnapshot | undefined =
+      typeof (e as any).getDeclarativeSnapshot === 'function'
+        ? (e as any).getDeclarativeSnapshot()
+        : undefined
+
+    if (declarative?.state) {
+      base.state = declarative.state
+    }
+
+    if (declarative?.memoryFlags && declarative.memoryFlags.length > 0) {
+      base.memoryFlags = declarative.memoryFlags.map(flag => ({
+        id: flag.id,
+        expiry: flag.expiry
+      }))
+    }
+
+    if (declarative?.memoryFacts && Object.keys(declarative.memoryFacts).length > 0) {
+      base.memoryFacts = declarative.memoryFacts
+    }
+
+    if (declarative?.behaviorTimers && declarative.behaviorTimers.length > 0) {
+      base.behaviorTimers = declarative.behaviorTimers
+    }
 
     return base
   })
@@ -366,6 +409,15 @@ export function fromWorldFile(worldFile: WorldFile): World {
     // Restore behavior state
     if (data.hoverCount !== undefined) entity.hoverCount = data.hoverCount
     if (data.lastHoverTime !== undefined) entity.lastHoverTime = data.lastHoverTime
+
+    if (typeof (entity as any).restoreDeclarativeSnapshot === 'function') {
+      (entity as any).restoreDeclarativeSnapshot({
+        state: data.state,
+        memoryFlags: data.memoryFlags,
+        memoryFacts: data.memoryFacts,
+        behaviorTimers: data.behaviorTimers
+      })
+    }
 
     entityMap.set(entity.id, entity)
   }
