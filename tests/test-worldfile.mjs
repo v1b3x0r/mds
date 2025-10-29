@@ -200,12 +200,20 @@ test('Memory state persistence', () => {
     salience: 0.8
   })
 
+  entity.enable('consolidation')
+  if (entity.consolidation && entity.memory) {
+    entity.consolidation.consolidate(entity.memory.recall())
+  }
+
   const finalCount = entity.memory.count()
   const expectedCount = initialCount + 2
 
   assert(finalCount === expectedCount, `Should have ${expectedCount} memories (initial ${initialCount} + 2 added), got ${finalCount}`)
 
   const worldFile = toWorldFile(world1)
+  const serializedConsolidation = worldFile.entities[0].memoryConsolidation
+  assert(serializedConsolidation, 'WorldFile should include memory consolidation data')
+  assert(serializedConsolidation.memories.length > 0, 'Serialized consolidation should contain merged memories')
   world1.destroy()
 
   const world2 = fromWorldFile(worldFile)
@@ -213,6 +221,10 @@ test('Memory state persistence', () => {
 
   assert(restored.memory, 'Restored entity should have memory')
   assert(restored.memory.count() === expectedCount, `Should have ${expectedCount} restored memories (same as before save)`)
+
+  assert(restored.consolidation, 'Restored entity should recreate consolidation system')
+  const restoredConsolidated = restored.consolidation?.getAllMemories() ?? []
+  assert(restoredConsolidated.length > 0, 'Restored consolidation should include merged memory state')
 
   const memories = restored.memory.recall({ type: 'spawn' })
   assert(memories.length === 2, 'Should recall 2 spawn memories')

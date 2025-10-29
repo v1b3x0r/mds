@@ -9,12 +9,14 @@
  * - Delta compression (store only non-default values)
  */
 
-import { World } from '../../6-world/container'
-import type { WorldOptions } from '../../6-world/container'
-import type { MdsMaterial } from '../../schema/mdspec'
-import type { MdsField as MdsFieldSpec } from '../../schema/fieldspec'
-import type { Entity, DeclarativeSnapshot } from '../../0-foundation/entity'
-import type { EmotionalState, Memory, Intent, Relationship } from '../../1-ontology'
+import { World } from '@mds/6-world/container'
+import type { WorldOptions } from '@mds/6-world/container'
+import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsField as MdsFieldSpec } from '@mds/schema/fieldspec'
+import type { Entity, DeclarativeSnapshot } from '@mds/0-foundation/entity'
+import type { EmotionalState, Memory, Intent, Relationship } from '@mds/1-ontology'
+import { MemoryConsolidation } from '@mds/1-ontology/memory/consolidation'
+import type { MemoryConsolidationState } from '@mds/1-ontology/memory/consolidation'
 
 /**
  * WorldFile format (v5 schema)
@@ -105,6 +107,7 @@ export interface SerializedEntity {
   memoryFlags?: SerializedMemoryFlag[]
   memoryFacts?: Record<string, SerializedMemoryFact>
   behaviorTimers?: SerializedBehaviorTimer[]
+  memoryConsolidation?: MemoryConsolidationState
 
   // Behavior state (optional - only if non-default)
   hoverCount?: number
@@ -194,9 +197,12 @@ export function toWorldFile(world: World, metadata?: WorldFile['metadata']): Wor
     }
 
     // TODO: IntentStack serialization
-    // if (e.intent) {
-    //   base.intent = e.intent.getAll()
-    // }
+    if (e.intent && typeof e.intent.all === 'function') {
+      const intents = e.intent.all()
+      if (intents.length > 0) {
+        base.intent = intents.map(intent => ({ ...intent }))
+      }
+    }
 
     // Add behavior state if non-default
     if (e.hoverCount > 0) base.hoverCount = e.hoverCount
@@ -224,6 +230,10 @@ export function toWorldFile(world: World, metadata?: WorldFile['metadata']): Wor
 
     if (declarative?.behaviorTimers && declarative.behaviorTimers.length > 0) {
       base.behaviorTimers = declarative.behaviorTimers
+    }
+
+    if (e.consolidation && typeof e.consolidation.toJSON === 'function') {
+      base.memoryConsolidation = e.consolidation.toJSON()
     }
 
     return base
@@ -396,6 +406,15 @@ export function fromWorldFile(worldFile: WorldFile): World {
       entity.emotion.valence = data.emotion.valence
       entity.emotion.arousal = data.emotion.arousal
       entity.emotion.dominance = data.emotion.dominance
+    }
+
+    if (data.memoryConsolidation) {
+      if (!entity.isEnabled('consolidation')) {
+        entity.enable('consolidation')
+      }
+      if (entity.consolidation) {
+        entity.consolidation = MemoryConsolidation.fromJSON(data.memoryConsolidation)
+      }
     }
 
     if (data.intent && entity.intent) {
