@@ -26,9 +26,11 @@ import {
   TrustSystem,
   MemoryConsolidation,
   createRelationship,
-  relationshipStrength
+  relationshipStrength,
+  OSContextProvider,
+  ProcessContextProvider,
+  mapTextToPAD
 } from '@v1b3x0r/mds-core'
-import { mapTextToPAD } from '@v1b3x0r/mds-core'
 import { ContextAnalyzer } from './session/ContextAnalyzer'
 import { MemoryPromptBuilder } from './session/MemoryPromptBuilder'
 import { GrowthTracker } from './session/GrowthTracker'
@@ -140,8 +142,48 @@ export class ChatRuntime extends MDSRuntime {
     const companionMDM = config.companion.material || companionMetadata?.material
     const userMDM = config.user?.material || { essence: 'Traveler', emotion: { baseline: { valence: 0.5, arousal: 0.5, dominance: 0.5 } } }
 
+    const baseWorld = config.world ?? {}
+    const contextProviders = Array.isArray(baseWorld.contextProviders)
+      ? [...baseWorld.contextProviders]
+      : []
+
+    const hasProvider = (name: string) => contextProviders.some(entry => {
+      if (entry && typeof entry === 'object') {
+        if ('provider' in entry) {
+          const providerEntry = entry as { provider: { name?: string }; name?: string }
+          return providerEntry.name === name || providerEntry.provider?.name === name
+        }
+
+        if ('getContext' in entry) {
+          const provider = entry as { name?: string }
+          return provider.name === name
+        }
+      }
+      return false
+    })
+
+    if (!hasProvider('os')) {
+      contextProviders.push({
+        provider: new OSContextProvider(),
+        name: 'os',
+        interval: 10000
+      })
+    }
+
+    if (!hasProvider('process')) {
+      contextProviders.push({
+        provider: new ProcessContextProvider(),
+        name: 'process',
+        interval: 10000
+      })
+    }
+
     const runtimeConfig: RuntimeConfig = {
       ...config,
+      world: {
+        ...baseWorld,
+        contextProviders
+      },
       entities: [
         { name: 'user', material: userMDM, x: 100, y: 200 },
         { name: 'companion', material: companionMDM, x: 300, y: 200 }
@@ -647,12 +689,34 @@ export class ChatRuntime extends MDSRuntime {
 
     const echoedPhrases = await this.echoSystem.rehearse(phrases)
 
-    // Record echoes to world transcript (contributes to world.lexicon)
-    for (const phrase of echoedPhrases) {
-      this.world.recordSpeech(this.companion, phrase)
-    }
+    if (echoedPhrases.length > 0) {
+      const emotionSnapshot = {
+        valence: this.companion.emotion?.valence ?? 0,
+        arousal: this.companion.emotion?.arousal ?? 0
+      }
 
-    this.debug(`  [Echo] Rehearsed ${echoedPhrases.length} phrases internally`)
+      // Reinforce lexicon silently (no transcript spam)
+      for (const phrase of echoedPhrases) {
+        this.world.lexicon?.add({
+          term: phrase,
+          usageCount: 1,
+          firstSeen: Date.now(),
+          lastUsed: Date.now(),
+          origin: this.companion.id,
+          meaning: 'echo-fragment',
+          relatedTerms: [],
+          emotionContext: emotionSnapshot
+        })
+      }
+
+      this.emit('echo', {
+        entityId: this.companion.id,
+        phrases: echoedPhrases,
+        emotion: emotionSnapshot
+      })
+
+      this.debug(`  [Echo] Rehearsed ${echoedPhrases.length} phrases internally`)
+    }
 
     // NO FORCED TICKING - let world tick naturally via autoTick
     // Proto-language will emerge when physics is ready

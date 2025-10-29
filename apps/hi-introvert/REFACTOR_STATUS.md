@@ -8,6 +8,11 @@
 
 ## ♻️ CLI Runtime Sync (2026-02)
 
+- Added **orz-group-chat demo** (`src/demo/orz-group-chat`) — multi-entity watcher + context scheduler, duplicate guard, and CLI commands for long-running deployments.
+  - `bun run demo:orz-group-chat` → launch headless room with auto prompts + pseudo-agents (`#archive`, `#radio`).
+  - Scheduler injects context + repeat detection to keep topics fresh; transcripts stream in real time with timestamp header.
+- Next: expose scheduler/room via reusable helpers for SDK packaging (wrap ChatRuntime + orchestrator as kit).
+
 - ChatRuntime now owns extended OS/storage/circadian sensors, trust systems, and memory consolidation loops (no more reliance on WorldSession timers)
 - CLI commands expose `history`, `lexicon`, `trust`, and live sensor snapshots for quick audits
 - README updated to reflect current CLI feature set (status/growth/history/lexicon/trust/context/save)

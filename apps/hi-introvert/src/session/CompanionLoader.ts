@@ -8,6 +8,7 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { validateMaterial } from '@v1b3x0r/mds-core/validator'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -43,6 +44,9 @@ export class CompanionLoader {
       throw new Error(`Entities directory not found: ${this.entitiesDir}`)
     }
 
+    const formatIssues = (issues: Array<{ field: string; message: string }>) =>
+      issues.map(issue => `• ${issue.field}: ${issue.message}`).join('\n')
+
     const files = fs.readdirSync(this.entitiesDir)
     const companionFiles = files.filter(f =>
       f.startsWith('entity.companion.') && f.endsWith('.mdm')
@@ -51,7 +55,36 @@ export class CompanionLoader {
     for (const filename of companionFiles) {
       try {
         const fullPath = path.join(this.entitiesDir, filename)
-        const material = JSON.parse(fs.readFileSync(fullPath, 'utf-8'))
+        const raw = fs.readFileSync(fullPath, 'utf-8')
+        const material = JSON.parse(raw)
+        const validation = validateMaterial(material, {
+          requireSchema: false,
+          minVersion: '5.0'
+        })
+
+        if (!validation.valid) {
+          const blocking = validation.errors.filter(issue =>
+            issue.severity === 'error' &&
+            issue.field !== 'material' // allow legacy material ids with underscores
+          )
+
+          if (blocking.length > 0) {
+            const details = formatIssues(blocking)
+            throw new Error(
+              `Validation failed for ${filename}:\n${details || '(no details)'}`
+            )
+          }
+
+          console.warn(
+            `warn: Validation issues for ${filename} (allowed legacy format):\n${formatIssues(validation.errors)}`
+          )
+        }
+
+        if (validation.warnings.length > 0) {
+          console.warn(
+            `⚠️  Companion ${filename} has validation warnings:\n${formatIssues(validation.warnings)}`
+          )
+        }
 
         // Extract ID from filename: entity.companion.{ID}.mdm
         const id = filename.replace('entity.companion.', '').replace('.mdm', '')

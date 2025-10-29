@@ -30,6 +30,7 @@ import {
   createMemoryLog,
   TrustSystem
 } from '@v1b3x0r/mds-core'
+import { validateMaterial } from '@v1b3x0r/mds-core/validator'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
@@ -60,7 +61,41 @@ function loadMDM(filename: string): any {
   }
 
   const content = fs.readFileSync(mdmPath, 'utf-8')
-  return JSON.parse(content)
+  const material = JSON.parse(content)
+  const result = validateMaterial(material, {
+    requireSchema: false,
+    minVersion: '5.0'
+  })
+
+  if (!result.valid) {
+    const blocking = result.errors.filter(issue =>
+      issue.severity === 'error' &&
+      issue.field !== 'material'
+    )
+
+    if (blocking.length > 0) {
+      const details = blocking
+        .map(error => `${error.field}: ${error.message}`)
+        .join('; ')
+      throw new Error(`MDM validation failed for ${filename}: ${details}`)
+    }
+
+    console.warn(
+      `warn: MDM validation issues for ${filename} (allowed legacy format): ${result.errors
+        .map(error => `${error.field}: ${error.message}`)
+        .join('; ')}`
+    )
+  }
+
+  if (result.warnings.length > 0) {
+    console.warn(
+      `⚠️  MDM warnings for ${filename}: ${result.warnings
+        .map(warning => `${warning.field}: ${warning.message}`)
+        .join('; ')}`
+    )
+  }
+
+  return material
 }
 
 // Companion loader (v1.2: Dynamic companion selection)

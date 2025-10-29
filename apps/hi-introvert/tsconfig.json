@@ -12,7 +12,12 @@
     "resolveJsonModule": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": "./",
+    "paths": {
+      "@v1b3x0r/mds-core": ["../../src/index.ts"],
+      "@v1b3x0r/mds-core/*": ["../../src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": [

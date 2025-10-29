@@ -18,7 +18,8 @@
     "dev": "bun run src/index.tsx",
     "cli": "bun run src/index.tsx",
     "build": "bun build src/index.tsx --outdir dist --target node --format esm --external @v1b3x0r/mds-core --external chalk",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "demo:orz-group-chat": "bun run src/demo/orz-group-chat/index.ts"
   },
   "dependencies": {
     "@v1b3x0r/mds-core": "^5.8.0",

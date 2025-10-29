@@ -49,6 +49,10 @@ export class EchoSystem {
   ): EchoablePhrase[] {
     const phrases: EchoablePhrase[] = []
 
+    if (!userMessage.trim() && !companionResponse.trim()) {
+      return phrases
+    }
+
     // 1. User's key words (high importance - what user said matters most!)
     const userWords = this.extractKeyWords(userMessage)
     for (const word of userWords) {
@@ -98,10 +102,11 @@ export class EchoSystem {
     const stopwords = new Set([
       'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were',
       'ผม', 'ฉัน', 'คุณ', 'เขา', 'เธอ', 'มัน', 'นั้น', 'นี้', 'อัน', 'ที่',
-      'ไป', 'มา', 'ได้', 'แล้ว', 'จะ', 'อยู่', 'ครับ', 'ค่ะ', 'นะ', 'เลย'
+      'ไป', 'มา', 'ได้', 'แล้ว', 'จะ', 'อยู่', 'ครับ', 'ค่ะ', 'นะ', 'เลย',
+      'กำลัง', 'ประมวลผล', 'คิดอยู่', 'คิด', 'อยู่', 'เสียง'
     ])
 
-    return words.filter(w => !stopwords.has(w))
+    return words.filter(w => w.length >= this.config.minPhraseLength && !stopwords.has(w))
   }
 
   /**

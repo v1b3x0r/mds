@@ -18,12 +18,11 @@ import {
   World,
   Entity,
   CollectiveIntelligence,
-  toWorldFile,
-  fromWorldFile,
+  saveWorldFile,
+  loadWorldFile,
   type LexiconEntry,
   type WorldOptions,
-  type MdsMaterial,
-  type WorldFile
+  type MdsMaterial
 } from '@v1b3x0r/mds-core'
 
 /**
@@ -310,7 +309,7 @@ export class MDSRuntime extends EventEmitter {
    * Save world to .world.mdm file
    */
   save(filePath: string): void {
-    const worldFile = toWorldFile(this.world)
+    const serialized = saveWorldFile(this.world)
 
     // Ensure directory exists
     const dir = filePath.substring(0, filePath.lastIndexOf('/'))
@@ -318,7 +317,7 @@ export class MDSRuntime extends EventEmitter {
       fs.mkdirSync(dir, { recursive: true })
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(worldFile, null, 2), 'utf-8')
+    fs.writeFileSync(filePath, serialized, 'utf-8')
     this.emit('saved', { path: filePath })
   }
 
@@ -326,14 +325,15 @@ export class MDSRuntime extends EventEmitter {
    * Load world from .world.mdm file
    */
   load(filePath: string): void {
-    const worldFile: WorldFile = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+    const json = fs.readFileSync(filePath, 'utf-8')
+    const loadedWorld = loadWorldFile(json)
 
     // Stop ticking during load
     const wasTickin = !!this.tickInterval
     this.stopTicking()
 
     // Load world
-    this.world = fromWorldFile(worldFile)
+    this.world = loadedWorld
 
     // Rebuild entities map (TODO: need entity name persistence)
     this.entities.clear()
