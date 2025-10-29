@@ -4,6 +4,28 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[7.1.0] — World Observability Hooks
+
+📅 2025-11-02
+
+⸻
+
+🎯 Added
+
+- `World#on/off/once` & friends → subscribe to `tick`, `context`, `analytics`, `event`, `utterance`
+- Context diffing + snapshot (`getContextSnapshot`) to avoid manual tracking
+- Browser & Process context providers (lean defaults for DOM/Node runtimes)
+- Event sink helpers (`attachWorldEventSink`, `InMemoryWorldEventSink`) to plug logging or telemetry without bespoke wiring
+
+✨ Improved
+
+- `broadcastContext` only emits when values change; still merges full payload for backward compatibility
+- World Mind analytics emit snapshot (stats + patterns + collective emotion) at sane intervals
+- `registerContextProvider` now accepts async providers + cleanup, and `WorldOptions.contextProviders` auto-wires defaults without manual setup
+- Dialogue fallback now honours `LANGUAGE_FALLBACK_PRIORITY` (`th → ja → es → ko → zh → en`) across parser + entity speech helpers
+
+⸻
+
 [6.6.0] — Human-like Memory (Emergent Name Recall)
 
 📅 2025-10-27
