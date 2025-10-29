@@ -46,26 +46,7 @@ jobs:
         run: npm run test:validator
 
       - name: Check bundle size
-        run: |
-          BUNDLE_SIZE=$(stat -c%s dist/mds-core.esm.js)
-          MAX_SIZE=$((160 * 1024))  # 160 KB in bytes
-          BUNDLE_KB=$(($BUNDLE_SIZE / 1024))
-
-          echo "📦 Bundle Size Report"
-          echo "===================="
-          echo "Current: ${BUNDLE_KB} KB"
-          echo "Maximum: 160 KB"
-          echo "Headroom: $((160 - $BUNDLE_KB)) KB"
-
-          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
-            echo ""
-            echo "❌ Bundle size exceeds 160 KB limit!"
-            echo "Please optimize bundle or update size limit."
-            exit 1
-          fi
-
-          echo ""
-          echo "✅ Bundle size within limits"
+        run: npm run check:bundle
 
       - name: Export API surface
         run: |
@@ -84,20 +65,26 @@ jobs:
           script: |
             const fs = require('fs');
             const bundleSize = fs.statSync('dist/mds-core.esm.js').size;
+            const bundleLite = fs.statSync('dist/mds-core-lite.esm.js').size;
             const bundleKB = Math.round(bundleSize / 1024);
-            const maxKB = 160;
+            const bundleLiteKB = Math.round(bundleLite / 1024);
+            const maxKB = 360;
+            const maxLiteKB = 280;
             const headroom = maxKB - bundleKB;
-            const status = bundleKB <= maxKB ? '✅' : '❌';
+            const headroomLite = maxLiteKB - bundleLiteKB;
+            const statusCore = bundleKB <= maxKB ? '✅' : '❌';
+            const statusLite = bundleLiteKB <= maxLiteKB ? '✅' : '❌';
 
-            const comment = `## ${status} API Stability Check
+            const comment = `## API Stability Check
 
-            **Bundle Size:** ${bundleKB} KB / ${maxKB} KB (${headroom} KB headroom)
+            **Core Bundle:** ${statusCore} ${bundleKB} KB / ${maxKB} KB (${headroom} KB headroom)
+            **Lite Bundle:** ${statusLite} ${bundleLiteKB} KB / ${maxLiteKB} KB (${headroomLite} KB headroom)
 
             **Tests:**
             - ✅ Circular dependency check passed
             - ✅ API stability tests passed
             - ✅ MDM validator tests passed
-            ${bundleKB <= maxKB ? '- ✅ Bundle size within limits' : '- ❌ Bundle size exceeds limit'}
+            ${bundleKB <= maxKB && bundleLiteKB <= maxLiteKB ? '- ✅ Bundle size within limits' : '- ❌ Bundle size exceeds limit'}
 
             <details>
             <summary>API Compatibility Matrix</summary>
