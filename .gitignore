@@ -44,3 +44,9 @@ Thumbs.db
 # Debug
 *.map
 .cache/
+\n# Runtime sessions & world logs
+sessions/
+hi-introvert/sessions/
+**/*.world.mdm
+**/*.ndjson
+hi-introvert/sessions/world_log.json
