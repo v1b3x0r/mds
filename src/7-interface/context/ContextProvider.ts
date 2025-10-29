@@ -10,6 +10,9 @@
  * - OSContextProvider: cpu.usage, memory.usage, battery.level
  * - IoTContextProvider: sensor.temperature, sensor.humidity
  * - GameContextProvider: player.distance, player.action
+ *
+ * Providers may return context synchronously or asynchronously (Promise).
+ * Implement `dispose()` for cleanup when the provider is unregistered.
  */
 
 export interface ContextProvider {
@@ -30,7 +33,12 @@ export interface ContextProvider {
    *   'battery.level': 0.45
    * }
    */
-  getContext(...args: any[]): Record<string, any>
+  getContext(...args: any[]): Record<string, any> | void | Promise<Record<string, any> | void>
+
+  /**
+   * Optional cleanup hook when provider is disposed.
+   */
+  dispose?(): void | Promise<void>
 }
 
 /**

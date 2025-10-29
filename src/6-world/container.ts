@@ -9,22 +9,23 @@
  * - World clock: Monotonic time tracking
  */
 
-import { Engine } from '../0-foundation/engine'
-import type { WorldBounds, BoundaryBehavior } from '../0-foundation/engine'
-import type { MdsMaterial } from '../schema/mdspec'
-import type { MdsField as MdsFieldSpec } from '../schema/fieldspec'
-import { Entity } from '../0-foundation/entity'
-import { Field } from '../0-foundation/field'
+import { Engine } from '@mds/0-foundation/engine'
+import type { WorldBounds, BoundaryBehavior } from '@mds/0-foundation/engine'
+import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsField as MdsFieldSpec } from '@mds/schema/fieldspec'
+import { Entity } from '@mds/0-foundation/entity'
+import { Field } from '@mds/0-foundation/field'
 import {
   driftToBaseline,
   EMOTION_BASELINES
-} from '../1-ontology'
+} from '@mds/1-ontology'
+import type { EmotionalState } from '@mds/1-ontology/emotion/state'
 import {
   RendererAdapter,
   DOMRenderer,
   CanvasRenderer,
   HeadlessRenderer
-} from '../7-interface/render'
+} from '@mds/7-interface/render'
 import {
   Environment,
   Weather,
@@ -34,31 +35,54 @@ import {
   WeatherConfig,
   createEnvironment,
   createWeather
-} from '../2-physics'
+} from '@mds/2-physics'
 import {
   DialogueManager,
   LanguageGenerator,
   SemanticSimilarity,
   MessageDelivery,
   MessageQueue
-} from '../4-communication'
+} from '@mds/4-communication'
 import {
   CollectiveIntelligence,
   WorldStats,
   PatternDetection
-} from '../3-cognition/world-mind'
+} from '@mds/3-cognition/world-mind'
 
 // v5.8.4: Direct imports to avoid circular dependency (world/index.ts exports World)
-import { TranscriptBuffer } from './linguistics/transcript'
-import type { Utterance } from './linguistics/transcript'
+import { TranscriptBuffer } from '@mds/6-world/linguistics/transcript'
+import type { Utterance } from '@mds/6-world/linguistics/transcript'
 
-import { WorldLexicon } from './linguistics/lexicon'
-import type { LexiconEntry } from './linguistics/lexicon'
+import { WorldLexicon } from '@mds/6-world/linguistics/lexicon'
+import type { LexiconEntry } from '@mds/6-world/linguistics/lexicon'
 
-import { LinguisticCrystallizer } from './linguistics/crystallizer'
-import type { CrystallizerConfig } from './linguistics/crystallizer'
+import { LinguisticCrystallizer } from '@mds/6-world/linguistics/crystallizer'
+import type { CrystallizerConfig } from '@mds/6-world/linguistics/crystallizer'
 
-import { ProtoLanguageGenerator } from './linguistics/proto-language'
+import { ProtoLanguageGenerator } from '@mds/6-world/linguistics/proto-language'
+import type { ContextProvider } from '@mds/7-interface/context'
+
+export interface WorldContextProviderConfig {
+  provider: ContextProvider
+  /**
+   * Override provider name. Defaults to provider.name.
+   */
+  name?: string
+  /**
+   * Polling interval in milliseconds. Defaults to 10s.
+   */
+  interval?: number
+  /**
+   * Run immediately on registration. Defaults to true.
+   */
+  immediate?: boolean
+}
+
+type ContextProviderRegistration = ContextProvider | WorldContextProviderConfig
+
+function isContextProviderConfig(value: ContextProviderRegistration): value is WorldContextProviderConfig {
+  return typeof value === 'object' && value !== null && 'provider' in value
+}
 
 /**
  * World configuration options
@@ -175,6 +199,11 @@ export interface WorldOptions {
   semanticProvider?: 'openai' | 'mock'
   /** @deprecated Use llm.embeddingModel instead */
   semanticApiKey?: string
+
+  /**
+   * Auto-register context providers (Phase 3)
+   */
+  contextProviders?: ContextProviderRegistration[]
 }
 
 /**
@@ -193,6 +222,25 @@ export interface WorldEvent {
   type: string      // Event type
   id?: string       // Entity/field ID
   data?: any        // Additional data
+}
+
+export interface WorldContextEvent {
+  context: Record<string, any>
+  diff: Record<string, any>
+}
+
+export interface WorldAnalyticsEvent {
+  stats?: WorldStats
+  patterns?: PatternDetection[]
+  collectiveEmotion: EmotionalState | null
+}
+
+type WorldEventMap = {
+  tick: { time: number; dt: number }
+  context: WorldContextEvent
+  event: WorldEvent
+  analytics: WorldAnalyticsEvent
+  utterance: Utterance
 }
 
 /**
@@ -266,17 +314,27 @@ export class World {
   private lastStatsUpdate: number = 0
 
   // Phase 9 / v5.5: P2P Cognition (optional)
-  cognitiveNetwork?: import('../3-cognition').CognitiveNetwork
-  resonanceField?: import('../3-cognition').ResonanceField
+  cognitiveNetwork?: import('@mds/3-cognition').CognitiveNetwork
+  resonanceField?: import('@mds/3-cognition').ResonanceField
 
   // Phase 10 / v6.0: Linguistics (optional)
   transcript?: TranscriptBuffer
   lexicon?: WorldLexicon
   private crystallizer?: LinguisticCrystallizer
-  protoGenerator?: import('./linguistics/proto-language').ProtoLanguageGenerator  // v6.1: Emergent language generation
+  protoGenerator?: import('@mds/6-world/linguistics/proto-language').ProtoLanguageGenerator  // v6.1: Emergent language generation
 
   // Options
   options: WorldOptions
+
+  // Context + events
+  private contextState: Record<string, any> = {}
+  private listeners = new Map<keyof WorldEventMap, Set<(payload: any) => void>>()
+  private cachedCollectiveEmotion: EmotionalState | null = null
+  private isBroadcastingContext = false
+  private pendingContext: Record<string, any> | null = null
+  private contextProviders = new Map<string, ContextProvider>()
+  private contextProviderHandles = new Map<string, ReturnType<typeof setInterval>>()
+  private contextProviderLocks = new Map<string, boolean>()
 
   constructor(options: WorldOptions = {}) {
     this.id = this.generateUUID()
@@ -316,6 +374,22 @@ export class World {
     // Phase 10 / v6.0: Initialize linguistics systems (if enabled)
     if (options.features?.linguistics || options.linguistics?.enabled) {
       this.initializeLinguistics(options)
+    }
+
+    if (options.contextProviders && options.contextProviders.length > 0) {
+      for (const registration of options.contextProviders) {
+        if (!registration) continue
+
+        if (isContextProviderConfig(registration)) {
+          this.registerContextProvider(registration.provider, {
+            name: registration.name,
+            interval: registration.interval,
+            immediate: registration.immediate
+          })
+        } else {
+          this.registerContextProvider(registration)
+        }
+      }
     }
   }
 
@@ -469,6 +543,153 @@ export class World {
 
     console.info(`v6.0: Linguistics initialized (buffer=${maxTranscript}, analyze every ${crystallizerConfig.analyzeEvery} ticks)`)
     console.info(`v6.1: Proto-language generator created`)
+  }
+
+  /**
+   * Subscribe to world events (tick, context, analytics, utterance, event).
+   * Returns an unsubscribe handler for convenience.
+   */
+  on<K extends keyof WorldEventMap>(event: K, listener: (payload: WorldEventMap[K]) => void): () => void {
+    const existing = this.listeners.get(event) ?? new Set<(payload: any) => void>()
+    existing.add(listener as unknown as (payload: any) => void)
+    this.listeners.set(event, existing)
+    return () => this.off(event, listener)
+  }
+
+  /**
+   * Subscribe once, then auto-unsubscribe after first emission.
+   */
+  once<K extends keyof WorldEventMap>(event: K, listener: (payload: WorldEventMap[K]) => void): () => void {
+    const wrapper = (payload: WorldEventMap[K]) => {
+      try {
+        listener(payload)
+      } finally {
+        this.off(event, wrapper as unknown as (payload: WorldEventMap[K]) => void)
+      }
+    }
+    return this.on(event, wrapper as unknown as (payload: WorldEventMap[K]) => void)
+  }
+
+  /**
+   * Remove a listener from a world event.
+   */
+  off<K extends keyof WorldEventMap>(event: K, listener: (payload: WorldEventMap[K]) => void): void {
+    const existing = this.listeners.get(event)
+    if (!existing) return
+    existing.delete(listener as unknown as (payload: any) => void)
+    if (existing.size === 0) {
+      this.listeners.delete(event)
+    }
+  }
+
+  /**
+   * Snapshot of the current broadcast context state.
+   */
+  getContextSnapshot(): Record<string, any> {
+    return { ...this.contextState }
+  }
+
+  registerContextProvider(
+    provider: ContextProvider,
+    options: { name?: string; interval?: number; immediate?: boolean } = {}
+  ): () => void {
+    const name = options.name ?? provider.name ?? `provider_${Date.now()}`
+
+    if (this.contextProviders.has(name)) {
+      console.warn(`[World] Context provider "${name}" already registered.`)
+      return () => this.disposeContextProvider(name)
+    }
+
+    this.contextProviders.set(name, provider)
+
+    const interval = options.interval ?? 10000
+    const immediate = options.immediate !== false
+
+    const runProvider = () => {
+      try {
+        if (this.contextProviderLocks.get(name)) {
+          return
+        }
+
+        const result = provider.getContext(this)
+        if (result && typeof (result as Promise<Record<string, any>>).then === 'function') {
+          this.contextProviderLocks.set(name, true)
+          ;(result as Promise<Record<string, any> | void>)
+            .then(context => {
+              if (!this.contextProviders.has(name)) {
+                return
+              }
+              if (context && typeof context === 'object') {
+                this.broadcastContext(context as Record<string, any>)
+              }
+            })
+            .catch(error => {
+              console.error(`[World] Context provider "${name}" failed`, error)
+            })
+            .finally(() => {
+              this.contextProviderLocks.delete(name)
+            })
+        } else if (result && typeof result === 'object') {
+          this.broadcastContext(result as Record<string, any>)
+        }
+      } catch (error) {
+        console.error(`[World] Context provider "${name}" crashed`, error)
+      }
+    }
+
+    if (immediate) {
+      runProvider()
+    }
+
+    const handle = setInterval(runProvider, interval)
+    this.contextProviderHandles.set(name, handle)
+
+    return () => this.disposeContextProvider(name)
+  }
+
+  disposeContextProvider(name: string): void {
+    const handle = this.contextProviderHandles.get(name)
+    if (handle !== undefined) {
+      clearInterval(handle)
+      this.contextProviderHandles.delete(name)
+    }
+    const provider = this.contextProviders.get(name)
+    if (provider && typeof provider.dispose === 'function') {
+      try {
+        const maybePromise = provider.dispose()
+        if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+          ;(maybePromise as Promise<void>).catch(error => {
+            console.error(`[World] Context provider "${name}" dispose failed`, error)
+          })
+        }
+      } catch (error) {
+        console.error(`[World] Context provider "${name}" dispose failed`, error)
+      }
+    }
+    this.contextProviders.delete(name)
+    this.contextProviderLocks.delete(name)
+  }
+
+  disposeAllContextProviders(): void {
+    for (const name of Array.from(this.contextProviders.keys())) {
+      this.disposeContextProvider(name)
+    }
+    this.contextProviders.clear()
+    this.contextProviderHandles.clear()
+    this.contextProviderLocks.clear()
+  }
+
+  private emit<K extends keyof WorldEventMap>(event: K, payload: WorldEventMap[K]): void {
+    const listeners = this.listeners.get(event)
+    if (!listeners || listeners.size === 0) return
+
+    for (const handler of Array.from(listeners)) {
+      try {
+        handler(payload)
+      } catch (error) {
+        console.error(`[World] listener error for "${String(event)}"`, error)
+      }
+    }
   }
 
   /**
@@ -723,6 +944,8 @@ export class World {
         }
       }
     }
+
+    this.emit('tick', { time: this.worldTime, dt })
   }
 
   /**
@@ -746,10 +969,64 @@ export class World {
    * { "trigger": "user.message", "to": "attentive" } // Will fire!
    */
   broadcastContext(context: Record<string, any>): void {
+    if (this.isBroadcastingContext) {
+      if (!this.pendingContext) {
+        this.pendingContext = { ...context }
+      } else {
+        Object.assign(this.pendingContext, context)
+      }
+      return
+    }
+
+    this.isBroadcastingContext = true
+    try {
+      this.applyContext(context)
+
+      while (this.pendingContext) {
+        const nextContext = this.pendingContext
+        this.pendingContext = null
+        this.applyContext(nextContext)
+      }
+    } finally {
+      this.isBroadcastingContext = false
+    }
+  }
+
+  private applyContext(context: Record<string, any>): void {
+    if (!context || Object.keys(context).length === 0) {
+      return
+    }
+
+    const diff: Record<string, any> = {}
+    let changed = false
+
+    for (const [key, value] of Object.entries(context)) {
+      if (value === undefined) {
+        if (Object.prototype.hasOwnProperty.call(this.contextState, key)) {
+          changed = true
+          diff[key] = undefined
+          delete this.contextState[key]
+        }
+      } else if (!Object.is(this.contextState[key], value)) {
+        changed = true
+        diff[key] = value
+        this.contextState[key] = value
+      }
+    }
+
     for (const entity of this.entities) {
       entity.updateTriggerContext(context)
       entity.checkEmotionTriggers()
     }
+
+    if (!changed) {
+      return
+    }
+
+    this.emit('context', {
+      context: { ...this.contextState },
+      diff: { ...diff }
+    })
   }
 
   /**
@@ -1076,7 +1353,14 @@ export class World {
     if (now - this.lastStatsUpdate >= this.statsUpdateInterval) {
       this.worldStats = CollectiveIntelligence.calculateStats(this.entities)
       this.patterns = CollectiveIntelligence.detectPatterns(this.entities)
+      this.cachedCollectiveEmotion = CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
       this.lastStatsUpdate = now
+
+      this.emit('analytics', {
+        stats: this.worldStats,
+        patterns: this.patterns,
+        collectiveEmotion: this.cachedCollectiveEmotion
+      })
     }
   }
 
@@ -1097,8 +1381,11 @@ export class World {
   /**
    * Get collective emotion (world mood)
    */
-  getCollectiveEmotion(): import('../1-ontology').EmotionalState | null {
-    return CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
+  getCollectiveEmotion(): import('@mds/1-ontology').EmotionalState | null {
+    if (this.cachedCollectiveEmotion === null) {
+      this.cachedCollectiveEmotion = CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
+    }
+    return this.cachedCollectiveEmotion
   }
 
   /**
@@ -1138,6 +1425,7 @@ export class World {
     }
 
     this.transcript.add(utterance)
+    this.emit('utterance', utterance)
   }
 
   /**
@@ -1298,6 +1586,8 @@ export class World {
         entity.handleDeclarativeEvent(type, data, this.worldTime)
       }
     }
+
+    this.emit('event', event)
   }
 
   /**
@@ -1382,6 +1672,7 @@ export class World {
    * Cleanup and destroy world
    */
   destroy(): void {
+    this.disposeAllContextProviders()
     // Dispose renderer resources
     this.renderer.dispose()
 
