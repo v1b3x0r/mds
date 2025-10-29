@@ -73,6 +73,10 @@
   "bugs": {
     "url": "https://github.com/v1b3x0r/mds/issues"
   },
+  "workspaces": [
+    "hi-introvert",
+    "hi-introvert/web"
+  ],
   "devDependencies": {
     "@types/node": "^24.9.1",
     "terser": "^5.44.0",
