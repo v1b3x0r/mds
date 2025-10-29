@@ -45,6 +45,7 @@
     "test:all": "npm run test && npm run test:api && npm run test:validator && npm run test:similarity && npm run test:crystallization && npm run test:coupling && npm run test:reasoning && npm run test:decay",
     "check:stability": "./scripts/check-api-stability.sh",
     "check:circular": "npx madge --circular --extensions ts src/",
+    "check:bundle": "node scripts/check-bundle.cjs",
     "prepublishOnly": "npm run build && test -f README.github.md || mv README.md README.github.md && cp README.npm.md README.md",
     "postpublish": "test -f README.github.md && mv README.github.md README.md || true"
   },
