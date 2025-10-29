@@ -531,6 +531,24 @@ test('Complex heroblind-style material', () => {
   assert(result.errors.length === 0, 'Should have no errors')
 })
 
+test('Validation cache returns defensive copies', () => {
+  const material = {
+    material: 'test.cache.clone',
+    essence: 'Cache cloning test'
+  }
+
+  const first = validateMaterial(material)
+  assert(first.valid === true, 'Initial validation should succeed')
+  assert(first.errors.length === 0, 'Should have no errors')
+
+  first.errors.push({ field: 'injected', message: 'mutated', severity: 'error' })
+
+  const second = validateMaterial(material)
+  assert(second.valid === true, 'Cached validation should remain valid')
+  assert(second.errors.length === 0, 'Cached result should not include injected errors')
+  assert(first !== second, 'Validator should return new result objects per call')
+})
+
 // Summary
 console.log('\n==================================================')
 console.log(`Results: ${passed} passed, ${failed} failed`)

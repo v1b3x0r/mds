@@ -9,8 +9,8 @@
  * - Backward compatibility checks
  */
 
-import type { MdsMaterial } from '../schema/mdspec'
-import { validateName } from './validator'
+import type { MdsMaterial } from '@mds/schema/mdspec'
+import { validateName } from '@mds/0-foundation/validator'
 
 export interface ValidationError {
   field: string
@@ -31,15 +31,49 @@ export interface ValidationOptions {
   strict?: boolean              // Fail on warnings
   requireSchema?: boolean       // Require $schema field
   minVersion?: string           // Minimum schema version (e.g., "5.0")
+  cache?: boolean               // Enable result caching (default: true)
 }
+
+const VALIDATION_CACHE = new Map<string, ValidationResult>()
 
 /**
  * Validate MDM material definition
  */
+function cloneValidationResult(result: ValidationResult): ValidationResult {
+  return {
+    valid: result.valid,
+    errors: result.errors.map(e => ({ ...e })),
+    warnings: result.warnings.map(w => ({ ...w }))
+  }
+}
+
+function freezeValidationResult(result: ValidationResult): ValidationResult {
+  const frozen: ValidationResult = {
+    valid: result.valid,
+    errors: result.errors.map(e => Object.freeze({ ...e })),
+    warnings: result.warnings.map(w => Object.freeze({ ...w }))
+  }
+  return Object.freeze(frozen)
+}
+
+function computeCacheKey(data: unknown, options: ValidationOptions): string | undefined {
+  try {
+    return JSON.stringify({ data, strict: options.strict, requireSchema: options.requireSchema, minVersion: options.minVersion })
+  } catch (error) {
+    console.warn('[mdm-validator] Failed to stringify material for cache:', error)
+    return undefined
+  }
+}
+
 export function validateMaterial(
   data: unknown,
   options: ValidationOptions = {}
 ): ValidationResult {
+  const useCache = options.cache !== false
+  const cacheKey = useCache ? computeCacheKey(data, options) : undefined
+  if (useCache && cacheKey && VALIDATION_CACHE.has(cacheKey)) {
+    return cloneValidationResult(VALIDATION_CACHE.get(cacheKey)!)
+  }
   const errors: ValidationError[] = []
   const warnings: ValidationError[] = []
 
@@ -189,8 +223,17 @@ export function validateMaterial(
   }
 
   // Final verdict
-  const valid = errors.length === 0 && (!options.strict || warnings.length === 0)
-  return { valid, errors, warnings }
+  const result: ValidationResult = {
+    valid: errors.length === 0 && (!options.strict || warnings.length === 0),
+    errors,
+    warnings
+  }
+
+  if (useCache && cacheKey) {
+    VALIDATION_CACHE.set(cacheKey, freezeValidationResult(result))
+  }
+
+  return useCache ? cloneValidationResult(result) : result
 }
 
 /**
