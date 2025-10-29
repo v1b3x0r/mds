@@ -9,10 +9,10 @@
  * - Three signal types: memory, emotion, pattern
  */
 
-import type { Entity } from '../../0-foundation/entity'
-import type { Memory } from '../../1-ontology/memory'
-import type { EmotionalState } from '../../1-ontology/emotion'
-import { resonate } from '../../1-ontology/emotion'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { Memory } from '@mds/1-ontology/memory'
+import type { EmotionalState } from '@mds/1-ontology/emotion'
+import { resonate } from '@mds/1-ontology/emotion'
 
 /**
  * Types of cognitive signals that can propagate

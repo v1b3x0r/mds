@@ -3,7 +3,7 @@
  * Helper functions for behavior rule processing
  */
 
-import type { MdsBehaviorRule } from '../schema/mdspec'
+import type { MdsBehaviorRule } from '@mds/schema/mdspec'
 
 /**
  * Parse time string to milliseconds

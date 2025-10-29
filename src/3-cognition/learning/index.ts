@@ -1,1 +1,1 @@
-export * from './q-learning'
+export * from '@mds/3-cognition/learning/q-learning'

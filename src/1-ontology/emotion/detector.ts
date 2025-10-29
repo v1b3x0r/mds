@@ -6,7 +6,7 @@
  * Supports backwards compatibility - .mdm files don't need explicit emotion field
  */
 
-import { EmotionalState, EMOTION_BASELINES } from './state'
+import { EmotionalState, EMOTION_BASELINES } from '@mds/1-ontology/emotion/state'
 
 /**
  * Thai emotion baselines (v5.8) - Comprehensive PAD coverage

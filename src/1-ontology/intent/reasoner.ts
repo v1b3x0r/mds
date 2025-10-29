@@ -10,12 +10,12 @@
  * - Relationship strength affects social intents
  */
 
-import type { Intent } from './intent'
-import type { Memory } from '../memory/buffer'
-import type { CrystalMemory } from '../memory/crystallization'
-import type { EmotionalState } from '../emotion/state'
-import type { RelationshipEntry } from '../relationships/bond'
-import { relationshipStrength } from '../relationships/bond'
+import type { Intent } from '@mds/1-ontology/intent/intent'
+import type { Memory } from '@mds/1-ontology/memory/buffer'
+import type { CrystalMemory } from '@mds/1-ontology/memory/crystallization'
+import type { EmotionalState } from '@mds/1-ontology/emotion/state'
+import type { RelationshipEntry } from '@mds/1-ontology/relationships/bond'
+import { relationshipStrength } from '@mds/1-ontology/relationships/bond'
 
 /**
  * Intent with reasoning metadata

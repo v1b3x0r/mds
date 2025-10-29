@@ -5,10 +5,10 @@
 
 export {
   CollectiveIntelligence
-} from './collective'
+} from '@mds/3-cognition/world-mind/collective'
 
 export type {
   WorldStats,
   EmergentPattern,
   PatternDetection
-} from './collective'
+} from '@mds/3-cognition/world-mind/collective'

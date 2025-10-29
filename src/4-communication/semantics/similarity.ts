@@ -1,4 +1,4 @@
-import type { Embedding } from './embeddings'
+import type { Embedding } from '@mds/4-communication/semantics/embeddings'
 
 /**
  * MDS v5 Phase 6 - Semantic Similarity System

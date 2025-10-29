@@ -8,6 +8,10 @@
     "declarationDir": "./dist",
     "emitDeclarationOnly": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@mds/*": ["src/*"]
+    },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,

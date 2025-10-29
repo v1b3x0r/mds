@@ -5,10 +5,10 @@
  * Extracted from Entity class to decouple rendering from logic
  */
 
-import type { Entity } from '../../0-foundation/entity'
-import type { Field } from '../../0-foundation/field'
-import { RendererAdapter, StateMapper } from './adapter'
-import { applyRule } from '../../0-foundation/events'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { Field } from '@mds/0-foundation/field'
+import { RendererAdapter, StateMapper } from '@mds/7-interface/render/adapter'
+import { applyRule } from '@mds/0-foundation/events'
 
 /**
  * DOM-based renderer

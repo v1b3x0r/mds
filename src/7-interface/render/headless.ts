@@ -10,9 +10,9 @@
  * - Performance benchmarking
  */
 
-import type { Entity } from '../../0-foundation/entity'
-import type { Field } from '../../0-foundation/field'
-import { RendererAdapter } from './adapter'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { Field } from '@mds/0-foundation/field'
+import { RendererAdapter } from '@mds/7-interface/render/adapter'
 
 /**
  * Headless renderer (no visual output)

@@ -3,11 +3,11 @@
  * Info-physics simulation engine with autonomous behavior
  */
 
-import type { MdsMaterial } from '../schema/mdspec'
-import type { MdsField as MdsFieldSpec } from '../schema/fieldspec'
-import { Entity } from './entity'
-import { Field } from './field'
-import { seededRandom } from '../0-foundation/random'
+import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsField as MdsFieldSpec } from '@mds/schema/fieldspec'
+import { Entity } from '@mds/0-foundation/entity'
+import { Field } from '@mds/0-foundation/field'
+import { seededRandom } from '@mds/0-foundation/random'
 
 export type BoundaryBehavior = 'none' | 'clamp' | 'bounce'
 

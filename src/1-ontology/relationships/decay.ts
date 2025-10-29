@@ -10,7 +10,7 @@
  * - Batch processing for efficient decay of multiple relationships
  */
 
-import type { Relationship, RelationshipEntry } from './bond'
+import type { Relationship, RelationshipEntry } from '@mds/1-ontology/relationships/bond'
 
 /**
  * Decay curve types

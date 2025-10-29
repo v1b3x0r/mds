@@ -9,7 +9,7 @@
  * - Salience determines retention probability
  */
 
-import type { Memory } from '../../1-ontology'
+import type { Memory } from '@mds/1-ontology'
 
 /**
  * Consolidated memory (merged from multiple similar memories)
@@ -222,22 +222,26 @@ export class MemoryConsolidation {
   /**
    * Serialize to JSON
    */
-  toJSON() {
+  toJSON(): MemoryConsolidationState {
     return {
-      consolidated: Array.from(this.consolidated.entries()),
+      config: { ...this.config },
+      memories: Array.from(this.consolidated.values()),
       lastConsolidation: this.lastConsolidation
     }
   }
 
-  /**
-   * Restore from JSON
-   */
-  static fromJSON(data: ReturnType<MemoryConsolidation['toJSON']>): MemoryConsolidation {
-    const system = new MemoryConsolidation()
-    system.consolidated = new Map(data.consolidated)
-    system.lastConsolidation = data.lastConsolidation
+  static fromJSON(state: MemoryConsolidationState): MemoryConsolidation {
+    const system = new MemoryConsolidation(state.config)
+    system.consolidated = new Map(state.memories.map(mem => [mem.id, { ...mem }]))
+    system.lastConsolidation = state.lastConsolidation ?? 0
     return system
   }
+}
+
+export interface MemoryConsolidationState {
+  config: Required<ConsolidationConfig>
+  memories: ConsolidatedMemory[]
+  lastConsolidation: number
 }
 
 /**

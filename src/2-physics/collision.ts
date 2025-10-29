@@ -9,7 +9,7 @@
  * - Elastic collision response
  */
 
-import type { Entity } from '../0-foundation/entity'
+import type { Entity } from '@mds/0-foundation/entity'
 
 /**
  * Axis-Aligned Bounding Box

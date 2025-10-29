@@ -4,18 +4,18 @@
  */
 
 // Memory
-export * from './memory/buffer'
-export * from './memory/consolidation'
-export * from './memory/crystallization'
+export * from '@mds/1-ontology/memory/buffer'
+export * from '@mds/1-ontology/memory/consolidation'
+export * from '@mds/1-ontology/memory/crystallization'
 
 // Emotion
-export * from './emotion/state'
-export * from './emotion/detector'
+export * from '@mds/1-ontology/emotion/state'
+export * from '@mds/1-ontology/emotion/detector'
 
 // Relationships
-export * from './relationships/bond'
-export * from './relationships/decay'
+export * from '@mds/1-ontology/relationships/bond'
+export * from '@mds/1-ontology/relationships/decay'
 
 // Intent
-export * from './intent/intent'
-export * from './intent/reasoner'
+export * from '@mds/1-ontology/intent/intent'
+export * from '@mds/1-ontology/intent/reasoner'

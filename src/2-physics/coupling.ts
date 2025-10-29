@@ -15,8 +15,8 @@
  * - Relationships → attraction/repulsion bias
  */
 
-import type { EmotionalState } from '../1-ontology/emotion'
-import type { Intent } from '../1-ontology/intent/intent'
+import type { EmotionalState } from '@mds/1-ontology/emotion'
+import type { Intent } from '@mds/1-ontology/intent/intent'
 
 /**
  * Physical properties that can be modulated by symbolic state

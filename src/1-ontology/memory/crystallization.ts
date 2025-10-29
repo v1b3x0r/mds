@@ -15,7 +15,7 @@
  * - Example: Multiple "interaction with X" → "X is a friend"
  */
 
-import type { Memory, MemoryType } from './buffer'
+import type { Memory, MemoryType } from '@mds/1-ontology/memory/buffer'
 
 /**
  * Crystallized memory - condensed pattern from multiple similar memories

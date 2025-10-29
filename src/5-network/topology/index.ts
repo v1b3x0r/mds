@@ -1,1 +1,1 @@
-export * from './small-world'
+export * from '@mds/5-network/topology/small-world'

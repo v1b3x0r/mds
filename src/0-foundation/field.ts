@@ -7,9 +7,9 @@
  * - Headless: Abstract influence (emotion, relationship, sync)
  */
 
-import type { MdsField } from '../schema/fieldspec'
-import type { Entity } from './entity'
-import { distance } from '../0-foundation/math'
+import type { MdsField } from '@mds/schema/fieldspec'
+import type { Entity } from '@mds/0-foundation/entity'
+import { distance } from '@mds/0-foundation/math'
 
 export class Field {
   // Field definition

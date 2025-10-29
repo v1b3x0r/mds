@@ -6,13 +6,13 @@
 export type {
   RendererAdapter,
   VisualStyle
-} from './adapter'
+} from '@mds/7-interface/render/adapter'
 
 export {
   StateMapper,
   lerp
-} from './adapter'
+} from '@mds/7-interface/render/adapter'
 
-export { DOMRenderer } from './dom'
-export { CanvasRenderer } from './canvas'
-export { HeadlessRenderer } from './headless'
+export { DOMRenderer } from '@mds/7-interface/render/dom'
+export { CanvasRenderer } from '@mds/7-interface/render/canvas'
+export { HeadlessRenderer } from '@mds/7-interface/render/headless'

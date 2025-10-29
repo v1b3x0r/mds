@@ -1,1 +1,1 @@
-export * from './generator'
+export * from '@mds/4-communication/language/generator'

@@ -3,6 +3,6 @@
  * Render, IO, Context
  */
 
-export * from './render'
-export * from './io'
-export * from './context'
+export * from '@mds/7-interface/render'
+export * from '@mds/7-interface/io'
+export * from '@mds/7-interface/context'

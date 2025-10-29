@@ -11,7 +11,7 @@
  * v5.2: Uses DialogueParticipant to avoid circular dependency with Entity
  */
 
-import type { DialogueParticipant } from '../types'
+import type { DialogueParticipant } from '@mds/4-communication/types'
 
 /**
  * Dialogue choice

@@ -9,8 +9,8 @@
  * - Energy conservation (total heat constant)
  */
 
-import type { Entity } from '../0-foundation/entity'
-import type { Environment } from './environment'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { Environment } from '@mds/2-physics/environment'
 
 /**
  * Energy transfer configuration

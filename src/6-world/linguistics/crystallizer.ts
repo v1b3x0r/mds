@@ -9,8 +9,8 @@
  * - Adds patterns to world lexicon
  */
 
-import type { TranscriptBuffer, Utterance } from './transcript'
-import type { WorldLexicon, LexiconEntry } from './lexicon'
+import type { TranscriptBuffer, Utterance } from '@mds/6-world/linguistics/transcript'
+import type { WorldLexicon, LexiconEntry } from '@mds/6-world/linguistics/lexicon'
 
 /**
  * Crystallizer configuration

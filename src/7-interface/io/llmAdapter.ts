@@ -3,8 +3,8 @@
  * Provides an optional OpenRouter-backed bridge with shared creator context.
  */
 
-import { DummyBridge, getLlmBridge, setLlmBridge, type LlmBridge } from './bridge-llm'
-import type { CreatorContext } from '../context/types'
+import { DummyBridge, getLlmBridge, setLlmBridge, type LlmBridge } from '@mds/7-interface/io/bridge-llm'
+import type { CreatorContext } from '@mds/7-interface/context/types'
 
 const DEFAULT_OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
 const DEFAULT_MODEL = 'openrouter/auto'

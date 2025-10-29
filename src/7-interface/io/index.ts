@@ -3,10 +3,10 @@
  * Loader, LLM bridge, and WorldFile persistence
  */
 
-export * from './loader'
-export * from './bridge-llm'
-export * from './llmAdapter'
-export * from './worldfile'
+export * from '@mds/7-interface/io/loader'
+export * from '@mds/7-interface/io/bridge-llm'
+export * from '@mds/7-interface/io/llmAdapter'
+export * from '@mds/7-interface/io/worldfile'
 
 // Type-only exports
-export type { WorldFile, SerializedEntity, SerializedField, SerializedRelationship } from './worldfile'
+export type { WorldFile, SerializedEntity, SerializedField, SerializedRelationship } from '@mds/7-interface/io/worldfile'

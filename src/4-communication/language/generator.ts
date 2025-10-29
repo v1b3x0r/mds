@@ -12,8 +12,8 @@
  * v5.2: Uses DialogueParticipant to avoid circular dependency with Entity
  */
 
-import type { DialogueParticipant } from '../types'
-import type { Message } from '../message/queue'
+import type { DialogueParticipant } from '@mds/4-communication/types'
+import type { Message } from '@mds/4-communication/message/queue'
 
 /**
  * Language generation config

@@ -14,7 +14,7 @@
 import os from 'os'
 import { execSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
-import { BaseContextProvider } from './ContextProvider'
+import { BaseContextProvider } from '@mds/7-interface/context/ContextProvider'
 
 export interface OSContextConfig {
   pollInterval?: number  // milliseconds (default: 10000)

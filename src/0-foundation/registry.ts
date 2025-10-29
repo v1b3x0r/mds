@@ -2,9 +2,9 @@
  * Material Definition System - Material Registry
  */
 
-import type { Material } from './types'
-import { validateName } from './validator'
-import { deepMerge } from './utils'
+import type { Material } from '@mds/0-foundation/types'
+import { validateName } from '@mds/0-foundation/validator'
+import { deepMerge } from '@mds/0-foundation/utils'
 
 /**
  * Registry for storing and resolving materials

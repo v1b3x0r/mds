@@ -3,7 +3,7 @@
  * Load material definitions from .mdm files (Material Definition)
  */
 
-import type { MdsMaterial } from '../../schema/mdspec'
+import type { MdsMaterial } from '@mds/schema/mdspec'
 
 /**
  * Load a material from a .mdm file (Material Definition)

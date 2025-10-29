@@ -8,10 +8,10 @@
  * - State-driven rendering (visual computed from entity state)
  */
 
-import type { Entity } from '../../0-foundation/entity'
-import type { Field } from '../../0-foundation/field'
-import { emotionToColor, emotionToHex } from '../../1-ontology/emotion'
-import type { Intent } from '../../1-ontology'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { Field } from '@mds/0-foundation/field'
+import { emotionToColor, emotionToHex } from '@mds/1-ontology/emotion'
+import type { Intent } from '@mds/1-ontology'
 
 /**
  * Visual style computed from entity state

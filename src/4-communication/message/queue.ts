@@ -11,7 +11,7 @@
  * v5.2: Uses MessageParticipant interface to avoid circular dependency with Entity
  */
 
-import type { MessageParticipant } from '../types'
+import type { MessageParticipant } from '@mds/4-communication/types'
 
 /**
  * Message types

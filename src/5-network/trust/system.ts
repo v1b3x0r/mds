@@ -9,7 +9,7 @@
  * - Essential for realistic minds
  */
 
-import type { MemoryType } from '../../1-ontology/memory'
+import type { MemoryType } from '@mds/1-ontology/memory'
 
 /**
  * Share policy levels

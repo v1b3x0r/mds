@@ -9,7 +9,7 @@
  * - Affects entity physics and behavior
  */
 
-import { lerp } from '../0-foundation/math'
+import { lerp } from '@mds/0-foundation/math'
 
 /**
  * Environment gradient configuration

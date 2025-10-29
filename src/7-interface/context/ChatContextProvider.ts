@@ -18,7 +18,7 @@
  * ```
  */
 
-import { BaseContextProvider } from './ContextProvider'
+import { BaseContextProvider } from '@mds/7-interface/context/ContextProvider'
 
 export class ChatContextProvider extends BaseContextProvider {
   name = 'chat'

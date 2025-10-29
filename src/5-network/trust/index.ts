@@ -1,1 +1,1 @@
-export * from './system'
+export * from '@mds/5-network/trust/system'

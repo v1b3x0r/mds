@@ -1,2 +1,2 @@
-export * from './similarity'
-export * from './embeddings'
+export * from '@mds/4-communication/semantics/similarity'
+export * from '@mds/4-communication/semantics/embeddings'

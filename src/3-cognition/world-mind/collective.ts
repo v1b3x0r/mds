@@ -9,8 +9,8 @@
  * - Global memory (shared knowledge)
  */
 
-import type { Entity } from '../../0-foundation/entity'
-import type { EmotionalState } from '../../1-ontology'
+import type { Entity } from '@mds/0-foundation/entity'
+import type { EmotionalState } from '@mds/1-ontology'
 
 /**
  * World statistics

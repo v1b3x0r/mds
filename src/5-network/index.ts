@@ -3,6 +3,6 @@
  * P2P, Trust, Topology
  */
 
-export * from './p2p'
-export * from './trust'
-export * from './topology'
+export * from '@mds/5-network/p2p'
+export * from '@mds/5-network/trust'
+export * from '@mds/5-network/topology'

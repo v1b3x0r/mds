@@ -3,8 +3,8 @@
  * Material World - Environment, Collision, Energy, Weather
  */
 
-export * from './environment'
-export * from './collision'
-export * from './energy'
-export * from './weather'
-export * from './coupling'
+export * from '@mds/2-physics/environment'
+export * from '@mds/2-physics/collision'
+export * from '@mds/2-physics/energy'
+export * from '@mds/2-physics/weather'
+export * from '@mds/2-physics/coupling'

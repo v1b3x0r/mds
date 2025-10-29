@@ -3,9 +3,9 @@
  * Mind & Learning
  */
 
-export * from './learning'
-export * from './skills'
-export * from './world-mind'
+export * from '@mds/3-cognition/learning'
+export * from '@mds/3-cognition/skills'
+export * from '@mds/3-cognition/world-mind'
 
 // Re-export P2P Cognition from Network layer (v5.5)
-export * from '../5-network'
+export * from '@mds/5-network'

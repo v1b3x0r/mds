@@ -9,7 +9,7 @@
  * - Eventual consistency (realistic imperfect recall)
  */
 
-import type { Memory, MemoryType } from '../../1-ontology/memory'
+import type { Memory, MemoryType } from '@mds/1-ontology/memory'
 
 /**
  * Vector clock for causality tracking
