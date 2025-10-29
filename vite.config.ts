@@ -6,6 +6,11 @@ const base = isGhPages ? '/mds/' : '/'
 
 export default defineConfig({
   base,
+  resolve: {
+    alias: {
+      '@mds': resolve(__dirname, 'src')
+    }
+  },
   build: {
     emptyOutDir: process.env.BUILD_TARGET ? false : true,  // Only clear on main build
     lib: process.env.BUILD_TARGET === 'validator'
