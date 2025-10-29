@@ -37,7 +37,7 @@ User Message
 
 ### Key Components
 
-#### 1. **PatternSynthesizer** (`hi-introvert/src/runtime/PatternSynthesizer.ts`)
+#### 1. **PatternSynthesizer** (`apps/hi-introvert/src/runtime/PatternSynthesizer.ts`)
 
 **Purpose:** Extract and recombine conversation patterns from world transcript.
 
@@ -92,7 +92,7 @@ new PatternSynthesizer({
 
 #### 2. **Integration with ChatRuntime**
 
-**Location:** `hi-introvert/src/apps/hi-introvert/ChatRuntime.ts:408-431`
+**Location:** `apps/hi-introvert/src/apps/hi-introvert/ChatRuntime.ts:408-431`
 
 ```typescript
 // Update patterns from world transcript
@@ -125,7 +125,7 @@ if (synthesizedResponse) {
 
 ## ✅ Test Results
 
-### Test: `hi-introvert/tests/test-pattern-synthesis.mjs`
+### Test: `apps/hi-introvert/tests/test-pattern-synthesis.mjs`
 
 **Scenario:** Teacher demonstrates 8 conversation patterns → Student observes → Student synthesizes responses
 
@@ -368,7 +368,7 @@ console.log(`Best pattern:`, stats.bestPattern)
 - **MemoryBuffer** (`src/1-ontology/memory/buffer.ts`)
   Stores personal experiences (enhanced with `keywords` for semantic retrieval)
 
-- **EchoSystem** (`hi-introvert/src/apps/hi-introvert/EchoSystem.ts`)
+- **EchoSystem** (`apps/hi-introvert/src/apps/hi-introvert/EchoSystem.ts`)
   Inner voice rehearsal (accelerates pattern learning by 5x)
 
 ---

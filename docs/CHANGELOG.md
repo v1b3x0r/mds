@@ -77,7 +77,7 @@ A human-readable history of what changed and why it matters.
 - Generates response dynamically from memory content (not hardcoded dialogue)
 
 **Bundle Size**
-- hi-introvert: 106.92 KB (+0.13 KB) — minimal overhead for name extraction
+- apps/hi-introvert: 106.92 KB (+0.13 KB) — minimal overhead for name extraction
 
 ⸻
 

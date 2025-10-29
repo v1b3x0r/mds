@@ -46,7 +46,7 @@ Thumbs.db
 .cache/
 \n# Runtime sessions & world logs
 sessions/
-hi-introvert/sessions/
+apps/hi-introvert/sessions/
 **/*.world.mdm
 **/*.ndjson
-hi-introvert/sessions/world_log.json
+apps/hi-introvert/sessions/world_log.json
