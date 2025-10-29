@@ -28,6 +28,7 @@ import {
   createRelationship,
   relationshipStrength
 } from '@v1b3x0r/mds-core'
+import { mapTextToPAD } from '@v1b3x0r/mds-core'
 import { ContextAnalyzer } from './session/ContextAnalyzer'
 import { MemoryPromptBuilder } from './session/MemoryPromptBuilder'
 import { GrowthTracker } from './session/GrowthTracker'
@@ -171,7 +172,7 @@ export class ChatRuntime extends MDSRuntime {
     this.companionLoader = companionLoader
     this.echoSystem = new EchoSystem({
       enabled: true,
-      echoCount: 5,      // Echo 5 times per phrase (strong rehearsal!)
+      echoCount: 1,      // Echo 1 time per phrase (strong rehearsal!)
       minPhraseLength: 3
     })
     this.synthesizer = new PatternSynthesizer({
@@ -492,10 +493,32 @@ export class ChatRuntime extends MDSRuntime {
     const now = Date.now()
     const silenceDuration = this.lastMessageTime ? (now - this.lastMessageTime) / 1000 : 0
 
-    this.world.broadcastContext({
-      'user.message': message,
-      'user.silence': silenceDuration
+    const semantic = mapTextToPAD(message, {
+      scale: 1,
+      diminishing: 0.6,
+      cap: { valence: 0.18, arousal: 0.18, dominance: 0.12 }
     })
+
+    const contextPayload: Record<string, any> = {
+      'user.message': message,
+      'user.silence': silenceDuration,
+      'semantic.source': this.user.id
+    }
+
+    if (Math.abs(semantic.delta.valence) > 0) {
+      contextPayload['emotion.delta.valence'] = semantic.delta.valence
+    }
+    if (Math.abs(semantic.delta.arousal) > 0) {
+      contextPayload['emotion.delta.arousal'] = semantic.delta.arousal
+    }
+    if (Math.abs(semantic.delta.dominance) > 0) {
+      contextPayload['emotion.delta.dominance'] = semantic.delta.dominance
+    }
+    if (semantic.tags.length > 0) {
+      contextPayload['semantic.tags'] = semantic.tags
+    }
+
+    this.world.broadcastContext(contextPayload)
 
     // Log user utterance immediately
     if (this.loggingEnabled && this.worldRecorder) {

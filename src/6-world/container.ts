@@ -1041,6 +1041,7 @@ export class World {
 
     for (const entity of this.entities) {
       entity.updateTriggerContext(context)
+      entity.applyExternalEmotionDelta(context, this.worldTime)
       entity.checkEmotionTriggers()
     }
 

@@ -181,6 +181,14 @@ export class Entity implements MessageParticipant {
   private behaviorEmotionActions?: Map<string, BehaviorEmotionAction>
   private behaviorEventActions?: Map<string, BehaviorEventAction>
   private emotionStates?: Map<string, EmotionStateDefinition>
+  private baselineEmotion: { valence: number; arousal: number; dominance: number } = { valence: 0, arousal: 0.5, dominance: 0.5 }
+  private emotionalResilience = 0.3
+  private emotionExposure = {
+    positive: [] as number[],
+    negative: [] as number[],
+    lastPositive: 0,
+    lastNegative: 0
+  }
 
   // v5.6: Autonomous behavior flag
   private _isAutonomous: boolean = false
@@ -253,6 +261,9 @@ export class Entity implements MessageParticipant {
     // Initialize info-physics properties (v4.2: use provided RNG)
     this.entropy = rng()
     this.energy = rng()
+    // v6.7: Slight individuality in emotional resilience (0.2 - 0.6)
+    const rawResilience = 0.2 + rng() * 0.4
+    this.emotionalResilience = clamp(rawResilience, 0.1, 0.75)
 
     // Override opacity if specified
     if (m.manifestation?.aging?.start_opacity !== undefined) {
@@ -933,6 +944,116 @@ export class Entity implements MessageParticipant {
     this.triggerContext = { ...this.triggerContext, ...context }
   }
 
+  applyExternalEmotionDelta(context: Record<string, any>, worldTime: number): void {
+    if (!this.emotion) return
+
+    const dv = typeof context['emotion.delta.valence'] === 'number' ? context['emotion.delta.valence'] : 0
+    const da = typeof context['emotion.delta.arousal'] === 'number' ? context['emotion.delta.arousal'] : 0
+    const dd = typeof context['emotion.delta.dominance'] === 'number' ? context['emotion.delta.dominance'] : 0
+
+    if (Math.abs(dv) + Math.abs(da) + Math.abs(dd) === 0) {
+      return
+    }
+
+    const tagsRaw = context['semantic.tags']
+    const tags: string[] = Array.isArray(tagsRaw)
+      ? tagsRaw.filter((tag): tag is string => typeof tag === 'string')
+      : typeof tagsRaw === 'string'
+        ? [tagsRaw]
+        : []
+
+    this.applyReflectiveDelta({ valence: dv, arousal: da, dominance: dd }, tags, worldTime)
+  }
+
+  private applyReflectiveDelta(delta: { valence: number; arousal: number; dominance: number }, tags: string[], worldTime: number): void {
+    if (!this.emotion) return
+
+    const magnitude = Math.abs(delta.valence) + Math.abs(delta.arousal) + Math.abs(delta.dominance)
+    if (magnitude === 0) return
+
+    const baseline = this.baselineEmotion ?? { valence: 0, arousal: 0.5, dominance: 0.5 }
+    const corridorValence = 0.12
+    const corridorArousal = 0.1
+    const corridorDominance = 0.1
+
+    let scale = 1
+
+    const nearBaselineValence = Math.abs(this.emotion.valence - baseline.valence) < corridorValence
+    const nearBaselineArousal = Math.abs(this.emotion.arousal - baseline.arousal) < corridorArousal
+    const nearBaselineDominance = Math.abs((typeof this.emotion.dominance === 'number' ? this.emotion.dominance : 0.5) - baseline.dominance) < corridorDominance
+
+    if (nearBaselineValence && Math.abs(delta.valence) < 0.05) {
+      scale *= 0.25
+    }
+
+    if (nearBaselineArousal && Math.abs(delta.arousal) < 0.04) {
+      scale *= 0.35
+    }
+
+    const exposures = this.emotionExposure
+    const windowSeconds = 8
+    exposures.positive = exposures.positive.filter(t => worldTime - t <= windowSeconds)
+    exposures.negative = exposures.negative.filter(t => worldTime - t <= windowSeconds)
+
+    if (delta.valence > 0.0001) {
+      exposures.positive.push(worldTime)
+      const repeatFactor = Math.max(0.25, 1 - (exposures.positive.length - 1) * 0.22)
+      scale *= repeatFactor
+      const refractory = 6
+      if (exposures.lastPositive && worldTime - exposures.lastPositive < refractory) {
+        scale *= 0.35
+      }
+      exposures.lastPositive = worldTime
+    } else if (delta.valence < -0.0001) {
+      exposures.negative.push(worldTime)
+      const repeatFactor = Math.max(0.3, 1 - (exposures.negative.length - 1) * 0.18)
+      scale *= repeatFactor
+      const refractory = 6
+      if (exposures.lastNegative && worldTime - exposures.lastNegative < refractory) {
+        scale *= 0.4
+      }
+      exposures.lastNegative = worldTime
+    }
+
+    if (tags.includes('praise')) {
+      scale *= 0.8
+    }
+
+    if (tags.includes('criticism')) {
+      scale *= 0.9
+    }
+
+    if (tags.includes('high_arousal')) {
+      scale *= 0.85
+    }
+
+    const dominanceNearBaseline = nearBaselineDominance && Math.abs(delta.dominance) < 0.04
+    if (dominanceNearBaseline) {
+      scale *= 0.4
+    }
+
+    const resilience = clamp(this.emotionalResilience, 0, 0.95)
+    scale *= (1 - resilience)
+
+    if (scale <= 0) return
+
+    const applyValence = clamp(this.emotion.valence + delta.valence * scale, -1, 1)
+    const applyArousal = clamp(this.emotion.arousal + delta.arousal * scale, 0, 1)
+    const currentDominance = typeof this.emotion.dominance === 'number' ? this.emotion.dominance : 0.5
+    const applyDominance = clamp(currentDominance + delta.dominance * scale, 0, 1)
+
+    this.emotion.valence = applyValence
+    this.emotion.arousal = applyArousal
+    this.emotion.dominance = applyDominance
+
+    this.triggerContext['emotion.last_delta'] = {
+      valence: delta.valence * scale,
+      arousal: delta.arousal * scale,
+      dominance: delta.dominance * scale,
+      tags
+    }
+  }
+
   private applyBaselineEmotion(m: MdsMaterial, parsed: ParsedMaterialConfig): void {
     const baseStateName = m.emotion?.base_state
 
@@ -951,7 +1072,14 @@ export class Entity implements MessageParticipant {
       if (this.emotion) {
         this.triggerContext['emotion.state'] = this.triggerContext['emotion.state'] ?? 'neutral'
       }
+      this.baselineEmotion = { valence: 0, arousal: 0.5, dominance: 0.5 }
       return
+    }
+
+    this.baselineEmotion = {
+      valence: vector.valence ?? 0,
+      arousal: vector.arousal ?? 0.5,
+      dominance: vector.dominance ?? 0.5
     }
 
     if (!this.emotion) {

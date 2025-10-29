@@ -217,6 +217,12 @@ export type {
   BaseSimilarityProvider
 } from '@mds/4-communication/semantics'
 
+export {
+  mapTextToPAD
+} from '@mds/4-communication/semantics/pad-mapper'
+
+export type { PADMappingOptions } from '@mds/4-communication/semantics/pad-mapper'
+
 // Coupling (v5.2 Phase 2.3)
 export type {
   PhysicalProperties,
