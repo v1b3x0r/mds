@@ -21,6 +21,15 @@ export interface CrystallizerConfig {
   minUsage: number          // Minimum occurrences to crystallize (default: 3)
   minLength: number         // Minimum phrase length (default: 2 chars)
   maxLength: number         // Maximum phrase length (default: 100 chars)
+  /**
+   * Warm-up support (lower threshold for first N ticks)
+   */
+  warmUpTicks?: number
+  warmUpMinUsage?: number
+  /**
+   * Chance to coin a new combined term from co-occurring phrases in the same batch (0..1)
+   */
+  coiningChance?: number
 }
 
 /**
@@ -37,7 +46,10 @@ export class LinguisticCrystallizer {
       analyzeEvery: config.analyzeEvery ?? 50,
       minUsage: config.minUsage ?? 3,
       minLength: config.minLength ?? 2,
-      maxLength: config.maxLength ?? 100
+      maxLength: config.maxLength ?? 100,
+      warmUpTicks: config.warmUpTicks ?? 0,
+      warmUpMinUsage: config.warmUpMinUsage ?? Math.max(1, (config.minUsage ?? 3) - 1),
+      coiningChance: config.coiningChance ?? 0
     }
   }
 
@@ -74,6 +86,30 @@ export class LinguisticCrystallizer {
     for (const pattern of patterns) {
       lexicon.add(pattern)
     }
+
+    // Optional: coining combined terms from frequent patterns in this batch
+    if ((this.config.coiningChance ?? 0) > 0 && patterns.length >= 2) {
+      const chance = Math.max(0, Math.min(1, this.config.coiningChance!))
+      if (Math.random() < chance) {
+        // pick two top patterns and coin a combined term
+        const sorted = [...patterns].sort((a,b) => (b.usageCount ?? 0) - (a.usageCount ?? 0))
+        const a = sorted[0], b = sorted[1]
+        const coined = `${a.term} ${b.term}`.trim().toLowerCase()
+        if (coined.length >= this.config.minLength && coined.length <= this.config.maxLength) {
+          lexicon.add({
+            term: coined,
+            meaning: `Coined from '${a.term}' + '${b.term}'`,
+            origin: a.origin,
+            category: 'coined',
+            usageCount: (a.usageCount ?? 1) + (b.usageCount ?? 1),
+            lastUsed: Date.now(),
+            firstSeen: Date.now(),
+            relatedTerms: [a.term, b.term],
+            emotionContext: { valence: 0, arousal: 0.6 }
+          })
+        }
+      }
+    }
   }
 
   /**
@@ -88,6 +124,11 @@ export class LinguisticCrystallizer {
   private detectLocalPatterns(
     utterances: Utterance[]
   ): Omit<LexiconEntry, 'weight' | 'decayRate'>[] {
+    // Determine effective threshold (warm-up lowers minUsage)
+    const effectiveMin = (this.config.warmUpTicks && this.tickCount < this.config.warmUpTicks)
+      ? Math.max(1, this.config.warmUpMinUsage ?? 1)
+      : this.config.minUsage
+
     const phrases = new Map<
       string,
       {
@@ -135,7 +176,7 @@ export class LinguisticCrystallizer {
     const results: Omit<LexiconEntry, 'weight' | 'decayRate'>[] = []
 
     for (const [phrase, data] of phrases.entries()) {
-      if (data.count >= this.config.minUsage) {
+      if (data.count >= effectiveMin) {
         // Calculate average emotion
         const avgEmotion = data.emotions.reduce(
           (acc, e) => ({

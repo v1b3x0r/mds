@@ -211,6 +211,11 @@ export interface WorldOptions {
   meta?: {
     adaptiveTime?: boolean
     timeDilationStrength?: number  // 0..1 (default 0.2)
+    /**
+     * Micro random drift applied to emotions each tick to avoid flatlines.
+     * 0 = off (default). Typical 0.01–0.05.
+     */
+    microDriftStrength?: number
   }
 }
 
@@ -1150,6 +1155,16 @@ export class World {
         const baseline = EMOTION_BASELINES.neutral
         const driftRate = 0.01 * dt
         entity.emotion = driftToBaseline(entity.emotion, baseline, driftRate)
+
+        // v6.7: Micro-drift (optional) to prevent long flatlines in homogeneous groups
+        const micro = Math.max(0, Math.min(1, this.options.meta?.microDriftStrength ?? 0))
+        if (micro > 0) {
+          const jitter = (scale: number) => (Math.random() - 0.5) * 2 * scale
+          entity.emotion.valence = Math.max(-1, Math.min(1, entity.emotion.valence + jitter(0.01 * micro)))
+          entity.emotion.arousal = Math.max(0, Math.min(1, entity.emotion.arousal + jitter(0.01 * micro)))
+          const dom = typeof entity.emotion.dominance === 'number' ? entity.emotion.dominance : 0.5
+          entity.emotion.dominance = Math.max(0, Math.min(1, dom + jitter(0.01 * micro)))
+        }
       }
 
       // Phase 5: Emotion-Physics coupling (if physics enabled)
