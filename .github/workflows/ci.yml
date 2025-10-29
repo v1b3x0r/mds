@@ -21,7 +21,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefer-offline
 
       - name: Type check
         run: npm run type-check
@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefer-offline
 
       - name: Core tests
         run: npm run test
@@ -72,7 +72,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefer-offline
 
       - name: Build packages
         run: npm run build
