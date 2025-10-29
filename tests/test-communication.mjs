@@ -8,7 +8,9 @@ import {
   DialogueManager, DialogueBuilder, createNode, createChoice,
   LanguageGenerator, createMockGenerator,
   SemanticSimilarity, createMockSemantic,
-  jaccardSimilarity, levenshteinSimilarity
+  jaccardSimilarity, levenshteinSimilarity,
+  Entity,
+  getDialoguePhrase
 } from '../dist/mds-core.esm.js'
 
 console.log('🧪 MDS v5 Phase 6 - Communication System Tests\n')
@@ -160,6 +162,42 @@ assert(jaccardSim > 0.5, 'Jaccard similarity: Character overlap')
 // Levenshtein similarity
 const levenSim = levenshteinSimilarity('kitten', 'sitting')
 assert(levenSim > 0 && levenSim < 1, 'Levenshtein similarity: Edit distance')
+
+console.log('')
+
+// ===== LANGUAGE FALLBACK =====
+console.log('🌐 Language Fallback Tests')
+console.log('─'.repeat(60))
+
+const parsedVariants = [
+  { lang: { ja: ['こんにちは'], es: ['hola'] } },
+  { lang: { ja: ['やあ'], es: ['buenas'] } }
+]
+
+const parsedDialogue = {
+  intro: parsedVariants,
+  self_monologue: [],
+  events: new Map(),
+  categories: new Map([['intro', parsedVariants]])
+}
+
+const phraseFromParser = getDialoguePhrase(parsedDialogue, 'intro', 'th')
+assert(['こんにちは', 'やあ'].includes(phraseFromParser), 'getDialoguePhrase should prefer Japanese before defaulting to English')
+
+const fallbackMaterial = {
+  material: 'test.dialogue.fallback',
+  manifestation: { emoji: '💬' },
+  dialogue: {
+    intro: [
+      { lang: { ja: 'こんにちは', es: 'hola' } },
+      { lang: { ja: 'やあ', es: 'buenas' } }
+    ]
+  }
+}
+
+const fallbackEntity = new Entity(fallbackMaterial, 0, 0, () => 0.5, { skipDOM: true })
+const spoken = fallbackEntity.speakFromDialogue('intro', 'th')
+assert(['こんにちは', 'やあ'].includes(spoken), 'Entity.speakFromDialogue should honour shared fallback priority')
 
 console.log('')
 

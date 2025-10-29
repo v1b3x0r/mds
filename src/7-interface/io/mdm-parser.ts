@@ -13,9 +13,65 @@ import type {
   MdsSkillsConfig,
   MdsRelationshipsConfig,
   MdsMemoryConfig,
-  MdsStateConfig
-} from '../../schema/mdspec'
-import { MULTILINGUAL_TRIGGERS } from './trigger-keywords'
+  MdsStateConfig,
+  LangText
+} from '@mds/schema/mdspec'
+import { MULTILINGUAL_TRIGGERS } from '@mds/7-interface/io/trigger-keywords'
+import {
+  detectEmotionFromText,
+  detectAllEmotions,
+  blendMultipleEmotions
+} from '@mds/1-ontology/emotion/detector'
+import { LANGUAGE_FALLBACK_PRIORITY } from '@mds/0-foundation/language'
+
+function resolveLangValue(value: LangText | undefined, preference: string[]): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+
+  const order: string[] = [...preference]
+  for (const code of LANGUAGE_FALLBACK_PRIORITY) {
+    if (!order.includes(code)) {
+      order.push(code)
+    }
+  }
+
+  for (const code of order) {
+    const text = value[code]
+    if (typeof text === 'string' && text.trim().length > 0) {
+      return text
+    }
+  }
+
+  for (const text of Object.values(value)) {
+    if (typeof text === 'string' && text.trim().length > 0) {
+      return text
+    }
+  }
+
+  return ''
+}
+
+function deriveLanguagePreference(material: MdsMaterial): string[] {
+  const preference: string[] = []
+  const push = (code?: string) => {
+    if (code && !preference.includes(code)) {
+      preference.push(code)
+    }
+  }
+
+  push(material.languageProfile?.native)
+  push(material.nativeLanguage)
+
+  if (material.languageProfile?.weights) {
+    const sorted = Object.entries(material.languageProfile.weights)
+      .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+    for (const [code] of sorted) {
+      push(code)
+    }
+  }
+
+  return preference
+}
 
 /**
  * Parsed dialogue phrases by category and language
@@ -84,7 +140,7 @@ export interface ParsedMaterialConfig {
   memoryFlags: ParsedMemoryFlag[]
   stateMachine?: ParsedStateConfig
   emotionStates?: Map<string, EmotionStateDefinition>
-  baselineEmotion?: import('../../1-ontology/emotion').EmotionalState  // v5.8: Auto-detected from essence/dialogue
+  baselineEmotion?: import('@mds/1-ontology/emotion').EmotionalState  // v5.8: Auto-detected from essence/dialogue
 }
 
 export interface ParsedMemoryBinding {
@@ -477,36 +533,27 @@ export class MdmParser {
  */
 export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
   const parser = new MdmParser()
+  const languagePreference = deriveLanguagePreference(material)
 
   // v5.8: Auto-detect emotion from essence/dialogue (Thai/English keywords)
-  let baselineEmotion: import('../../1-ontology/emotion').EmotionalState | undefined
+  let baselineEmotion: import('@mds/1-ontology/emotion').EmotionalState | undefined
 
-  // Try importing emotion detector (may not be available in all contexts)
-  try {
-    const { detectEmotionFromText, detectAllEmotions, blendMultipleEmotions } = require('../ontology/emotion-detector')
+  const essenceText = resolveLangValue(material.essence, languagePreference)
+  if (essenceText) {
+    const detectedEmotion = detectEmotionFromText(essenceText)
+    if (detectedEmotion) {
+      baselineEmotion = detectedEmotion
+    }
 
-    // Detect from essence
-    if (material.essence) {
-      const essenceText = typeof material.essence === 'string'
-        ? material.essence
-        : material.essence.th || material.essence.en || ''
+    if (material.dialogue?.intro) {
+      const introTexts = material.dialogue.intro.map((phrase: any) => {
+        if (typeof phrase === 'string') return phrase
+        return resolveLangValue(phrase?.lang as LangText | undefined, languagePreference)
+      }).join(' ')
 
-      const detectedEmotion = detectEmotionFromText(essenceText)
-      if (detectedEmotion) {
-        baselineEmotion = detectedEmotion
-      }
-
-      // Also check dialogue for additional emotional context
-      if (material.dialogue?.intro) {
-        const introTexts = material.dialogue.intro.map((d: any) => {
-          if (typeof d === 'string') return d
-          if (d.lang) return d.lang.th || d.lang.en || ''
-          return ''
-        }).join(' ')
-
+      if (introTexts.length > 0) {
         const dialogueEmotion = detectEmotionFromText(introTexts)
 
-        // Blend with essence emotion if both exist
         if (dialogueEmotion && baselineEmotion) {
           const emotions = detectAllEmotions(`${essenceText} ${introTexts}`)
           baselineEmotion = blendMultipleEmotions(emotions) || baselineEmotion
@@ -515,8 +562,6 @@ export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
         }
       }
     }
-  } catch (err) {
-    // Emotion detector not available - skip auto-detection
   }
 
   return {
@@ -552,9 +597,21 @@ export function getDialoguePhrase(
   category: 'intro' | 'self_monologue' | string,
   lang?: string,
   languageWeights?: Record<string, number>,
-  context: TriggerContext = {}
+  context: TriggerContext = {},
+  languagePreference: string[] = []
 ): string | undefined {
-  const targetLang = lang || detectLanguage()
+  const fallbackOrder: string[] = []
+
+  const push = (code?: string) => {
+    if (code && !fallbackOrder.includes(code)) {
+      fallbackOrder.push(code)
+    }
+  }
+
+  push(lang)
+  for (const pref of languagePreference) push(pref)
+  push(detectLanguage())
+  for (const code of LANGUAGE_FALLBACK_PRIORITY) push(code)
 
   const variants = dialogue.categories.get(category)
     || (category === 'intro' ? dialogue.intro
@@ -598,16 +655,13 @@ export function getDialoguePhrase(
     }
     const selectedLang = selectLanguageByWeight(languageWeights, availableLangs)
     if (selectedLang) {
-      phrases = selectLangPhrases(selectedLang)
+      push(selectedLang)
     }
   }
 
-  if (!phrases) {
-    phrases = selectLangPhrases(targetLang)
-  }
-
-  if (!phrases) {
-    phrases = selectLangPhrases('en')
+  for (const code of fallbackOrder) {
+    phrases = selectLangPhrases(code)
+    if (phrases) break
   }
 
   if (!phrases) {

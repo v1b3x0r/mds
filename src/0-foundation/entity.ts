@@ -10,10 +10,11 @@
  * - Relationships (bond graph)
  */
 
-import type { MdsMaterial } from '../schema/mdspec'
-import type { ProximityCallback } from './types'  // v5.2: Break circular dependency
-import { clamp } from './math'
-import { applyRule } from './events'
+import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { ProximityCallback } from '@mds/0-foundation/types'  // v5.2: Break circular dependency
+import { clamp } from '@mds/0-foundation/math'
+import { applyRule } from '@mds/0-foundation/events'
+import { LANGUAGE_FALLBACK_PRIORITY } from '@mds/0-foundation/language'
 
 // v5 ontology imports (optional features)
 import {
@@ -25,26 +26,26 @@ import {
   Relationship,
   applyEmotionalDelta,
   EMOTION_BASELINES
-} from '../1-ontology'
+} from '@mds/1-ontology'
 
 // v5 Phase 6: Communication imports
-import type { MessageQueue, DialogueState, Message, MessageType, MessagePriority } from '../4-communication'
-import type { MessageParticipant } from '../4-communication/types'  // v5.2: For type compatibility
-import { MessageQueue as MsgQueue, createMessage } from '../4-communication'
+import type { MessageQueue, DialogueState, Message, MessageType, MessagePriority } from '@mds/4-communication'
+import type { MessageParticipant } from '@mds/4-communication/types'  // v5.2: For type compatibility
+import { MessageQueue as MsgQueue, createMessage } from '@mds/4-communication'
 
 // v5 Phase 7: Cognitive imports
-import type { MemoryConsolidation } from '../1-ontology/memory/consolidation'
+import type { MemoryConsolidation } from '@mds/1-ontology/memory/consolidation'
 import {
   LearningSystem as LearningSystemImpl,
   SkillSystem as SkillSystemImpl
-} from '../3-cognition'
-import { MemoryConsolidation as MemoryConsolidationImpl } from '../1-ontology/memory/consolidation'
+} from '@mds/3-cognition'
+import { MemoryConsolidation as MemoryConsolidationImpl } from '@mds/1-ontology/memory/consolidation'
 
 // v5.5: P2P Cognition imports
-import type { CognitiveLink } from '../5-network/p2p/cognitive-link'
-import { CognitiveLinkManager } from '../5-network/p2p/cognitive-link'
-import type { CognitiveSignal } from '../5-network/p2p/resonance'
-import type { MemoryType } from '../1-ontology/memory/buffer'
+import type { CognitiveLink } from '@mds/5-network/p2p/cognitive-link'
+import { CognitiveLinkManager } from '@mds/5-network/p2p/cognitive-link'
+import type { CognitiveSignal } from '@mds/5-network/p2p/resonance'
+import type { MemoryType } from '@mds/1-ontology/memory/buffer'
 
 // v5.1: Declarative config parser
 import {
@@ -52,7 +53,7 @@ import {
   getDialoguePhrase,
   replacePlaceholders,
   evaluateConditionExpression
-} from '../7-interface/io/mdm-parser'
+} from '@mds/7-interface/io/mdm-parser'
 import type {
   TriggerContext,
   ParsedMemoryBinding,
@@ -60,7 +61,7 @@ import type {
   ParsedStateConfig,
   ParsedMaterialConfig,
   EmotionStateDefinition
-} from '../7-interface/io/mdm-parser'
+} from '@mds/7-interface/io/mdm-parser'
 
 export interface EntityWorldBridge {
   broadcastEvent: (type: string, payload?: any) => void
@@ -165,9 +166,9 @@ export class Entity implements MessageParticipant {
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
 
   // v5.1: Declarative config (from heroblind.mdm)
-  private dialoguePhrases?: import('../7-interface/io/mdm-parser').ParsedDialogue
-  private emotionTriggers?: import('../7-interface/io/mdm-parser').EmotionTrigger[]
-  private triggerContext: import('../7-interface/io/mdm-parser').TriggerContext = {}
+  private dialoguePhrases?: import('@mds/7-interface/io/mdm-parser').ParsedDialogue
+  private emotionTriggers?: import('@mds/7-interface/io/mdm-parser').EmotionTrigger[]
+  private triggerContext: import('@mds/7-interface/io/mdm-parser').TriggerContext = {}
   private memoryBindings?: ParsedMemoryBinding[]
   private memoryFlags?: ParsedMemoryFlag[]
   private memoryFlagState?: Map<string, { expiry?: number }>
@@ -215,9 +216,23 @@ export class Entity implements MessageParticipant {
       return this.m.essence
     }
 
-    // If essence is LangText, extract first available language
-    const langText = this.m.essence as any
-    return langText.en || langText.th || langText.ja || langText.es || langText.zh || undefined
+    const langRecord = this.m.essence as Record<string, string | undefined>
+    const preference = this.getLanguagePreferenceOrder()
+
+    for (const code of preference) {
+      const text = langRecord[code]
+      if (typeof text === 'string' && text.trim().length > 0) {
+        return text
+      }
+    }
+
+    for (const value of Object.values(langRecord)) {
+      if (typeof value === 'string' && value.trim().length > 0) {
+        return value
+      }
+    }
+
+    return undefined
   }
 
   attachWorldBridge(bridge: EntityWorldBridge): void {
@@ -547,7 +562,7 @@ export class Entity implements MessageParticipant {
    */
   remember(memory: {
     timestamp: number
-    type: import('../1-ontology').MemoryType
+    type: import('@mds/1-ontology').MemoryType
     subject: string
     content?: any
     salience?: number
@@ -742,7 +757,8 @@ export class Entity implements MessageParticipant {
    */
   speak(category?: string, lang?: string): string | undefined {
     // v5.7: Entity chooses language autonomously
-    const selectedLang = lang || this.nativeLanguage || 'en'
+    const preference = this.getLanguagePreferenceOrder(lang)
+    const selectedLang = preference[0] ?? 'en'
 
     // Get phrase with language weights (entity autonomy)
     let phrase: string | undefined
@@ -753,13 +769,14 @@ export class Entity implements MessageParticipant {
         category || 'intro',
         selectedLang,
         this.languageWeights,
-        this.triggerContext
+        this.triggerContext,
+        preference
       )
     }
 
     // v5.8: Built-in fallback - cute default personality when .mdm has no dialogue
     if (!phrase) {
-      phrase = this.getBuiltInDialogue(category || 'intro', selectedLang)
+      phrase = this.getBuiltInDialogue(category || 'intro', selectedLang, preference)
     }
 
     // v5.7: Replace placeholders
@@ -787,7 +804,7 @@ export class Entity implements MessageParticipant {
    * v5.8: Built-in dialogue fallback - cute default personality
    * Returns variety of phrases based on emotion state
    */
-  private getBuiltInDialogue(category: string, lang: string): string {
+  private getBuiltInDialogue(category: string, lang: string, preference: string[]): string {
     const emotion = this.emotion
     const valence = emotion?.valence || 0
     const arousal = emotion?.arousal || 0.5
@@ -849,16 +866,64 @@ export class Entity implements MessageParticipant {
       else fallbackCategory = 'thinking'                                    // Neutral state
     }
 
-    const key = `${fallbackCategory}_${lang}`
-    const phrases = builtIn[key]
-
-    if (!phrases || phrases.length === 0) {
-      // Ultimate fallback
-      return lang === 'th' ? '...' : '...'
+    const order = [...preference]
+    const push = (code?: string) => {
+      if (code && !order.includes(code)) {
+        order.push(code)
+      }
     }
 
-    // Random selection
+    push(lang)
+    for (const code of this.getLanguagePreferenceOrder()) {
+      push(code)
+    }
+
+    let phrases: string[] | undefined
+
+    for (const code of order) {
+      const bucket = builtIn[`${fallbackCategory}_${code}`]
+      if (bucket && bucket.length > 0) {
+        phrases = bucket
+        break
+      }
+    }
+
+    if (!phrases || phrases.length === 0) {
+      phrases = builtIn[`${fallbackCategory}_en`] || builtIn.unknown
+    }
+
+    if (!phrases || phrases.length === 0) {
+      return '...'
+    }
+
     return phrases[Math.floor(Math.random() * phrases.length)]
+  }
+
+  private getLanguagePreferenceOrder(primary?: string): string[] {
+    const order: string[] = []
+    const push = (code?: string) => {
+      if (code && !order.includes(code)) {
+        order.push(code)
+      }
+    }
+
+    push(primary)
+    push(this.nativeLanguage)
+    push(this.m.languageProfile?.native)
+
+    if (this.languageWeights) {
+      const sorted = Object.entries(this.languageWeights)
+        .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+      for (const [code] of sorted) {
+        push(code)
+      }
+    }
+
+    for (const code of LANGUAGE_FALLBACK_PRIORITY) {
+      push(code)
+    }
+
+    return order
   }
 
   /**
@@ -1698,8 +1763,29 @@ export class Entity implements MessageParticipant {
     const phrases = this.getDialogue(context)
     if (phrases.length === 0) return ''
 
-    const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)]
-    return randomPhrase.lang[lang] || randomPhrase.lang['en'] || ''
+    const languageOrder = this.getLanguagePreferenceOrder(lang)
+
+    for (const code of languageOrder) {
+      const candidates = phrases
+        .map(variant => variant.lang[code])
+        .filter((text): text is string => typeof text === 'string' && text.length > 0)
+
+      if (candidates.length > 0) {
+        const index = Math.floor(Math.random() * candidates.length)
+        return candidates[index]
+      }
+    }
+
+    for (const variant of phrases) {
+      const fallback = Object.values(variant.lang).find(
+        (text): text is string => typeof text === 'string' && text.length > 0
+      )
+      if (fallback) {
+        return fallback
+      }
+    }
+
+    return ''
   }
 
   // v5.4: Reflection API
