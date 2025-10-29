@@ -204,6 +204,14 @@ export interface WorldOptions {
    * Auto-register context providers (Phase 3)
    */
   contextProviders?: ContextProviderRegistration[]
+
+  /**
+   * Meta-behavior options (adaptive time, etc.)
+   */
+  meta?: {
+    adaptiveTime?: boolean
+    timeDilationStrength?: number  // 0..1 (default 0.2)
+  }
 }
 
 /**
@@ -310,8 +318,9 @@ export class World {
   // Phase 8: World mind (optional)
   private worldStats?: WorldStats
   private patterns: PatternDetection[] = []
-  private statsUpdateInterval: number = 1000 // Update stats every 1 second
-  private lastStatsUpdate: number = 0
+  // v6.7: Analytics by simulation ticks (deterministic in sandbox)
+  private statsUpdateIntervalTicks: number = 60  // ~1 sec at 60 FPS
+  private lastStatsTick: number = 0
 
   // Phase 9 / v5.5: P2P Cognition (optional)
   cognitiveNetwork?: import('@mds/3-cognition').CognitiveNetwork
@@ -879,30 +888,41 @@ export class World {
    * Phase 4: Rendering (v5 renderer delegation)
    */
   tick(dt: number): void {
-    this.worldTime += dt
+    // v6.7: Optional adaptive time dilation based on collective emotion
+    let effectiveDt = dt
+    if (this.options.meta?.adaptiveTime) {
+      const col = this.cachedCollectiveEmotion ?? { valence: 0, arousal: 0.5, dominance: 0.5 }
+      const arousalEnergy = Math.abs(col.arousal - 0.5) * 2  // 0..1
+      const valenceTension = Math.min(1, Math.abs(col.valence))
+      const energy = Math.min(1, (arousalEnergy * 0.7 + valenceTension * 0.3))
+      const k = Math.max(0, Math.min(1, this.options.meta?.timeDilationStrength ?? 0.2))
+      effectiveDt = dt * (1 + k * (energy - 0.2))
+    }
+
+    this.worldTime += effectiveDt
     this.tickCount++
 
     // Phase 1: Physical update (v4 delegation)
-    this.engine.tick(dt)
+    this.engine.tick(effectiveDt)
 
     // Phase 1.5: Environmental Physics (Phase 5 - if enabled)
     if (this.options.features?.physics) {
-      this.updatePhysics(dt)
+      this.updatePhysics(effectiveDt)
     }
 
     // Phase 2: Mental update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
-      this.updateMental(dt)
+      this.updateMental(effectiveDt)
     }
 
     // Phase 2.5: Communication update (Phase 6 - if enabled)
     if (this.options.features?.communication) {
-      this.updateCommunication(dt)
+      this.updateCommunication(effectiveDt)
     }
 
     // Phase 3: Relational update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
-      this.updateRelational(dt)
+      this.updateRelational(effectiveDt)
     }
 
     for (const entity of this.entities) {
@@ -910,13 +930,13 @@ export class World {
         entity.pruneDeclarativeState(this.worldTime)
       }
       if (typeof entity.updateBehaviorTimers === 'function') {
-        entity.updateBehaviorTimers(dt, this.worldTime)
+        entity.updateBehaviorTimers(effectiveDt, this.worldTime)
       }
     }
 
     // Phase 3.5: Cognitive update (Phase 7 - if enabled)
     if (this.options.features?.cognitive) {
-      this.updateCognitive(dt)
+      this.updateCognitive(effectiveDt)
     }
 
     // Phase 4: World mind update (Phase 8 - statistics & patterns)
@@ -934,18 +954,18 @@ export class World {
     } else {
       // Per-entity rendering (DOM)
       for (const entity of this.entities) {
-        this.renderer.update(entity, dt)
+        this.renderer.update(entity, effectiveDt)
       }
 
       // Update fields if renderer supports it
       if (this.renderer.updateField) {
         for (const field of this.fields) {
-          this.renderer.updateField(field, dt)
+          this.renderer.updateField(field, effectiveDt)
         }
       }
     }
 
-    this.emit('tick', { time: this.worldTime, dt })
+    this.emit('tick', { time: this.worldTime, dt: effectiveDt })
   }
 
   /**
@@ -1347,14 +1367,12 @@ export class World {
    * - Detect emergent patterns
    */
   private updateWorldMind(): void {
-    const now = Date.now()
-
-    // Update stats at intervals (not every tick)
-    if (now - this.lastStatsUpdate >= this.statsUpdateInterval) {
+    // v6.7: Deterministic analytics update by simulation ticks
+    if ((this.tickCount - this.lastStatsTick) >= this.statsUpdateIntervalTicks) {
       this.worldStats = CollectiveIntelligence.calculateStats(this.entities)
       this.patterns = CollectiveIntelligence.detectPatterns(this.entities)
       this.cachedCollectiveEmotion = CollectiveIntelligence.calculateCollectiveEmotion(this.entities)
-      this.lastStatsUpdate = now
+      this.lastStatsTick = this.tickCount
 
       this.emit('analytics', {
         stats: this.worldStats,

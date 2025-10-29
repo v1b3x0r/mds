@@ -103,6 +103,11 @@ export interface EmotionTrigger {
   to: string
   intensity: number
   expression?: string
+  /**
+   * Optional stochastic gate [0..1]. If provided, trigger fires with this probability.
+   * Defaults to 1 (deterministic) for backward compatibility.
+   */
+  chance?: number
 }
 
 export interface EmotionStateDefinition {

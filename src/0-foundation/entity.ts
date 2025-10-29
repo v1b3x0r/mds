@@ -1186,6 +1186,12 @@ export class Entity implements MessageParticipant {
         continue
       }
 
+      // Stochastic gate (v6.7): allow probabilistic responses to avoid over-determinism
+      if (typeof (trigger as any).chance === 'number') {
+        const chance = Math.max(0, Math.min(1, (trigger as any).chance))
+        if (Math.random() > chance) continue
+      }
+
       const target = this.resolveEmotionVector(trigger.to)
       const intensity = clamp(trigger.intensity ?? 1, 0, 1)
 
