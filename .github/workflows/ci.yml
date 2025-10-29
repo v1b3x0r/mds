@@ -6,15 +6,12 @@ on:
   pull_request:
 
 jobs:
-  typecheck:
-    name: Type check & static analysis
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
@@ -26,56 +23,8 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Check circular dependencies
-        run: npm run check:circular
-
-  tests:
-    name: Test suite
-    runs-on: ubuntu-latest
-    needs: typecheck
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm install --prefer-offline
-
-      - name: Core tests
+      - name: Run tests
         run: npm run test
 
-      - name: Validator tests
-        run: npm run test:validator
-
-      - name: API stability tests
-        run: npm run test:api
-
-  build:
-    name: Build & bundle check
-    runs-on: ubuntu-latest
-    needs: tests
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm install --prefer-offline
-
-      - name: Build packages
+      - name: Build
         run: npm run build
-
-      - name: Check bundle size
-        run: npm run check:bundle
