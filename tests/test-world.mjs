@@ -260,6 +260,83 @@ test('World backward compatible with Engine API', () => {
   assert(entityEngine.m.material === entityWorld.m.material, 'Both should have same material')
 })
 
+// Test 11: Context provider registration and disposal
+test('Context provider immediate run and disposal', () => {
+  const world = new World({ features: { rendering: 'headless' } })
+  let contextEvents = 0
+
+  const unsubscribe = world.on('context', payload => {
+    contextEvents++
+    assert(payload.context['test.value'] === 42, 'Context value should match provider output')
+  })
+
+  const provider = {
+    name: 'test-provider',
+    getContext: () => ({ 'test.value': 42 })
+  }
+
+  const dispose = world.registerContextProvider(provider, { interval: 100000, immediate: true })
+  dispose()
+  dispose() // Idempotent
+  unsubscribe()
+  world.destroy()
+
+  assert(contextEvents === 1, 'Context provider should emit exactly once on immediate run')
+})
+
+// Test 12: World constructor auto-registers context providers
+test('World options auto-register context providers', () => {
+  let invoked = 0
+  const provider = {
+    name: 'ctor-provider',
+    getContext: () => {
+      invoked++
+      return { 'ctor.value': invoked }
+    },
+    dispose: () => {
+      invoked = -999 // Marker to verify dispose called
+    }
+  }
+
+  const world = new World({
+    features: { rendering: 'headless' },
+    contextProviders: [
+      {
+        provider,
+        interval: 100000,
+        immediate: true
+      }
+    ]
+  })
+
+  assert(invoked === 1, 'Provider should run immediately upon registration')
+  world.destroy()
+  assert(invoked === -999, 'Provider.dispose should be called during destroy')
+})
+
+// Test 13: Nested broadcastContext calls are queued safely
+test('broadcastContext handles nested calls without reentrancy', () => {
+  const world = new World()
+  const contexts = []
+
+  const unsubscribe = world.on('context', payload => {
+    contexts.push({ ...payload.context })
+    if (!payload.context['nested']) {
+      world.broadcastContext({ nested: true })
+    }
+  })
+
+  world.broadcastContext({ initial: true })
+  unsubscribe()
+  world.destroy()
+
+  assert(contexts.length === 2, 'Should emit twice (initial + nested)')
+  assert(contexts[0].initial === true, 'Initial context value recorded')
+  assert(contexts[1].nested === true, 'Nested context value recorded')
+  const snapshot = contexts[contexts.length - 1]
+  assert(snapshot.initial === true, 'Final snapshot should retain initial value')
+})
+
 // Summary
 console.log('\n' + '='.repeat(50))
 console.log(`Results: ${passCount} passed, ${failCount} failed`)
