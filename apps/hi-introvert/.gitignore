@@ -1,7 +1,0 @@
-node_modules/
-dist/
-bun.lockb
-.env
-.hi-introvert-session.world
-.hi-introvert-session.json
-*.log
