@@ -4,6 +4,193 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.9.0] — Material Pressure System (Phase 1)
+
+📅 2025-10-30
+
+⸻
+
+🎯 Added
+
+**Resource Needs**
+- `needs` property on Entity — resource requirements (water, food, energy)
+- Needs deplete over time at configurable `depletionRate`
+- Critical needs trigger emotional impact (PAD model)
+- Complete needs API:
+  - `entity.updateNeeds(dt, worldTime)` — automatic depletion
+  - `entity.getNeed(id)` — get need state
+  - `entity.satisfyNeed(id, amount)` — fulfill need
+  - `entity.isCritical(id)` — check if need < threshold
+  - `entity.getCriticalNeeds()` — get all critical needs
+  - `entity.getNeedsSnapshot()` — get all need levels
+  - `entity.speakAboutNeeds()` — generate need-based utterance
+
+**Spatial Resource Fields**
+- `ResourceField` system with 3 distribution types:
+  - **Point** source: well at (x, y)
+  - **Area** source: oasis rectangle
+  - **Gradient** source: lake with distance falloff
+- Fields regenerate and deplete naturally over time
+- World methods:
+  - `world.addResourceField(config)` — add field to world
+  - `world.getResourceIntensity(type, x, y)` — get intensity at position
+  - `world.consumeResource(type, x, y, amount)` — consume from field
+  - `world.findNearestResourceField(x, y, type)` — find closest field
+
+**Emotional Climate (World-Mind)**
+- `EmotionalClimate` system tracks collective emotion:
+  - `grief`: accumulated loss (0..1)
+  - `vitality`: life force (0..1)
+  - `tension`: collective stress (0..1)
+  - `harmony`: collective peace (0..1)
+- Climate influences all entities automatically
+- World methods:
+  - `world.recordEntityDeath(entity, intensity)` — record death
+  - `world.getEmotionalClimate()` — get current state
+- CollectiveIntelligence methods:
+  - `recordDeath()`, `recordBirth()`, `recordSuffering()`
+  - `updateEmotionalClimate(dt)` — natural decay
+  - `getClimateInfluence()` — calculate PAD delta
+  - `describeClimate()` — human-readable description
+
+**Emergent Language (Needs → Lexicon)**
+- Entities automatically speak when needs are critical
+- Speech varies by severity:
+  - **Desperate** (>80% depleted): "Water..." "Dying of thirst"
+  - **Urgent** (>50% depleted): "I need water" "Looking for water"
+  - **Moderate**: "Getting thirsty" "Could use some water"
+- Multilingual support (English, Thai)
+- Utterances crystallize into world lexicon over time
+- Speech recorded in transcript buffer
+
+**Desert Survival Demo**
+- `demos/desert-survival.mjs` — 3 entities competing for water
+- Scenario: harsh desert, 1 limited water well
+- Features: resource competition, death, climate evolution
+- Result: All 3 travelers die, world develops grief
+
+✨ Improved
+
+**World Tick Loop**
+- Phase 1.6: Resource fields update (depletion/regeneration)
+- Phase 1.6b: Entity needs update (automatic depletion)
+- Phase 1.6c: Suffering recorded when needs critical
+- Climate decay and entity influence integrated
+
+**Schema**
+- `MdsNeedsConfig` interface for declarative needs
+- `MdsNeedConfig` for individual resource requirements
+- Support for `emotionalImpact` on critical needs
+
+⸻
+
+📦 Bundle Size
+
+- **Full**: 359.66 KB (+16.54 KB) — 88.30 KB gzipped
+- **Lite**: 266.80 KB (+9.73 KB) — 67.15 KB gzipped
+- **Validator**: 25.86 KB (unchanged) — 4.38 KB gzipped
+
+⸻
+
+🧪 Tests
+
+**27 new tests (100% pass)**
+- `needs-system.test.mjs` (6 tests) — needs depletion, satisfaction, critical state
+- `resource-field.test.mjs` (8 tests) — point/area/gradient sources, consumption, regeneration
+- `needs-lexicon-integration.test.mjs` (5 tests) — emergent speech, crystallization
+- `emotional-climate.test.mjs` (8 tests) — death → grief, climate decay, entity influence
+
+**Total: 192 tests (all passing)**
+
+⸻
+
+⚙️ Technical Details
+
+**Needs System Flow**
+```
+1. Entity spawned with needs config
+2. World.tick() → entity.updateNeeds(dt)
+3. Water depletes 1.5% per second
+4. When water < 30% → critical state
+5. Critical → emotional impact (valence -0.6, arousal +0.4)
+6. Critical → entity speaks ("Need water!")
+7. Speech → transcript → lexicon crystallization
+```
+
+**Resource Field Consumption**
+```
+1. Entity position (x, y)
+2. world.getResourceIntensity('water', x, y) → 0.8
+3. world.consumeResource('water', x, y, 0.3) → 0.3 consumed
+4. Field intensity depletes: 1.0 → 0.7
+5. entity.satisfyNeed('water', 0.3) → water +30%
+```
+
+**Emotional Climate Flow**
+```
+1. Entity dies → world.recordEntityDeath(entity, 0.9)
+2. Climate.grief increases: 0 → 0.45
+3. Climate.vitality decreases: 0.5 → 0.23
+4. World.tick() → updateEmotionalClimate()
+5. Climate influence calculated: PAD delta
+6. All entities.feel(climateDelta) → collective emotion
+```
+
+⸻
+
+🎬 Philosophy
+
+**"Emotional Climate ที่ Evolve เอง"** — The world now "remembers" death and suffering. When entities die, grief spreads across all survivors. When entities suffer from critical needs, tension builds. This creates an evolving emotional atmosphere that no single entity controls. It's collective emotion emerging from individual experiences.
+
+**Cultivation Pattern**
+- Describe needs → survival behavior emerges
+- Multiple entities → competition emerges
+- Death → collective grief emerges
+- Suffering → emotional climate emerges
+
+No if-statements. No central control. Just local rules → global patterns.
+
+⸻
+
+📝 Design Notes
+
+**Why Needs + Climate?**
+- Traditional games: hardcode "if HP < 20% then panic"
+- MDS: describe resource depletion → emotion changes → speech emerges → world remembers
+- Result: Living worlds that feel loss, not just track stats
+
+**Why Spatial Resources?**
+- Traditional: global resource pool
+- MDS: resources exist at (x, y), deplete locally, regenerate slowly
+- Result: Competition emerges, entities must move/strategize
+
+**Why Emergent Speech?**
+- Traditional: hardcoded dialogue tree
+- MDS: internal state (thirst) → auto-generate utterance → lexicon forms
+- Result: Vocabulary reflects world pressures (desert → "water...", "กระหายน้ำมาก")
+
+⸻
+
+🌍 Use Cases
+
+- 🎮 **Games** with survival mechanics (hunger, thirst, exhaustion)
+- 🏫 **Education** (ecosystems, resource competition, tragedy of the commons)
+- 🔬 **Research** (agent-based models, emergent cooperation vs competition)
+- 🎨 **Art** (emotional systems, collective grief installations)
+- 📖 **Interactive stories** where environment drives narrative
+
+⸻
+
+🔗 Related Commits
+
+- `8b601ed` — Task 1.1: Needs system
+- `0211643` — Task 1.2: ResourceField
+- `af6c49c` — Task 1.3: Needs → Lexicon
+- `30793a7` — Task 1.4 & 1.5: Emotional climate
+- `d40dea6` — Demo: Desert survival
+
+⸻
+
 [7.1.0] — World Observability Hooks
 
 📅 2025-11-02
