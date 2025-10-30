@@ -175,7 +175,7 @@ test('Critical needs create suffering in emotional climate', () => {
     }
   })
 
-  const entity = world.spawn({
+  world.spawn({
     $schema: 'v5',
     essence: 'Thirsty Being',
     needs: {
