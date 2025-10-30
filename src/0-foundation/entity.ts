@@ -2248,17 +2248,17 @@ export class Entity implements MessageParticipant {
     // Generate utterance based on language and severity
     const severity = 1 - lowestLevel  // 0..1 (higher = more critical)
 
-    // Need phrases by language
+    // Need phrases by language (use {resource} placeholder)
     const phrases: Record<string, Record<string, string[]>> = {
       en: {
-        desperate: ['Water...', 'Need water', 'So thirsty', 'Water please', 'Dying of thirst'],
-        urgent: ['I need water', 'Looking for water', 'Need to find water', 'Water nearby?'],
-        moderate: ['Getting thirsty', 'Could use some water', 'Water would be nice']
+        desperate: ['{resource}...', 'Need {resource}', 'Need {resource} now', '{resource} please', 'Must have {resource}'],
+        urgent: ['I need {resource}', 'Looking for {resource}', 'Need to find {resource}', '{resource} nearby?'],
+        moderate: ['Getting low on {resource}', 'Could use some {resource}', '{resource} would be nice']
       },
       th: {
-        desperate: ['น้ำ...', 'ต้องการน้ำ', 'กระหายน้ำมาก', 'ขอน้ำด้วย', 'กำลังจะตาย'],
-        urgent: ['ฉันต้องการน้ำ', 'กำลังหาน้ำ', 'ต้องหาน้ำ', 'มีน้ำแถวนี้ไหม?'],
-        moderate: ['เริ่มกระหายน้ำ', 'อยากได้น้ำ', 'น้ำก็ดีนะ']
+        desperate: ['{resource}...', 'ต้องการ{resource}', 'ต้องการ{resource}มาก', 'ขอ{resource}ด้วย', 'ต้องการ{resource}ด่วน'],
+        urgent: ['ฉันต้องการ{resource}', 'กำลังหา{resource}', 'ต้องหา{resource}', 'มี{resource}แถวนี้ไหม?'],
+        moderate: ['เริ่มต้องการ{resource}', 'อยากได้{resource}', '{resource}ก็ดีนะ']
       }
     }
 
@@ -2281,17 +2281,11 @@ export class Entity implements MessageParticipant {
       return selectedLang === 'th' ? `ต้องการ${mostCritical}` : `Need ${mostCritical}`
     }
 
-    // Pick random phrase from category and replace 'water' with actual resource name
+    // Pick random phrase from category and replace {resource} placeholder
     let phrase = categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)]
 
-    // Replace 'water' or 'น้ำ' with actual resource name
-    phrase = phrase.replace(/water/gi, mostCritical)
-    phrase = phrase.replace(/น้ำ/g, mostCritical)
-
-    // If phrase doesn't contain the resource name yet, append it
-    if (!phrase.toLowerCase().includes(mostCritical.toLowerCase())) {
-      phrase = `${phrase}... ${mostCritical}`
-    }
+    // Replace {resource} placeholder with actual resource name
+    phrase = phrase.replace(/\{resource\}/g, mostCritical)
 
     return phrase
   }
