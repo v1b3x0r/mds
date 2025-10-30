@@ -9,6 +9,7 @@
 ### Core Identity
 
 **MDS (Material Definition System)** is an **info-physics engine** where JSON entities have:
+- **Needs** (water, food, energy — deplete over time, drive behavior)
 - Memory (remembers interactions, decays over time)
 - Emotion (PAD model: Pleasure-Arousal-Dominance)
 - Relationships (forms bonds, tracks history)
@@ -86,15 +87,15 @@ Result: **NPC remembers. Forever.** No manual state management.
 
 ---
 
-## 3. CURRENT STATE — v5.3.0 (Production Ready)
+## 3. CURRENT STATE — v5.9.0 (Production Ready)
 
 ### Bundle Size
 
-- **Full bundle:** 186.74 KB (43.17 KB gzipped)
-- **Lite bundle:** 120.42 KB (27.87 KB gzipped) — core only, no LLM
+- **Full bundle:** 359.66 KB (gzipped) — includes Phase 1: Material Pressure System
+- **Lite bundle:** 266.80 KB (gzipped) — core only, no LLM
 - **Validator:** 17.25 KB (3.19 KB gzipped) — dev/test helper
 
-### Core Systems (8 Phases)
+### Core Systems
 
 1. **Ontology** — Memory (Ebbinghaus decay), Emotion (PAD), Relationships, Intent
 2. **World Container** — Three-phase tick (Physical → Mental → Relational)
@@ -104,6 +105,13 @@ Result: **NPC remembers. Forever.** No manual state management.
 6. **Communication** — Message queue, dialogue trees, LLM generation
 7. **Cognition** — Learning (Q-learning), pattern detection, skill proficiency
 8. **World Mind** — Collective intelligence, population statistics, emergent patterns
+
+### Phase 1: Material Pressure System (v5.9)
+
+- **Resource Needs** — Entities have needs (water, food, energy) that deplete over time
+- **Resource Fields** — Spatial resource distribution (point/area/gradient sources)
+- **Emotional Climate** — World remembers death, tracks collective grief/vitality/tension/harmony
+- **Emergent Language** — Entities speak about needs, utterances crystallize into lexicon
 
 ### Advanced Ontology Systems (Phase 2)
 
@@ -128,8 +136,40 @@ Result: **NPC remembers. Forever.** No manual state management.
 import { World } from '@v1b3x0r/mds-core'
 
 const world = new World()
-const entity = world.spawn({ essence: 'Ghost' }, 100, 100)
+const entity = world.spawn({ essence: 'Ghost' }, { x: 100, y: 100 })
 // Entity exists, has emotion, can age, can form relationships
+```
+
+### Entity with Needs (Phase 1)
+
+```javascript
+const world = new World({ features: { ontology: true, linguistics: true }})
+
+const traveler = world.spawn({
+  essence: 'Thirsty traveler',
+  needs: {
+    resources: [{ id: 'water', depletionRate: 0.01, criticalThreshold: 0.3 }]
+  }
+}, { x: 100, y: 100 })
+
+// Add water source
+world.addResourceField({
+  id: 'well',
+  resourceType: 'water',
+  type: 'point',
+  position: { x: 250, y: 250 },
+  intensity: 1.0
+})
+
+// Simulate
+world.tick(1)
+
+// Check needs
+if (traveler.isCritical('water')) {
+  const utterance = traveler.speakAboutNeeds()  // "I need water"
+  const consumed = world.consumeResource('water', traveler.x, traveler.y, 0.3)
+  traveler.satisfyNeed('water', consumed)
+}
 ```
 
 ### Full-Featured Entity (v5.3 Unified API)
@@ -154,9 +194,9 @@ const npc = world.spawn({
   dialogue: {
     intro: [{ lang: { en: 'What do you want?', th: 'ต้องการอะไร?' }}]
   }
-}, 200, 200)
+}, { x: 200, y: 200 })
 
-// v5.3 Unified API (replaces old enableMemory, enableLearning, etc.)
+// Unified API (replaces old enableMemory, enableLearning, etc.)
 npc.enable('memory', 'learning', 'relationships')
 
 // NPC now:
@@ -223,10 +263,38 @@ const world = new World({
 
 ```javascript
 // ✅ CORRECT
-world.spawn(material, x, y)
+world.spawn(material, { x, y })
 
-// ❌ WRONG
-world.spawn(material, { x, y })  // Common mistake in docs
+// ❌ WRONG (old signature, deprecated)
+world.spawn(material, x, y)
+```
+
+### Phase 1: Needs API (v5.9)
+
+```javascript
+// Check needs
+entity.getNeed('water')           // Get need object
+entity.isCritical('water')        // Check if < threshold
+entity.getCriticalNeeds()         // Get all critical need IDs
+entity.speakAboutNeeds()          // Generate utterance ("I need water")
+entity.satisfyNeed('water', 0.3)  // Drink water (+30%)
+
+// Resource fields
+world.addResourceField({
+  id: 'well',
+  resourceType: 'water',
+  type: 'point',
+  position: { x: 200, y: 200 },
+  intensity: 1.0
+})
+
+world.consumeResource('water', x, y, 0.3)  // Consume from field
+world.findNearestResourceField(x, y, 'water')  // Find nearest
+
+// Emotional climate
+world.recordEntityDeath(entity, 0.9)  // Record death
+const climate = world.getEmotionalClimate()  // Get climate
+// climate.grief, climate.vitality, climate.tension, climate.harmony
 ```
 
 ---
@@ -244,7 +312,7 @@ world.spawn(material, { x, y })  // Common mistake in docs
 
 **Verification Checklist:**
 
-1. Check bundle size impact (must stay ≤ 200 KB for full bundle)
+1. Check bundle size impact (aim to keep growth minimal)
 2. Verify all tests pass (`npm test`)
 3. Update docs if API changed (REFERENCE.md, README.md)
 4. Update CHANGELOG.md if version bump needed
@@ -260,8 +328,8 @@ npm test               # All 192 tests must pass
 npm run type-check     # TypeScript validation
 ```
 
-**Expected output:**
-- Build: 186.74 KB (full), 120.42 KB (lite), 17.25 KB (validator)
+**Expected output (v5.9):**
+- Build: 359.66 KB (full), 266.80 KB (lite), 17.25 KB (validator)
 - Tests: 192 pass, 0 fail
 - Types: No errors
 
@@ -278,19 +346,22 @@ npm run type-check     # TypeScript validation
 
 ## 7. VERSION SUMMARY — Current Only
 
-**Current Version:** v5.5.0 (2025-10-25)
+**Current Version:** v5.9.0 (2025-10-30)
 
-**Key Changes:**
-- P2P Cognition systems (ResonanceField, CognitiveLink, MemoryLog CRDT)
-- Small-World Network topology (Watts-Strogatz model, k=8, p=0.2)
-- Trust & Privacy system (share policies, reputation, deception capability)
-- Emotional resonance (`resonate()` function for emotional contagion)
-- 88 new tests for distributed intelligence (100% pass)
+**Key Changes (Phase 1: Material Pressure System):**
+- **Resource Needs** — Entities have needs (water, food, energy) that deplete over time
+- **Resource Fields** — Spatial resource distribution (point/area/gradient sources)
+- **Emotional Climate** — World remembers death, tracks collective grief/vitality/tension/harmony
+- **Emergent Language** — Entities speak about needs, utterances crystallize into lexicon
+- **Desert Demo** — 3 entities competing for limited water (all die, climate shifts)
+- **27 new tests** for Phase 1 features (192 total, 100% pass)
 
-**Full history:** See [CHANGELOG.md](docs/meta/CHANGELOG.md)
+**Philosophy:** "Emotional Climate ที่ Evolve เอง" — World remembers suffering and death, collective emotion emerges from individual experiences.
 
-**Migration from v5.4:** Automatic. Zero breaking changes. All new APIs are additive.
+**Full history:** See [CHANGELOG.md](docs/CHANGELOG.md)
+
+**Migration from v5.8:** Automatic. Zero breaking changes. All new APIs are additive.
 
 ---
 
-**Last Updated:** 2025-10-25 | **Project Status:** Production Ready | **Bundle:** ~221 KB
+**Last Updated:** 2025-10-30 | **Project Status:** Production Ready | **Bundle:** ~360 KB
