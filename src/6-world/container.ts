@@ -62,6 +62,15 @@ import type { CrystallizerConfig } from '@mds/6-world/linguistics/crystallizer'
 import { ProtoLanguageGenerator } from '@mds/6-world/linguistics/proto-language'
 import type { ContextProvider } from '@mds/7-interface/context'
 
+// Phase 1: Resource field system (v5.9)
+import type { ResourceField } from '@mds/6-world/resources/field'
+import {
+  updateResourceField,
+  getIntensityAt,
+  consumeFrom,
+  findNearestField
+} from '@mds/6-world/resources/field'
+
 export interface WorldContextProviderConfig {
   provider: ContextProvider
   /**
@@ -352,6 +361,9 @@ export class World {
     activePatterns: 0,    // patterns used recently
     emotionalDensity: 0   // avg emotional intensity (arousal)
   }
+
+  // Phase 1: Resource fields (v5.9 - Material Pressure System)
+  resourceFields = new Map<string, ResourceField>()
 
   // Options
   options: WorldOptions
@@ -930,6 +942,9 @@ export class World {
     if (this.options.features?.physics) {
       this.updatePhysics(effectiveDt)
     }
+
+    // Phase 1.6: Resource Fields (Phase 1 / v5.9 - Material Pressure System)
+    this.updateResourceFields(effectiveDt)
 
     // Phase 2: Mental update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
@@ -1814,6 +1829,162 @@ export class World {
    */
   getOptions(): WorldOptions {
     return { ...this.options }
+  }
+
+  // ========================================
+  // Phase 1: Resource Field Management (v5.9)
+  // ========================================
+
+  /**
+   * Add resource field to world
+   *
+   * @param field - Resource field configuration
+   * @returns The added field
+   *
+   * @example
+   * // Add water well
+   * world.addResourceField({
+   *   id: 'well_1',
+   *   resourceType: 'water',
+   *   type: 'point',
+   *   position: { x: 200, y: 200 },
+   *   intensity: 1.0,
+   *   regenerationRate: 0.005
+   * })
+   */
+  addResourceField(field: ResourceField): ResourceField {
+    this.resourceFields.set(field.id, field)
+    return field
+  }
+
+  /**
+   * Remove resource field from world
+   *
+   * @param id - Field identifier
+   *
+   * @example
+   * world.removeResourceField('well_1')
+   */
+  removeResourceField(id: string): void {
+    this.resourceFields.delete(id)
+  }
+
+  /**
+   * Get resource field by ID
+   *
+   * @param id - Field identifier
+   * @returns Resource field or undefined
+   */
+  getResourceField(id: string): ResourceField | undefined {
+    return this.resourceFields.get(id)
+  }
+
+  /**
+   * Get all resource fields (optionally filtered by type)
+   *
+   * @param resourceType - Filter by resource type (optional)
+   * @returns Array of resource fields
+   *
+   * @example
+   * const waterFields = world.getResourceFields('water')
+   */
+  getResourceFields(resourceType?: string): ResourceField[] {
+    const fields = Array.from(this.resourceFields.values())
+
+    if (resourceType) {
+      return fields.filter(field => field.resourceType === resourceType)
+    }
+
+    return fields
+  }
+
+  /**
+   * Get resource intensity at position
+   *
+   * @param resourceType - Resource type (e.g., 'water')
+   * @param x - Position X
+   * @param y - Position Y
+   * @returns Combined intensity from all fields of that type (0..1+)
+   *
+   * @example
+   * const waterIntensity = world.getResourceIntensity('water', entity.x, entity.y)
+   * if (waterIntensity > 0.5) {
+   *   entity.satisfyNeed('water', waterIntensity * 0.1)
+   * }
+   */
+  getResourceIntensity(resourceType: string, x: number, y: number): number {
+    const fields = this.getResourceFields(resourceType)
+    let totalIntensity = 0
+
+    for (const field of fields) {
+      totalIntensity += getIntensityAt(field, x, y)
+    }
+
+    return totalIntensity
+  }
+
+  /**
+   * Find nearest resource field to position
+   *
+   * @param x - Position X
+   * @param y - Position Y
+   * @param resourceType - Filter by resource type (optional)
+   * @returns Nearest field or undefined
+   *
+   * @example
+   * const nearestWater = world.findNearestResourceField(entity.x, entity.y, 'water')
+   * if (nearestWater) {
+   *   console.log(`Water field "${nearestWater.id}" at distance ${distance}`)
+   * }
+   */
+  findNearestResourceField(
+    x: number,
+    y: number,
+    resourceType?: string
+  ): ResourceField | undefined {
+    return findNearestField(Array.from(this.resourceFields.values()), x, y, resourceType)
+  }
+
+  /**
+   * Consume resource from field at position
+   *
+   * @param resourceType - Resource type to consume
+   * @param x - Position X
+   * @param y - Position Y
+   * @param amount - Amount to consume (0..1)
+   * @returns Actual amount consumed (may be less if field is depleted)
+   *
+   * @example
+   * const consumed = world.consumeResource('water', entity.x, entity.y, 0.3)
+   * entity.satisfyNeed('water', consumed)
+   */
+  consumeResource(resourceType: string, x: number, y: number, amount: number): number {
+    const fields = this.getResourceFields(resourceType)
+    let totalConsumed = 0
+    let remaining = amount
+
+    // Try to consume from all nearby fields until satisfied
+    for (const field of fields) {
+      if (remaining <= 0) break
+
+      const consumed = consumeFrom(field, x, y, remaining, this.worldTime)
+      totalConsumed += consumed
+      remaining -= consumed
+    }
+
+    return totalConsumed
+  }
+
+  /**
+   * Update all resource fields (depletion and regeneration)
+   * Called automatically during tick loop
+   *
+   * @param dt - Delta time in seconds
+   */
+  private updateResourceFields(dt: number): void {
+    for (const field of this.resourceFields.values()) {
+      updateResourceField(field, dt, this.worldTime)
+    }
   }
 
   /**
