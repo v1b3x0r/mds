@@ -59,6 +59,66 @@ export interface MdsBehaviorEventRule {
   resetTimers?: string[]
 }
 
+export interface MdsBehaviorTrigger {
+  id?: string
+  description?: string
+  on: string                  // e.g., "time.every(1d)", "mention(any)"
+  where?: string              // optional expression filter
+  actions: MdsBehaviorAction[]
+}
+
+export type MdsBehaviorAction =
+  | {
+      say: {
+        mode?: 'auto' | 'emoji' | 'proto' | 'short'
+        text?: string
+        lang?: string
+      }
+    }
+  | {
+      'mod.emotion': {
+        v?: string
+        a?: string
+        d?: string
+      }
+    }
+  | {
+      'relation.update': {
+        target?: string
+        metric?: string
+        formula: string
+      }
+    }
+  | {
+      'memory.write': {
+        target?: string
+        kind?: MdsMemoryType | string
+        salience?: string
+        value?: string
+      }
+    }
+  | {
+      'memory.recall': {
+        target?: string
+        kind?: MdsMemoryType | string
+        window?: string
+      }
+    }
+  | {
+      'context.set': Record<string, string>
+    }
+  | {
+      emit: {
+        event: string
+        payload?: Record<string, string>
+      }
+    }
+  | {
+      log: {
+        text: string
+      }
+    }
+
 /**
  * Physics properties for material movement
  */
@@ -260,6 +320,34 @@ export interface MdsLanguageProfile {
   adaptToContext?: boolean    // Whether entity adapts language to listener (default: false)
 }
 
+export interface MdsLocaleOverlayProtoConfig {
+  syllables?: string[]
+  minWords?: number
+  maxWords?: number
+  join?: string
+  emoji?: string[]
+}
+
+export interface MdsLocaleOverlay {
+  replacements?: Record<string, string>
+  particles?: string[]
+  emoji?: string[]
+  interjections?: string[]
+  proto?: MdsLocaleOverlayProtoConfig
+}
+
+export interface MdsUtterancePolicy {
+  modes?: string[]
+  defaultMode?: string
+  locale?: {
+    overlay?: string | MdsLocaleOverlay
+  }
+}
+
+export interface MdsUtteranceConfig {
+  policy?: MdsUtterancePolicy
+}
+
 /**
  * Complete material definition (v5.1+)
  */
@@ -273,17 +361,19 @@ export interface MdsMaterial {
   // v5.7: Language autonomy
   nativeLanguage?: string     // Shorthand for language.native
   languageProfile?: MdsLanguageProfile  // Full language configuration
+  utterance?: MdsUtteranceConfig
 
   behavior?: {
     onHover?: MdsBehaviorRule
-    onIdle?: MdsBehaviorRule
-    onRepeatHover?: MdsBehaviorRule
-    onProximity?: MdsBehaviorRule
+   onIdle?: MdsBehaviorRule
+   onRepeatHover?: MdsBehaviorRule
+   onProximity?: MdsBehaviorRule
     onBind?: MdsBehaviorRule
     onDesync?: MdsBehaviorRule
     timers?: MdsBehaviorTimer[]
     onEmotion?: Record<string, MdsBehaviorEmotionRule>
     onEvent?: Record<string, MdsBehaviorEventRule>
+    triggers?: MdsBehaviorTrigger[]
   }
 
   physics?: MdsPhysics

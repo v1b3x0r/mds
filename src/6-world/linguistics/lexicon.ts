@@ -46,7 +46,7 @@ export class WorldLexicon {
   /**
    * Add or update term in lexicon
    */
-  add(entry: Omit<LexiconEntry, 'weight' | 'decayRate'>): void {
+  add(entry: Omit<LexiconEntry, 'weight' | 'decayRate'>): { entry: LexiconEntry; created: boolean } {
     const existing = this.entries.get(entry.term)
 
     if (existing) {
@@ -66,13 +66,17 @@ export class WorldLexicon {
           alpha * entry.emotionContext.arousal +
           (1 - alpha) * existing.emotionContext.arousal
       }
+
+      return { entry: existing, created: false }
     } else {
       // New term
-      this.entries.set(entry.term, {
+      const created: LexiconEntry = {
         ...entry,
         weight: 0.5,        // Start at medium weight
         decayRate: 0.01     // Decay 1% per tick if not used
-      })
+      }
+      this.entries.set(entry.term, created)
+      return { entry: created, created: true }
     }
   }
 

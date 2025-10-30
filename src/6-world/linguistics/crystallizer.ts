@@ -21,6 +21,7 @@ export interface CrystallizerConfig {
   minUsage: number          // Minimum occurrences to crystallize (default: 3)
   minLength: number         // Minimum phrase length (default: 2 chars)
   maxLength: number         // Maximum phrase length (default: 100 chars)
+  minSpeakers?: number      // Minimum distinct speakers required
   /**
    * Warm-up support (lower threshold for first N ticks)
    */
@@ -30,6 +31,11 @@ export interface CrystallizerConfig {
    * Chance to coin a new combined term from co-occurring phrases in the same batch (0..1)
    */
   coiningChance?: number
+}
+
+export interface CrystallizerTickOutcome {
+  newEntries: LexiconEntry[]
+  coinedEntries: LexiconEntry[]
 }
 
 /**
@@ -47,44 +53,105 @@ export class LinguisticCrystallizer {
       minUsage: config.minUsage ?? 3,
       minLength: config.minLength ?? 2,
       maxLength: config.maxLength ?? 100,
+      minSpeakers: config.minSpeakers ?? 1,
       warmUpTicks: config.warmUpTicks ?? 0,
       warmUpMinUsage: config.warmUpMinUsage ?? Math.max(1, (config.minUsage ?? 3) - 1),
       coiningChance: config.coiningChance ?? 0
     }
   }
 
+  applyEmergenceConfig(params: {
+    analyzeEvery?: number
+    minUsage?: number
+    warmUpTicks?: number
+    warmUpMinUsage?: number
+    coiningChance?: number
+    minSpeakers?: number
+  }): void {
+    if (!params) return
+    if (params.analyzeEvery && params.analyzeEvery > 0) {
+      this.config.analyzeEvery = Math.max(1, Math.floor(params.analyzeEvery))
+    }
+    if (params.minUsage && params.minUsage > 0) {
+      this.config.minUsage = Math.max(1, Math.floor(params.minUsage))
+    }
+    if (params.warmUpTicks !== undefined) {
+      this.config.warmUpTicks = Math.max(0, Math.floor(params.warmUpTicks))
+    }
+    if (params.warmUpMinUsage !== undefined) {
+      this.config.warmUpMinUsage = Math.max(1, Math.floor(params.warmUpMinUsage))
+    }
+    if (params.coiningChance !== undefined) {
+      this.config.coiningChance = Math.max(0, Math.min(1, params.coiningChance))
+    }
+    if (params.minSpeakers !== undefined) {
+      this.config.minSpeakers = Math.max(1, Math.floor(params.minSpeakers))
+    }
+  }
+
+  static normalizeText(text: string): string {
+    return text
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+  }
+
   /**
    * Called every world tick
    */
-  tick(transcript: TranscriptBuffer, lexicon: WorldLexicon): void {
-    if (!this.config.enabled) return
+  tick(transcript: TranscriptBuffer, lexicon: WorldLexicon): CrystallizerTickOutcome {
+    const outcome: CrystallizerTickOutcome = {
+      newEntries: [],
+      coinedEntries: []
+    }
+
+    if (!this.config.enabled) {
+      return outcome
+    }
 
     this.tickCount++
 
     // Run analysis every N ticks
     if (this.tickCount % this.config.analyzeEvery === 0) {
-      this.analyze(transcript, lexicon)
+      const result = this.analyze(transcript, lexicon)
+      outcome.newEntries.push(...result.newEntries)
+      outcome.coinedEntries.push(...result.coinedEntries)
     }
 
     // Decay unused terms
     lexicon.decay(1000)  // Assume 1 tick ≈ 1 second
+
+    return outcome
   }
 
   /**
    * Analyze transcript and extract patterns
    */
-  private analyze(transcript: TranscriptBuffer, lexicon: WorldLexicon): void {
+  private analyze(
+    transcript: TranscriptBuffer,
+    lexicon: WorldLexicon
+  ): CrystallizerTickOutcome {
+    const outcome: CrystallizerTickOutcome = {
+      newEntries: [],
+      coinedEntries: []
+    }
+
     const recent = transcript.getSince(this.lastAnalysis)
     this.lastAnalysis = Date.now()
 
-    if (recent.length === 0) return
+    if (recent.length === 0) {
+      return outcome
+    }
 
     // Local pattern detection (frequency-based)
     const patterns = this.detectLocalPatterns(recent)
 
     // Add to lexicon
     for (const pattern of patterns) {
-      lexicon.add(pattern)
+      const result = lexicon.add(pattern)
+      if (result.created) {
+        outcome.newEntries.push(result.entry)
+      }
     }
 
     // Optional: coining combined terms from frequent patterns in this batch
@@ -96,7 +163,7 @@ export class LinguisticCrystallizer {
         const a = sorted[0], b = sorted[1]
         const coined = `${a.term} ${b.term}`.trim().toLowerCase()
         if (coined.length >= this.config.minLength && coined.length <= this.config.maxLength) {
-          lexicon.add({
+          const result = lexicon.add({
             term: coined,
             meaning: `Coined from '${a.term}' + '${b.term}'`,
             origin: a.origin,
@@ -107,9 +174,14 @@ export class LinguisticCrystallizer {
             relatedTerms: [a.term, b.term],
             emotionContext: { valence: 0, arousal: 0.6 }
           })
+          if (result.created) {
+            outcome.coinedEntries.push(result.entry)
+          }
         }
       }
     }
+
+    return outcome
   }
 
   /**
@@ -177,6 +249,9 @@ export class LinguisticCrystallizer {
 
     for (const [phrase, data] of phrases.entries()) {
       if (data.count >= effectiveMin) {
+        if ((this.config.minSpeakers ?? 1) > data.speakers.size) {
+          continue
+        }
         // Calculate average emotion
         const avgEmotion = data.emotions.reduce(
           (acc, e) => ({
@@ -210,10 +285,7 @@ export class LinguisticCrystallizer {
    * Normalize text for comparison
    */
   private normalize(text: string): string {
-    return text
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, ' ') // Collapse whitespace
+    return LinguisticCrystallizer.normalizeText(text)
   }
 
   /**

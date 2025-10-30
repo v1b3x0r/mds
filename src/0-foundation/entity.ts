@@ -60,7 +60,10 @@ import type {
   ParsedMemoryFlag,
   ParsedStateConfig,
   ParsedMaterialConfig,
-  EmotionStateDefinition
+  ParsedBehaviorTrigger,
+  EmotionStateDefinition,
+  ParsedUtterancePolicy,
+  ParsedLocaleOverlay
 } from '@mds/7-interface/io/mdm-parser'
 
 export interface EntityWorldBridge {
@@ -180,6 +183,7 @@ export class Entity implements MessageParticipant {
   private behaviorTimers?: BehaviorTimerState[]
   private behaviorEmotionActions?: Map<string, BehaviorEmotionAction>
   private behaviorEventActions?: Map<string, BehaviorEventAction>
+  private behaviorTriggers?: ParsedBehaviorTrigger[]
   private emotionStates?: Map<string, EmotionStateDefinition>
   private baselineEmotion: { valence: number; arousal: number; dominance: number } = { valence: 0, arousal: 0.5, dominance: 0.5 }
   private emotionalResilience = 0.3
@@ -189,6 +193,8 @@ export class Entity implements MessageParticipant {
     lastPositive: 0,
     lastNegative: 0
   }
+  private utterancePolicy?: ParsedUtterancePolicy
+  private appliedLocaleOverlay?: ParsedLocaleOverlay
 
   // v5.6: Autonomous behavior flag
   private _isAutonomous: boolean = false
@@ -288,7 +294,8 @@ export class Entity implements MessageParticipant {
       m.skills ||
       m.memory?.bindings ||
       m.memory?.flags ||
-      m.state
+      m.state ||
+      (m.behavior?.triggers?.length ?? 0) > 0
     ) {
       const parsed = parseMaterial(m)
 
@@ -309,6 +316,17 @@ export class Entity implements MessageParticipant {
         this.memoryFlagState = new Map()
         for (const flag of parsed.memoryFlags) {
           this.triggerContext[`memory.flags.${flag.id}`] = false
+        }
+      }
+
+      if (parsed.behaviorTriggers.length > 0) {
+        this.behaviorTriggers = parsed.behaviorTriggers
+      }
+
+      if (parsed.utterancePolicy) {
+        this.utterancePolicy = parsed.utterancePolicy
+        if (parsed.utterancePolicy.overlay) {
+          this.appliedLocaleOverlay = parsed.utterancePolicy.overlay
         }
       }
 
@@ -1458,6 +1476,10 @@ export class Entity implements MessageParticipant {
         expiry: state?.expiry
       }
     })
+  }
+
+  getBehaviorTriggersConfig(): ParsedBehaviorTrigger[] | undefined {
+    return this.behaviorTriggers
   }
 
   getBehaviorTimersSnapshot(): Array<{ id: string; elapsed: number }> {

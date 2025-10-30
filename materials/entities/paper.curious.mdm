@@ -14,7 +14,49 @@
     "onProximity": {
       "condition": "distance<100",
       "spawn": "field.trust.core"
-    }
+    },
+    "triggers": [
+      {
+        "id": "curious-listener",
+        "on": "mention(any)",
+        "where": "event.utterance.text != ''",
+        "actions": [
+          {
+            "memory.write": {
+              "kind": "interaction",
+              "value": "{{event.utterance.text}}",
+              "salience": "clamp(0.3 + metrics.novelty * 0.4, 0, 1)"
+            }
+          },
+          {
+            "memory.recall": {
+              "kind": "interaction",
+              "window": "45s"
+            }
+          },
+          {
+            "context.set": {
+              "curiosity.lastSpeaker": "event.speaker.id",
+              "curiosity.lastEcho": "memory.recall.latest.content.value",
+              "curiosity.memory.count": "memory.recall.count"
+            }
+          },
+          {
+            "say": {
+              "mode": "proto",
+              "text": "👀 {{event.utterance.text}}"
+            }
+          },
+          {
+            "relation.update": {
+              "target": "world",
+              "metric": "trust",
+              "formula": "min(1, 0.1 + memory.recall.count * 0.02)"
+            }
+          }
+        ]
+      }
+    ]
   },
   "physics": {
   "mass": 0.02,

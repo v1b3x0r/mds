@@ -16,6 +16,48 @@
         "en": "The gate shall remain secure.",
         "th": "ประตูนี้ต้องปลอดภัย"
       }
-    }
+    },
+    "triggers": [
+      {
+        "id": "intrusion-alert",
+        "on": "event(intrusion.*)",
+        "actions": [
+          {
+            "say": {
+              "text": "⚠️ Intrusion detected at {{event.event.data.zone}}"
+            }
+          },
+          {
+            "memory.write": {
+              "target": "intruder",
+              "kind": "fact",
+              "value": "zone={{event.event.data.zone}}|level={{event.event.data.level}}"
+            }
+          },
+          {
+            "memory.recall": {
+              "target": "intruder",
+              "kind": "fact",
+              "window": "300s"
+            }
+          },
+          {
+            "context.set": {
+              "guard.alert.zone": "event.event.data.zone",
+              "guard.alert.level": "event.event.data.level",
+              "guard.alert.latest": "memory.recall.latest.content.value",
+              "guard.alert.count": "memory.recall.count"
+            }
+          },
+          {
+            "relation.update": {
+              "target": "world",
+              "metric": "trust",
+              "formula": "min(1, 0.2 + memory.recall.count * 0.05)"
+            }
+          }
+        ]
+      }
+    ]
   }
 }

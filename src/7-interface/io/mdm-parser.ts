@@ -14,6 +14,10 @@ import type {
   MdsRelationshipsConfig,
   MdsMemoryConfig,
   MdsStateConfig,
+  MdsBehaviorTrigger,
+  MdsBehaviorAction,
+  MdsLocaleOverlay,
+  MdsUtterancePolicy,
   LangText
 } from '@mds/schema/mdspec'
 import { MULTILINGUAL_TRIGGERS } from '@mds/7-interface/io/trigger-keywords'
@@ -71,6 +75,10 @@ function deriveLanguagePreference(material: MdsMaterial): string[] {
   }
 
   return preference
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /**
@@ -146,7 +154,26 @@ export interface ParsedMaterialConfig {
   stateMachine?: ParsedStateConfig
   emotionStates?: Map<string, EmotionStateDefinition>
   baselineEmotion?: import('@mds/1-ontology/emotion').EmotionalState  // v5.8: Auto-detected from essence/dialogue
+  behaviorTriggers: ParsedBehaviorTrigger[]
+  utterancePolicy?: ParsedUtterancePolicy
 }
+
+export interface ParsedBehaviorTrigger {
+  id?: string
+  on: string
+  where?: string
+  actions: ParsedBehaviorAction[]
+}
+
+export type ParsedBehaviorAction =
+  | { kind: 'say'; mode?: string; text?: string; lang?: string }
+  | { kind: 'mod.emotion'; v?: string; a?: string; d?: string }
+  | { kind: 'relation.update'; target?: string; metric?: string; formula: string }
+  | { kind: 'memory.write'; target?: string; memoryKind?: string; salience?: string; value?: string }
+  | { kind: 'memory.recall'; target?: string; memoryKind?: string; window?: string }
+  | { kind: 'context.set'; entries: Record<string, string> }
+  | { kind: 'emit'; event: string; payload?: Record<string, string> }
+  | { kind: 'log'; text: string }
 
 export interface ParsedMemoryBinding {
   trigger: string
@@ -178,6 +205,34 @@ export interface ParsedStateTransition {
   condition?: string
 }
 
+export interface ReplacementRule {
+  pattern: RegExp
+  replace: string
+}
+
+export interface ParsedLocaleOverlayProtoConfig {
+  syllables: string[]
+  minWords: number
+  maxWords: number
+  join: string
+  emoji: string[]
+}
+
+export interface ParsedLocaleOverlay {
+  replacements: ReplacementRule[]
+  particles: string[]
+  emoji: string[]
+  interjections: string[]
+  proto?: ParsedLocaleOverlayProtoConfig
+}
+
+export interface ParsedUtterancePolicy {
+  modes: string[]
+  defaultMode: string
+  overlay?: ParsedLocaleOverlay
+  overlayRef?: string
+}
+
 /**
  * MDM Parser - converts declarative config to runtime objects
  */
@@ -186,6 +241,79 @@ export class MdmParser {
    * Parse retention string to milliseconds
    * @example "120s" → 120000, "infinite" → Infinity
    */
+  parseBehaviorTriggers(triggers?: MdsBehaviorTrigger[]): ParsedBehaviorTrigger[] {
+    if (!Array.isArray(triggers)) return []
+
+    const result: ParsedBehaviorTrigger[] = []
+    for (const trigger of triggers) {
+      if (!trigger || !trigger.on) continue
+      const actions: ParsedBehaviorAction[] = []
+      if (Array.isArray(trigger.actions)) {
+        for (const raw of trigger.actions) {
+          const parsed = this.parseBehaviorAction(raw)
+          if (parsed) actions.push(parsed)
+        }
+      }
+      if (actions.length === 0) continue
+      result.push({
+        id: trigger.id,
+        on: trigger.on,
+        where: trigger.where,
+        actions
+      })
+    }
+    return result
+  }
+
+  private parseBehaviorAction(action: MdsBehaviorAction): ParsedBehaviorAction | undefined {
+    if (!action) return undefined
+    if ('say' in action) {
+      const cfg = action.say || {}
+      return { kind: 'say', mode: cfg.mode, text: cfg.text, lang: cfg.lang }
+    }
+    if ('mod.emotion' in action) {
+      const cfg = action['mod.emotion'] || {}
+      if (!cfg.v && !cfg.a && !cfg.d) return undefined
+      return { kind: 'mod.emotion', v: cfg.v, a: cfg.a, d: cfg.d }
+    }
+    if ('relation.update' in action) {
+      const cfg = action['relation.update']
+      if (!cfg?.formula) {
+        console.warn('[MDM] relation.update action missing formula')
+        return undefined
+      }
+      return { kind: 'relation.update', target: cfg.target, metric: cfg.metric, formula: cfg.formula }
+    }
+    if ('memory.write' in action) {
+      const cfg = action['memory.write'] || {}
+      return { kind: 'memory.write', target: cfg.target, memoryKind: cfg.kind, salience: cfg.salience, value: cfg.value }
+    }
+    if ('memory.recall' in action) {
+      const cfg = action['memory.recall'] || {}
+      return { kind: 'memory.recall', target: cfg.target, memoryKind: cfg.kind, window: cfg.window }
+    }
+    if ('context.set' in action) {
+      const entries = action['context.set']
+      if (!entries) return undefined
+      return { kind: 'context.set', entries }
+    }
+    if ('emit' in action) {
+      const cfg = action.emit
+      if (!cfg?.event) {
+        console.warn('[MDM] emit action missing event name')
+        return undefined
+      }
+      return { kind: 'emit', event: cfg.event, payload: cfg.payload }
+    }
+    if ('log' in action) {
+      const cfg = action.log
+      if (!cfg?.text) return undefined
+      return { kind: 'log', text: cfg.text }
+    }
+    console.warn('[MDM] Unknown behavior action', action)
+    return undefined
+  }
+
   parseRetention(retention: string): number {
     if (retention === 'infinite') return Infinity
 
@@ -531,6 +659,88 @@ export class MdmParser {
   parseRelationships(config: MdsRelationshipsConfig): string[] {
     return Object.keys(config)
   }
+
+  parseLocaleOverlay(spec: MdsLocaleOverlay): ParsedLocaleOverlay {
+    const replacements: ReplacementRule[] = []
+    if (spec.replacements) {
+      for (const [from, to] of Object.entries(spec.replacements)) {
+        if (!from || typeof from !== 'string') continue
+        const pattern = new RegExp(escapeRegExp(from), 'gi')
+        const replace = typeof to === 'string' ? to : ''
+        replacements.push({ pattern, replace })
+      }
+    }
+
+    const particles = Array.isArray(spec.particles)
+      ? spec.particles.map(value => String(value)).filter(text => text.trim().length > 0)
+      : []
+    const emoji = Array.isArray(spec.emoji)
+      ? spec.emoji.map(value => String(value)).filter(text => text.trim().length > 0)
+      : []
+    const interjections = Array.isArray(spec.interjections)
+      ? spec.interjections.map(value => String(value)).filter(text => text.trim().length > 0)
+      : []
+
+    let proto: ParsedLocaleOverlayProtoConfig | undefined
+    if (spec.proto) {
+      const protoSpec = spec.proto
+      const syllables = Array.isArray(protoSpec.syllables)
+        ? protoSpec.syllables.map(value => String(value)).filter(text => text.trim().length > 0)
+        : []
+      const minWords = Math.max(1, Math.floor(protoSpec.minWords ?? 1))
+      const maxWords = Math.max(minWords, Math.floor(protoSpec.maxWords ?? Math.max(minWords, 3)))
+      const join = typeof protoSpec.join === 'string' ? protoSpec.join : ' '
+      const protoEmoji = Array.isArray(protoSpec.emoji)
+        ? protoSpec.emoji.map(value => String(value)).filter(text => text.trim().length > 0)
+        : []
+      proto = {
+        syllables,
+        minWords,
+        maxWords,
+        join,
+        emoji: protoEmoji
+      }
+    }
+
+    return {
+      replacements,
+      particles,
+      emoji,
+      interjections,
+      proto
+    }
+  }
+
+  parseUtterancePolicy(policy?: MdsUtterancePolicy): ParsedUtterancePolicy | undefined {
+    if (!policy) return undefined
+
+    const modes = Array.isArray(policy.modes) && policy.modes.length > 0
+      ? policy.modes
+          .map(value => typeof value === 'string' ? value : String(value))
+          .filter(mode => mode.trim().length > 0)
+      : ['auto']
+    const defaultModeCandidate = typeof policy.defaultMode === 'string' ? policy.defaultMode : undefined
+    const defaultMode = defaultModeCandidate && modes.includes(defaultModeCandidate)
+      ? defaultModeCandidate
+      : modes[0]
+
+    let overlay: ParsedLocaleOverlay | undefined
+    let overlayRef: string | undefined
+    if (policy.locale?.overlay) {
+      if (typeof policy.locale.overlay === 'string') {
+        overlayRef = policy.locale.overlay
+      } else {
+        overlay = this.parseLocaleOverlay(policy.locale.overlay)
+      }
+    }
+
+    return {
+      modes,
+      defaultMode,
+      overlay,
+      overlayRef
+    }
+  }
 }
 
 /**
@@ -578,7 +788,9 @@ export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
     memoryBindings: material.memory ? parser.parseMemoryBindings(material.memory) : [],
     memoryFlags: material.memory ? parser.parseMemoryFlags(material.memory) : [],
     stateMachine: material.state ? parser.parseStateMachine(material.state) : undefined,
-    baselineEmotion
+    baselineEmotion,
+    utterancePolicy: material.utterance?.policy ? parser.parseUtterancePolicy(material.utterance.policy) : undefined,
+    behaviorTriggers: material.behavior?.triggers ? parser.parseBehaviorTriggers(material.behavior.triggers) : []
   }
 }
 

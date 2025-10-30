@@ -11,14 +11,18 @@
 
 import { Engine } from '@mds/0-foundation/engine'
 import type { WorldBounds, BoundaryBehavior } from '@mds/0-foundation/engine'
-import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsMaterial, MdsLocaleOverlay } from '@mds/schema/mdspec'
 import type { MdsField as MdsFieldSpec } from '@mds/schema/fieldspec'
+import { Expression } from '@mds/0-foundation/expression'
+import { setPathValue } from '@mds/0-foundation/path'
 import { Entity } from '@mds/0-foundation/entity'
 import { Field } from '@mds/0-foundation/field'
 import {
   driftToBaseline,
-  EMOTION_BASELINES
+  EMOTION_BASELINES,
+  createRelationship
 } from '@mds/1-ontology'
+import type { Relationship } from '@mds/1-ontology'
 import type { EmotionalState } from '@mds/1-ontology/emotion/state'
 import {
   RendererAdapter,
@@ -57,10 +61,20 @@ import { WorldLexicon } from '@mds/6-world/linguistics/lexicon'
 import type { LexiconEntry } from '@mds/6-world/linguistics/lexicon'
 
 import { LinguisticCrystallizer } from '@mds/6-world/linguistics/crystallizer'
-import type { CrystallizerConfig } from '@mds/6-world/linguistics/crystallizer'
+import type { CrystallizerConfig, CrystallizerTickOutcome } from '@mds/6-world/linguistics/crystallizer'
 
 import { ProtoLanguageGenerator } from '@mds/6-world/linguistics/proto-language'
 import type { ContextProvider } from '@mds/7-interface/context'
+import { MdmParser, replacePlaceholders } from '@mds/7-interface/io/mdm-parser'
+import type {
+  ParsedBehaviorTrigger,
+  ParsedBehaviorAction,
+  ParsedLocaleOverlay,
+  ParsedUtterancePolicy
+} from '@mds/7-interface/io/mdm-parser'
+import { WorldLogger } from './logger'
+import { PackResolver, type PackResolverOptions, type PackAggregate } from '@mds/0-foundation/pack-resolver'
+import type { Memory, MemoryFilter } from '@mds/1-ontology/memory/buffer'
 
 export interface WorldContextProviderConfig {
   provider: ContextProvider
@@ -88,6 +102,7 @@ function isContextProviderConfig(value: ContextProviderRegistration): value is W
  * World configuration options
  */
 export interface WorldOptions {
+  logger?: WorldLogger
   // v4 Engine options (passed through)
   seed?: number
   worldBounds?: WorldBounds
@@ -116,6 +131,8 @@ export interface WorldOptions {
     minLength?: number        // Min phrase length (default: 2)
     maxLength?: number        // Max phrase length (default: 100)
   }
+
+  emergence?: EmergenceOptions
 
   // v5.5: P2P Cognition configuration
   cognition?: {
@@ -227,6 +244,42 @@ export interface SpawnOptions {
   y?: number
 }
 
+
+export interface WorldEntityDefinition {
+  id?: string
+  alias?: string
+  material: string | MdsMaterial
+  spawn?: SpawnOptions
+  [key: string]: any
+}
+
+export interface WorldDefinition {
+  material?: string
+  include?: string[]
+  world?: Record<string, any>
+  options?: Partial<WorldOptions>
+  features?: WorldOptions['features']
+  materials?: Record<string, MdsMaterial>
+  fields?: Record<string, MdsFieldSpec>
+  localeOverlays?: Record<string, MdsLocaleOverlay>
+  entities?: WorldEntityDefinition[]
+  notes?: string
+  [key: string]: any
+}
+
+export type WorldBootstrapSource = string | WorldDefinition
+
+export interface WorldBootstrapOptions {
+  fetch?: (url: string) => Promise<any>
+  materials?: Record<string, MdsMaterial>
+  fields?: Record<string, MdsFieldSpec>
+  localeOverlays?: Record<string, MdsLocaleOverlay>
+  worldOptions?: WorldOptions
+  logger?: WorldLogger
+  autoSpawn?: boolean
+  packLoader?: PackResolverOptions['loader']
+}
+
 /**
  * World event (for history tracking)
  */
@@ -254,6 +307,133 @@ type WorldEventMap = {
   event: WorldEvent
   analytics: WorldAnalyticsEvent
   utterance: Utterance
+}
+
+type BehaviorTriggerPattern =
+  | { kind: 'time.every'; interval: number; nextFire: number }
+  | { kind: 'mention'; target: 'any' | 'self' | 'others'; entityRef?: string }
+  | { kind: 'event'; event: string; match: 'any' | 'exact' | 'prefix' }
+
+interface BehaviorTriggerRuntime {
+  entity: Entity
+  config: ParsedBehaviorTrigger
+  pattern: BehaviorTriggerPattern
+  where?: Expression
+  actions: BehaviorActionRuntime[]
+}
+
+type BehaviorActionRuntime =
+  | { kind: 'say'; mode?: string; text?: string; lang?: string }
+  | { kind: 'mod.emotion'; v?: Expression; a?: Expression; d?: Expression }
+  | { kind: 'relation.update'; target?: string; metric: string; expr: Expression; mode: 'absolute' | 'delta' }
+  | { kind: 'memory.write'; target?: string; memoryKind?: string; salience?: Expression; value?: string }
+  | { kind: 'memory.recall'; target?: string; memoryKind?: string; window?: string }
+  | { kind: 'context.set'; entries: Record<string, Expression> }
+  | { kind: 'emit'; event: string; payload?: Record<string, Expression> }
+  | { kind: 'log'; text: string }
+
+interface BehaviorEventContext {
+  type: 'time' | 'mention' | 'event'
+  utterance?: Utterance
+  speaker?: Entity
+  listener?: Entity
+  metrics?: Record<string, number>
+  event?: WorldEvent
+}
+
+export interface EmergenceOptions {
+  windowSeconds?: number
+  noveltyHalfLife?: number
+  chunking?: Partial<{
+    analyzeEvery: number
+    minUsage: number
+    minSpeakers: number
+    warmUpTicks: number
+    warmUpMinUsage: number
+  }>
+  blending?: Partial<{
+    chance: number
+  }>
+  learning?: Partial<{
+    rate: number
+  }>
+}
+
+interface EmergenceConfig {
+  windowSeconds: number
+  noveltyHalfLife: number
+  chunking: {
+    analyzeEvery: number
+    minUsage: number
+    minSpeakers: number
+    warmUpTicks: number
+    warmUpMinUsage: number
+  }
+  blending: {
+    chance: number
+  }
+  learning: {
+    rate: number
+  }
+}
+
+export interface WorldEmergenceState {
+  novelty: number
+  diversity: number
+  learning: number
+  lexiconSize: number
+  windowUtterances: number
+  chunkCount: number
+  blendCount: number
+  lastChunkAt?: number
+  lastBlendAt?: number
+}
+
+interface InternalEmergenceState extends WorldEmergenceState {
+  lastUpdateTime: number
+}
+
+const DEFAULT_EMERGENCE_CONFIG: EmergenceConfig = {
+  windowSeconds: 120,
+  noveltyHalfLife: 45,
+  chunking: {
+    analyzeEvery: 25,
+    minUsage: 3,
+    minSpeakers: 1,
+    warmUpTicks: 10,
+    warmUpMinUsage: 2
+  },
+  blending: {
+    chance: 0.12
+  },
+  learning: {
+    rate: 0.15
+  }
+}
+
+const DEFAULT_EMERGENCE_STATE: InternalEmergenceState = {
+  novelty: 0,
+  diversity: 0,
+  learning: 0.5,
+  lexiconSize: 0,
+  windowUtterances: 0,
+  chunkCount: 0,
+  blendCount: 0,
+  lastUpdateTime: 0
+}
+
+function cloneEmergenceConfig(config: EmergenceConfig): EmergenceConfig {
+  return {
+    windowSeconds: config.windowSeconds,
+    noveltyHalfLife: config.noveltyHalfLife,
+    chunking: { ...config.chunking },
+    blending: { ...config.blending },
+    learning: { ...config.learning }
+  }
+}
+
+function cloneEmergenceState(state: InternalEmergenceState): InternalEmergenceState {
+  return { ...state }
 }
 
 /**
@@ -339,6 +519,20 @@ export class World {
 
   // Options
   options: WorldOptions
+  definition?: WorldDefinition
+  readonly logger: WorldLogger
+  private bootstrapEntityMap?: Map<string, Entity>
+  private behaviorTimeTriggers: BehaviorTriggerRuntime[] = []
+  private behaviorMentionTriggers: BehaviorTriggerRuntime[] = []
+  private behaviorEventTriggers: BehaviorTriggerRuntime[] = []
+  private lastUtterance?: { text: string; speaker: string }
+  private packFunctions: Record<string, unknown> = {}
+  private packCompose: Record<string, unknown> = {}
+  private packEmergence: Record<string, unknown> = {}
+  private expressionFunctions: Record<string, Function> = {}
+  private emergenceConfig: EmergenceConfig = cloneEmergenceConfig(DEFAULT_EMERGENCE_CONFIG)
+  private emergenceState: InternalEmergenceState = cloneEmergenceState(DEFAULT_EMERGENCE_STATE)
+
 
   // Context + events
   private contextState: Record<string, any> = {}
@@ -354,6 +548,10 @@ export class World {
     this.id = this.generateUUID()
     this.createdAt = Date.now()
     this.options = options
+    this.logger = options.logger ?? new WorldLogger()
+    this.emergenceConfig = cloneEmergenceConfig(this.emergenceConfig)
+    this.emergenceState = cloneEmergenceState(this.emergenceState)
+    this.emergenceState.lastUpdateTime = this.worldTime
 
     // Migrate old LLM config to new format (backward compatibility)
     this.migrateLLMConfig(options)
@@ -371,6 +569,11 @@ export class World {
     // Initialize renderer
     this.renderer = this.createRenderer(renderMode)
     this.renderer.init()
+    this.logger.push({
+      type: 'world.init',
+      data: { id: this.id, rendering: renderMode },
+      text: `[init] world ${this.id} (render=${renderMode})`
+    })
 
     // Enable history if requested
     this.historyEnabled = options.features?.history ?? false
@@ -547,10 +750,19 @@ export class World {
       analyzeEvery: options.linguistics?.analyzeEvery ?? 50,
       minUsage: options.linguistics?.minUsage ?? 3,
       minLength: options.linguistics?.minLength ?? 2,
-      maxLength: options.linguistics?.maxLength ?? 100
+      maxLength: options.linguistics?.maxLength ?? 100,
+      warmUpTicks: this.emergenceConfig.chunking.warmUpTicks,
+      warmUpMinUsage: this.emergenceConfig.chunking.warmUpMinUsage,
+      coiningChance: this.emergenceConfig.blending.chance,
+      minSpeakers: this.emergenceConfig.chunking.minSpeakers
     }
 
+    crystallizerConfig.analyzeEvery = this.emergenceConfig.chunking.analyzeEvery
+    crystallizerConfig.minUsage = this.emergenceConfig.chunking.minUsage
+
     this.crystallizer = new LinguisticCrystallizer(crystallizerConfig)
+    this.emergenceState.lastUpdateTime = this.worldTime
+    this.updateEmergenceState({ newEntries: [], coinedEntries: [] })
 
     // v6.1: Create proto-language generator
     this.protoGenerator = new ProtoLanguageGenerator()
@@ -839,6 +1051,8 @@ export class World {
       }
     }
 
+    this.registerBehaviorTriggers(entity)
+
     if (typeof (entity as any).attachWorldBridge === 'function') {
       entity.attachWorldBridge({
         broadcastEvent: (type: string, payload?: any) => this.broadcastEvent(type, payload),
@@ -938,6 +1152,8 @@ export class World {
         entity.updateBehaviorTimers(effectiveDt, this.worldTime)
       }
     }
+
+    this.evaluateTimeTriggers()
 
     // Phase 3.5: Cognitive update (Phase 7 - if enabled)
     if (this.options.features?.cognitive) {
@@ -1374,7 +1590,108 @@ export class World {
   private updateLinguistics(): void {
     if (!this.crystallizer || !this.transcript || !this.lexicon) return
 
-    this.crystallizer.tick(this.transcript, this.lexicon)
+    const outcome = this.crystallizer.tick(this.transcript, this.lexicon)
+    this.updateEmergenceState(outcome)
+  }
+
+  private updateEmergenceState(outcome: CrystallizerTickOutcome): void {
+    if (!this.transcript || !this.lexicon) return
+
+    const nowMs = Date.now()
+    const windowMs = this.emergenceConfig.windowSeconds * 1000
+    const recent = this.transcript.getSince(nowMs - windowMs)
+    const total = recent.length
+
+    const normalized = new Set<string>()
+    const speakers = new Set<string>()
+    for (const utt of recent) {
+      normalized.add(LinguisticCrystallizer.normalizeText(utt.text))
+      speakers.add(utt.speaker)
+    }
+
+    const noveltyInstant = total === 0 ? 0 : normalized.size / total
+    const diversityInstant = total === 0 ? 0 : speakers.size / total
+    const stats = this.lexicon.getStats()
+    const learningInstant = stats.avgWeight || 0
+
+    const prev = this.emergenceState
+    const delta = Math.max(1e-3, this.worldTime - prev.lastUpdateTime)
+    const halfLife = this.emergenceConfig.noveltyHalfLife
+    const noveltyAlpha = halfLife > 0 ? 1 - Math.pow(0.5, delta / halfLife) : 1
+    const diversityAlpha = noveltyAlpha
+    const learningAlpha = Math.min(1, Math.max(0, this.emergenceConfig.learning.rate * delta))
+
+    const novelty = prev.novelty + noveltyAlpha * (noveltyInstant - prev.novelty)
+    const diversity = prev.diversity + diversityAlpha * (diversityInstant - prev.diversity)
+    const learning = prev.learning + learningAlpha * (learningInstant - prev.learning)
+
+    const chunkCount = prev.chunkCount + outcome.newEntries.length
+    const blendCount = prev.blendCount + outcome.coinedEntries.length
+    const lastChunkAt = outcome.newEntries.length > 0 ? this.worldTime : prev.lastChunkAt
+    const lastBlendAt = outcome.coinedEntries.length > 0 ? this.worldTime : prev.lastBlendAt
+
+    this.emergenceState = {
+      novelty,
+      diversity,
+      learning,
+      lexiconSize: stats.totalTerms,
+      windowUtterances: total,
+      chunkCount,
+      blendCount,
+      lastChunkAt,
+      lastBlendAt,
+      lastUpdateTime: this.worldTime
+    }
+
+    if (outcome.newEntries.length > 0) {
+      for (const entry of outcome.newEntries) {
+        this.logger.push({
+          type: 'emergence.chunk',
+          data: {
+            term: entry.term,
+            usage: entry.usageCount,
+            origin: entry.origin,
+            category: entry.category
+          },
+          text: `[emergence] chunk "${entry.term}" (${entry.usageCount}×)`
+        })
+        this.broadcastEvent('emergence.chunk', {
+          term: entry.term,
+          usage: entry.usageCount,
+          origin: entry.origin,
+          category: entry.category
+        })
+      }
+    }
+
+    if (outcome.coinedEntries.length > 0) {
+      for (const entry of outcome.coinedEntries) {
+        this.logger.push({
+          type: 'emergence.blend',
+          data: {
+            term: entry.term,
+            usage: entry.usageCount,
+            related: entry.relatedTerms
+          },
+          text: `[emergence] blend "${entry.term}" ⇐ ${entry.relatedTerms?.join(' + ') ?? ''}`.trim()
+        })
+        this.broadcastEvent('emergence.blend', {
+          term: entry.term,
+          usage: entry.usageCount,
+          related: entry.relatedTerms
+        })
+      }
+    }
+
+    const contextPayload: Record<string, number> = {
+      'emergence.novelty': Number(novelty.toFixed(3)),
+      'emergence.diversity': Number(diversity.toFixed(3)),
+      'emergence.learning': Number(learning.toFixed(3)),
+      'emergence.lexicon': stats.totalTerms,
+      'emergence.windowUtterances': total
+    }
+
+    this.broadcastContext(contextPayload)
   }
 
   /**
@@ -1422,6 +1739,11 @@ export class World {
     return this.cachedCollectiveEmotion
   }
 
+  getEmergenceState(): WorldEmergenceState {
+    const { lastUpdateTime, ...publicState } = this.emergenceState
+    return { ...publicState }
+  }
+
   /**
    * v6.0: Record entity speech to transcript
    *
@@ -1459,7 +1781,9 @@ export class World {
     }
 
     this.transcript.add(utterance)
+    this.lastUtterance = { text, speaker: speaker.id }
     this.emit('utterance', utterance)
+    this.handleUtteranceTriggers(utterance)
   }
 
   /**
@@ -1615,6 +1939,10 @@ export class World {
       }
     }
 
+    if (this.behaviorEventTriggers.length > 0) {
+      this.handleEventTriggers(event)
+    }
+
     for (const entity of this.entities) {
       if (typeof entity.handleDeclarativeEvent === 'function') {
         entity.handleDeclarativeEvent(type, data, this.worldTime)
@@ -1622,6 +1950,1041 @@ export class World {
     }
 
     this.emit('event', event)
+  }
+
+  static async bootstrap(source: WorldBootstrapSource, options: WorldBootstrapOptions = {}): Promise<World> {
+    const definition = await World.resolveBootstrapDefinition(source, options)
+    const worldOptions = World.mergeWorldOptions(definition, options)
+    if (options.logger) {
+      worldOptions.logger = options.logger
+    }
+
+    const world = new World(worldOptions)
+    await world.applyBootstrapDefinition(definition, options)
+    world.logger.push({
+      type: 'world.bootstrap',
+      data: {
+        include: definition.include ?? [],
+        entities: world.entities.length
+      },
+      text: `[bootstrap] world ready (${world.entities.length} entities)`
+    })
+    return world
+  }
+
+  private static async resolveBootstrapDefinition(source: WorldBootstrapSource, options: WorldBootstrapOptions): Promise<WorldDefinition> {
+    if (typeof source === 'string') {
+      const trimmed = source.trim()
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        const parsed = JSON.parse(trimmed) as WorldDefinition
+        return World.cloneDefinition(parsed)
+      }
+      const payload = await World.fetchDefinition(trimmed, options.fetch)
+      return World.cloneDefinition(payload as WorldDefinition)
+    }
+    return World.cloneDefinition(source)
+  }
+
+  private static async fetchDefinition(url: string, fetcher?: (url: string) => Promise<any>): Promise<any> {
+    const fn = fetcher ?? (typeof globalThis !== 'undefined' && typeof (globalThis as any).fetch === 'function'
+      ? (globalThis as any).fetch.bind(globalThis)
+      : undefined)
+
+    if (!fn) {
+      throw new Error('World.bootstrap: fetch is not available in this environment. Provide options.fetch.')
+    }
+
+    const response = await fn(url)
+
+    if (response && typeof response.json === 'function') {
+      if ('ok' in response && response.ok === false) {
+        const status = 'status' in response ? response.status : 'unknown'
+        throw new Error(`World.bootstrap: failed to fetch ${url} (status ${status})`)
+      }
+      return await response.json()
+    }
+
+    if (response && typeof response.text === 'function') {
+      const text = await response.text()
+      try {
+        return JSON.parse(text)
+      } catch (error) {
+        throw new Error(`World.bootstrap: invalid JSON from ${url}: ${(error as Error).message}`)
+      }
+    }
+
+    if (typeof response === 'string') {
+      try {
+        return JSON.parse(response)
+      } catch (error) {
+        throw new Error(`World.bootstrap: invalid JSON string from ${url}: ${(error as Error).message}`)
+      }
+    }
+
+    return response
+  }
+
+  private static cloneDefinition(definition: WorldDefinition): WorldDefinition {
+    if (typeof globalThis !== 'undefined' && typeof (globalThis as any).structuredClone === 'function') {
+      return (globalThis as any).structuredClone(definition)
+    }
+    return JSON.parse(JSON.stringify(definition)) as WorldDefinition
+  }
+
+  private static mergeWorldOptions(definition: WorldDefinition, options: WorldBootstrapOptions): WorldOptions {
+    const defaults: WorldOptions['features'] = {
+      ontology: true,
+      history: true,
+      communication: true,
+      linguistics: true
+    }
+
+    const merged: WorldOptions = {}
+    const candidateOptions: Array<Partial<WorldOptions> | undefined> = [
+      definition.options,
+      (definition.world?.options as Partial<WorldOptions> | undefined),
+      options.worldOptions
+    ]
+
+    for (const candidate of candidateOptions) {
+      if (candidate) {
+        Object.assign(merged, candidate)
+      }
+    }
+
+    const featureSources: Array<WorldOptions['features'] | undefined> = [
+      defaults,
+      (definition.features ?? definition.world?.features) as WorldOptions['features'] | undefined,
+      definition.options?.features,
+      options.worldOptions?.features
+    ]
+
+    merged.features = {}
+    for (const feature of featureSources) {
+      if (feature) {
+        merged.features = { ...merged.features, ...feature }
+      }
+    }
+
+    merged.features = { ...defaults, ...merged.features }
+
+    return merged
+  }
+
+  private async applyBootstrapDefinition(definition: WorldDefinition, options: WorldBootstrapOptions): Promise<void> {
+    this.definition = definition
+
+    const packAggregate = await this.loadBootstrapPacks(definition.include, {
+      fetch: options.fetch,
+      loader: options.packLoader
+    })
+
+    if (packAggregate) {
+      this.packFunctions = { ...this.packFunctions, ...packAggregate.functions }
+      this.packCompose = { ...this.packCompose, ...packAggregate.compose }
+      this.packEmergence = { ...this.packEmergence, ...packAggregate.emergence }
+      this.rebuildExpressionFunctions()
+
+      this.registerBootstrapMaterials(packAggregate.materials)
+      this.registerBootstrapFields(packAggregate.fields)
+
+      if (packAggregate.notes.length > 0) {
+        for (const note of packAggregate.notes) {
+          this.logger.push({
+            type: 'bootstrap.pack.note',
+            data: { note },
+            text: `[pack] ${note}`
+          })
+        }
+      }
+    }
+
+    this.registerBootstrapMaterials(definition.materials, true)
+    if (options.materials) {
+      this.registerBootstrapMaterials(options.materials, true)
+    }
+
+    this.registerBootstrapFields(definition.fields, true)
+    if (options.fields) {
+      this.registerBootstrapFields(options.fields, true)
+    }
+
+    this.configureEmergence(definition, options)
+
+    if (options.autoSpawn !== false) {
+      this.spawnBootstrapEntities(definition, options)
+    }
+  }
+
+
+  private async loadBootstrapPacks(include: string[] | undefined, resolverOpts: PackResolverOptions): Promise<PackAggregate | undefined> {
+    if (!include || include.length === 0) return undefined
+
+    const aggregate = await PackResolver.resolve(include, resolverOpts)
+    if (aggregate.ids.length > 0) {
+      this.logger.push({
+        type: 'bootstrap.pack.resolve',
+        data: { include, resolved: aggregate.ids },
+        text: `[pack] resolved ${aggregate.ids.length} packs`
+      })
+    }
+    return aggregate
+  }
+
+  private registerBootstrapMaterials(materials?: Record<string, MdsMaterial>, overwrite = false): void {
+    if (!materials) return
+    for (const [id, material] of Object.entries(materials)) {
+      if (!id || !material) continue
+      if (overwrite || !this.materialRegistry.has(id)) {
+        this.registerMaterial(id, material)
+      }
+    }
+  }
+
+  private registerBootstrapFields(fields?: Record<string, MdsFieldSpec>, overwrite = false): void {
+    if (!fields) return
+    for (const [id, field] of Object.entries(fields)) {
+      if (!id || !field) continue
+      if (overwrite || !this.fieldRegistry.has(id)) {
+        this.registerField(id, field)
+      }
+    }
+  }
+
+  private spawnBootstrapEntities(definition: WorldDefinition, options: WorldBootstrapOptions): void {
+    if (!Array.isArray(definition.entities) || definition.entities.length === 0) return
+    let index = 0
+    for (const entityDef of definition.entities) {
+      if (!entityDef) {
+        index++
+        continue
+      }
+      const material = this.resolveBootstrapMaterial(entityDef, definition, options, index)
+      const entity = this.spawn(material, entityDef.spawn)
+      if (entityDef.id) {
+        if (!this.bootstrapEntityMap) {
+          this.bootstrapEntityMap = new Map<string, Entity>()
+        }
+        this.bootstrapEntityMap.set(entityDef.id, entity)
+        ;(entity as any).bootstrapId = entityDef.id
+      }
+
+      this.logger.push({
+        type: 'bootstrap.spawn',
+        data: {
+          bootstrapId: entityDef.id,
+          material: typeof entityDef.material === 'string'
+            ? entityDef.material
+            : entityDef.material.material ?? `inline.${index}`,
+          entityId: entity.id
+        },
+        text: `[spawn] ${entityDef.id ?? entity.id} ← ${
+          typeof entityDef.material === 'string'
+            ? entityDef.material
+            : entityDef.material.material ?? `inline.${index}`
+        }`
+      })
+      index++
+    }
+  }
+
+  private configureEmergence(definition: WorldDefinition, options: WorldBootstrapOptions): void {
+    if (!this.crystallizer || !this.transcript || !this.lexicon) return
+
+    const sources: Array<EmergenceOptions | undefined> = []
+    sources.push(this.toEmergenceOptions(this.packEmergence))
+    sources.push(this.toEmergenceOptions(definition.world?.emergence))
+    sources.push(this.toEmergenceOptions(definition.options?.emergence))
+    sources.push(this.toEmergenceOptions(this.options.emergence))
+    sources.push(this.toEmergenceOptions(options.worldOptions?.emergence))
+
+    if (this.options.linguistics) {
+      const ling = this.options.linguistics
+      sources.push({
+        chunking: {
+          analyzeEvery: ling.analyzeEvery,
+          minUsage: ling.minUsage
+        }
+      })
+    }
+
+    const config = this.composeEmergenceConfig(sources)
+    this.emergenceConfig = config
+    this.crystallizer.applyEmergenceConfig({
+      analyzeEvery: config.chunking.analyzeEvery,
+      minUsage: config.chunking.minUsage,
+      warmUpTicks: config.chunking.warmUpTicks,
+      warmUpMinUsage: config.chunking.warmUpMinUsage,
+      coiningChance: config.blending.chance,
+      minSpeakers: config.chunking.minSpeakers
+    })
+
+    this.emergenceState = {
+      ...this.emergenceState,
+      lexiconSize: this.lexicon.getStats().totalTerms,
+      lastUpdateTime: this.worldTime
+    }
+
+    this.updateEmergenceState({ newEntries: [], coinedEntries: [] })
+  }
+
+  private toEmergenceOptions(value: unknown): EmergenceOptions | undefined {
+    if (!value || typeof value !== 'object') return undefined
+    const raw = value as Record<string, any>
+    const result: EmergenceOptions = {}
+
+    const windowSeconds = this.coerceSeconds(raw.windowSeconds)
+    if (windowSeconds !== undefined) result.windowSeconds = windowSeconds
+
+    const noveltyHalfLife = this.coerceSeconds(raw.noveltyHalfLife)
+    if (noveltyHalfLife !== undefined) result.noveltyHalfLife = noveltyHalfLife
+
+    if (raw.chunking && typeof raw.chunking === 'object') {
+      const chunking = raw.chunking as Record<string, any>
+      const chunkOptions: NonNullable<EmergenceOptions['chunking']> = {}
+
+      const analyzeEvery = this.coerceNumber(chunking.analyzeEvery)
+      if (analyzeEvery !== undefined) chunkOptions.analyzeEvery = analyzeEvery
+
+      const minUsage = this.coerceNumber(chunking.minUsage)
+      if (minUsage !== undefined) chunkOptions.minUsage = minUsage
+
+      const minSpeakers = this.coerceNumber(chunking.minSpeakers)
+      if (minSpeakers !== undefined) chunkOptions.minSpeakers = minSpeakers
+
+      const warmUpTicks = this.coerceNumber(chunking.warmUpTicks)
+      if (warmUpTicks !== undefined) chunkOptions.warmUpTicks = warmUpTicks
+
+      const warmUpMinUsage = this.coerceNumber(chunking.warmUpMinUsage)
+      if (warmUpMinUsage !== undefined) chunkOptions.warmUpMinUsage = warmUpMinUsage
+
+      if (Object.keys(chunkOptions).length > 0) {
+        result.chunking = chunkOptions
+      }
+    }
+
+    if (raw.blending && typeof raw.blending === 'object') {
+      const blending = raw.blending as Record<string, any>
+      const chance = this.coerceNumber(blending.chance)
+      if (chance !== undefined) {
+        result.blending = { chance }
+      }
+    }
+
+    if (raw.learning && typeof raw.learning === 'object') {
+      const learning = raw.learning as Record<string, any>
+      const rate = this.coerceNumber(learning.rate)
+      if (rate !== undefined) {
+        result.learning = { rate }
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined
+  }
+
+  private composeEmergenceConfig(sources: Array<EmergenceOptions | undefined>): EmergenceConfig {
+    const config = cloneEmergenceConfig(DEFAULT_EMERGENCE_CONFIG)
+
+    for (const source of sources) {
+      if (!source) continue
+
+      if (source.windowSeconds !== undefined && isFinite(source.windowSeconds)) {
+        config.windowSeconds = Math.max(5, source.windowSeconds)
+      }
+
+      if (source.noveltyHalfLife !== undefined && isFinite(source.noveltyHalfLife)) {
+        config.noveltyHalfLife = Math.max(1, source.noveltyHalfLife)
+      }
+
+      if (source.chunking) {
+        if (source.chunking.analyzeEvery !== undefined && isFinite(source.chunking.analyzeEvery)) {
+          config.chunking.analyzeEvery = Math.max(1, Math.floor(source.chunking.analyzeEvery))
+        }
+        if (source.chunking.minUsage !== undefined && isFinite(source.chunking.minUsage)) {
+          config.chunking.minUsage = Math.max(1, Math.floor(source.chunking.minUsage))
+        }
+        if (source.chunking.minSpeakers !== undefined && isFinite(source.chunking.minSpeakers)) {
+          config.chunking.minSpeakers = Math.max(1, Math.floor(source.chunking.minSpeakers))
+        }
+        if (source.chunking.warmUpTicks !== undefined && isFinite(source.chunking.warmUpTicks)) {
+          config.chunking.warmUpTicks = Math.max(0, Math.floor(source.chunking.warmUpTicks))
+        }
+        if (source.chunking.warmUpMinUsage !== undefined && isFinite(source.chunking.warmUpMinUsage)) {
+          config.chunking.warmUpMinUsage = Math.max(1, Math.floor(source.chunking.warmUpMinUsage))
+        }
+      }
+
+      if (source.blending?.chance !== undefined && isFinite(source.blending.chance)) {
+        config.blending.chance = Math.max(0, Math.min(1, source.blending.chance))
+      }
+
+      if (source.learning?.rate !== undefined && isFinite(source.learning.rate)) {
+        config.learning.rate = Math.max(0, source.learning.rate)
+      }
+    }
+
+    return config
+  }
+
+  private coerceSeconds(value: unknown): number | undefined {
+    if (typeof value === 'number' && isFinite(value)) return value
+    if (typeof value === 'string') {
+      const parsed = this.parseDuration(value)
+      if (parsed !== undefined && isFinite(parsed)) return parsed
+      const numeric = Number(value)
+      if (isFinite(numeric)) return numeric
+    }
+    return undefined
+  }
+
+  private coerceNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && isFinite(value)) return value
+    if (typeof value === 'string') {
+      const numeric = Number(value)
+      if (isFinite(numeric)) return numeric
+    }
+    return undefined
+  }
+
+  private resolveBootstrapMaterial(
+    entityDef: WorldEntityDefinition,
+    definition: WorldDefinition,
+    options: WorldBootstrapOptions,
+    index: number
+  ): MdsMaterial {
+    const ref = entityDef.material
+
+    if (typeof ref === 'string') {
+      const registryMaterial = this.getMaterial(ref)
+      if (registryMaterial) return registryMaterial
+
+      const fromDefinition = definition.materials?.[ref]
+      if (fromDefinition) {
+        this.registerMaterial(ref, fromDefinition)
+        return fromDefinition
+      }
+
+      const fromOptions = options.materials?.[ref]
+      if (fromOptions) {
+        this.registerMaterial(ref, fromOptions)
+        return fromOptions
+      }
+
+      throw new Error(`World.bootstrap: material "${ref}" not found`)
+    }
+
+    const inlineId = ref.material ?? entityDef.id ?? `inline.${index}`
+    if (!this.materialRegistry.has(inlineId)) {
+      this.registerMaterial(inlineId, ref)
+    }
+    return this.materialRegistry.get(inlineId) as MdsMaterial
+  }
+
+  getBootstrapEntity(id: string): Entity | undefined {
+    return this.bootstrapEntityMap?.get(id)
+  }
+
+  private registerBehaviorTriggers(entity: Entity): void {
+    const configs = entity.getBehaviorTriggersConfig?.()
+    if (!configs || configs.length === 0) return
+
+    for (const config of configs) {
+      const runtime = this.compileBehaviorTrigger(entity, config)
+      if (!runtime) continue
+      this.logger.push({
+        type: 'behavior.trigger.register',
+        data: { entity: entity.id, on: config.on }
+      })
+      switch (runtime.pattern.kind) {
+        case 'time.every':
+          this.behaviorTimeTriggers.push(runtime)
+          break
+        case 'mention':
+          this.behaviorMentionTriggers.push(runtime)
+          break
+        case 'event':
+          this.behaviorEventTriggers.push(runtime)
+          break
+      }
+    }
+  }
+
+  private compileBehaviorTrigger(entity: Entity, config: ParsedBehaviorTrigger): BehaviorTriggerRuntime | undefined {
+    if (!config.on || config.actions.length === 0) return undefined
+
+    let pattern: BehaviorTriggerPattern | undefined
+    const timeMatch = config.on.match(/^time\.every\((\d+(?:\.\d+)?)(ms|s|m|h|d)?\)$/)
+    if (timeMatch) {
+      const value = parseFloat(timeMatch[1])
+      if (!isFinite(value)) return undefined
+      const unit = timeMatch[2] ?? 's'
+      const interval = Math.max(0.001, this.convertIntervalToSeconds(value, unit))
+      pattern = { kind: 'time.every', interval, nextFire: this.worldTime + interval }
+    } else {
+      const mentionMatch = config.on.match(/^mention\(([^)]+)\)$/i)
+      if (mentionMatch) {
+        const rawTarget = mentionMatch[1].trim()
+        const normalised = rawTarget.toLowerCase()
+        let mapped: 'any' | 'self' | 'others' = 'any'
+        if (normalised === 'self') {
+          mapped = 'self'
+        } else if (normalised === 'others' || normalised === 'anyone') {
+          mapped = 'others'
+        } else if (normalised === 'any' || normalised === '*') {
+          mapped = 'any'
+        }
+
+        let entityRef: string | undefined
+        if (mapped === 'any' && normalised !== 'any' && normalised !== '*') {
+          entityRef = rawTarget.replace(/^@/, '')
+        }
+
+        pattern = { kind: 'mention', target: mapped, entityRef: entityRef ? entityRef.toLowerCase() : undefined }
+      } else {
+        const eventMatch = config.on.match(/^event\(([^)]+)\)$/i)
+        if (eventMatch) {
+          const raw = eventMatch[1].trim()
+          const normalised = raw.toLowerCase()
+          if (normalised === 'any' || raw === '*') {
+            pattern = { kind: 'event', event: '*', match: 'any' }
+          } else if (raw.endsWith('*')) {
+            const prefix = raw.slice(0, -1).trim()
+            if (prefix.length > 0) {
+              pattern = { kind: 'event', event: prefix.toLowerCase(), match: 'prefix' }
+            }
+          } else {
+            pattern = { kind: 'event', event: normalised, match: 'exact' }
+          }
+        }
+      }
+    }
+
+    if (!pattern) {
+      console.warn(`[World] Unrecognised behavior trigger pattern "${config.on}" for entity ${entity.id}`)
+      return undefined
+    }
+
+    const whereExpr = config.where ? this.createExpression(config.where) : undefined
+    const actions: BehaviorActionRuntime[] = []
+    for (const action of config.actions) {
+      const compiled = this.compileBehaviorAction(action)
+      if (compiled) actions.push(compiled)
+    }
+
+    if (actions.length === 0) return undefined
+
+    return {
+      entity,
+      config,
+      pattern,
+      where: whereExpr,
+      actions
+    }
+  }
+
+  private compileBehaviorAction(action: ParsedBehaviorAction): BehaviorActionRuntime | undefined {
+    switch (action.kind) {
+      case 'say':
+        return { kind: 'say', mode: action.mode, text: action.text, lang: action.lang }
+      case 'mod.emotion': {
+        const v = action.v ? this.createExpression(action.v) : undefined
+        const a = action.a ? this.createExpression(action.a) : undefined
+        const d = action.d ? this.createExpression(action.d) : undefined
+        if (!v && !a && !d) return undefined
+        return { kind: 'mod.emotion', v, a, d }
+      }
+      case 'relation.update': {
+        const formulaSource = action.formula
+        if (!formulaSource) return undefined
+        let metric = action.metric ?? 'trust'
+        let mode: 'absolute' | 'delta' = 'absolute'
+        let source = formulaSource
+        const assignMatch = formulaSource.match(/^([\w.]+)\s*\+=\s*(.+)$/)
+        if (assignMatch) {
+          metric = action.metric ?? assignMatch[1]
+          source = assignMatch[2]
+          mode = 'delta'
+        }
+        const expr = this.createExpression(source)
+        if (!expr) return undefined
+        return { kind: 'relation.update', target: action.target, metric, expr, mode }
+      }
+      case 'memory.write': {
+        const salience = action.salience ? this.createExpression(action.salience) : undefined
+        return {
+          kind: 'memory.write',
+          target: action.target,
+          memoryKind: action.memoryKind,
+          salience,
+          value: action.value
+        }
+      }
+      case 'memory.recall': {
+        return { kind: 'memory.recall', target: action.target, memoryKind: action.memoryKind, window: action.window }
+      }
+      case 'context.set': {
+        const entries: Record<string, Expression> = {}
+        for (const [key, value] of Object.entries(action.entries)) {
+          const expr = this.createExpression(value)
+          if (expr) entries[key] = expr
+        }
+        if (Object.keys(entries).length === 0) return undefined
+        return { kind: 'context.set', entries }
+      }
+      case 'emit': {
+        const payload: Record<string, Expression> = {}
+        if (action.payload) {
+          for (const [key, value] of Object.entries(action.payload)) {
+            const expr = this.createExpression(value)
+            if (expr) payload[key] = expr
+          }
+        }
+        return { kind: 'emit', event: action.event, payload }
+      }
+      case 'log':
+        return { kind: 'log', text: action.text }
+      default:
+        return undefined
+    }
+  }
+
+  private convertIntervalToSeconds(value: number, unit: string): number {
+    switch (unit) {
+      case 'ms':
+        return value / 1000
+      case 'm':
+        return value * 60
+      case 'h':
+        return value * 3600
+      case 'd':
+        return value * 86400
+      case 's':
+      default:
+        return value
+    }
+  }
+
+  private parseDuration(value: string): number | undefined {
+    if (!value) return undefined
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+    if (trimmed.toLowerCase() === 'infinite' || trimmed === 'Infinity') return Infinity
+    const match = trimmed.match(/^(\d+(?:\.\d+)?)(ms|s|m|h|d)?$/)
+    if (!match) return undefined
+    const amount = parseFloat(match[1])
+    if (!isFinite(amount)) return undefined
+    const unit = match[2] ?? 's'
+    return this.convertIntervalToSeconds(amount, unit)
+  }
+
+  private rebuildExpressionFunctions(): void {
+    const collected: Record<string, Function> = {}
+
+    const walk = (value: unknown, path: string): void => {
+      if (typeof value === 'function') {
+        if (path) {
+          collected[path] = value as Function
+        }
+        return
+      }
+      if (!value || typeof value !== 'object') return
+      if (Array.isArray(value)) return
+
+      for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+        const nextPath = path ? `${path}.${key}` : key
+        walk(child, nextPath)
+      }
+    }
+
+    if (this.packFunctions && typeof this.packFunctions === 'object') {
+      for (const [key, value] of Object.entries(this.packFunctions)) {
+        walk(value, key)
+      }
+    }
+
+    this.expressionFunctions = collected
+  }
+
+  private filterMemoriesByWindow(memories: Memory[], windowSeconds: number): Memory[] {
+    if (!isFinite(windowSeconds) || windowSeconds <= 0) {
+      return [...memories]
+    }
+    if (windowSeconds === Infinity) {
+      return [...memories]
+    }
+
+    const worldThreshold = this.worldTime - windowSeconds
+    const realThreshold = Date.now() - windowSeconds * 1000
+
+    return memories.filter(memory => {
+      const timestamp = memory.timestamp
+      if (typeof timestamp !== 'number') return true
+
+      // Heuristic: timestamps near world time are treated as simulation seconds.
+      if (Math.abs(timestamp - this.worldTime) <= windowSeconds * 2) {
+        return timestamp >= worldThreshold
+      }
+
+      // Otherwise assume real-time milliseconds.
+      return timestamp >= realThreshold
+    })
+  }
+
+  private evaluateTimeTriggers(): void {
+    if (this.behaviorTimeTriggers.length === 0) return
+
+    for (const runtime of this.behaviorTimeTriggers) {
+      if (runtime.pattern.kind !== 'time.every') continue
+      while (this.worldTime >= runtime.pattern.nextFire) {
+        runtime.pattern.nextFire += runtime.pattern.interval
+        const eventContext: BehaviorEventContext = { type: 'time' }
+        this.runBehaviorTrigger(runtime, eventContext)
+      }
+    }
+  }
+
+  private handleUtteranceTriggers(utterance: Utterance): void {
+    if (this.behaviorMentionTriggers.length === 0) return
+    const speaker = this.entities.find(entity => entity.id === utterance.speaker)
+
+    for (const runtime of this.behaviorMentionTriggers) {
+      if (runtime.pattern.kind !== 'mention') continue
+      if (runtime.pattern.target === 'self' && speaker?.id !== runtime.entity.id) continue
+      if (runtime.pattern.target === 'others' && speaker?.id === runtime.entity.id) continue
+      if (!speaker && runtime.pattern.target !== 'any') continue
+      if (runtime.pattern.entityRef && speaker) {
+        const speakerId = speaker.id.toLowerCase()
+        const bootstrapId = (speaker as any)?.bootstrapId
+        const bootstrapLower = typeof bootstrapId === 'string' ? bootstrapId.toLowerCase() : undefined
+        if (speakerId !== runtime.pattern.entityRef && bootstrapLower !== runtime.pattern.entityRef) {
+          continue
+        }
+      }
+
+      runtime.entity.updateTriggerContext?.({
+        userMessage: utterance.text,
+        lastSpeaker: speaker?.id,
+        userSilenceDuration: 0
+      })
+
+      const metrics = { agreement: 1, novelty: 1 }
+      const eventContext: BehaviorEventContext = {
+        type: 'mention',
+        utterance,
+        speaker,
+        listener: runtime.entity,
+        metrics
+      }
+      this.runBehaviorTrigger(runtime, eventContext)
+    }
+  }
+
+  private handleEventTriggers(event: WorldEvent): void {
+    if (this.behaviorEventTriggers.length === 0) return
+
+    const eventTypeLower = event.type.toLowerCase()
+
+    for (const runtime of this.behaviorEventTriggers) {
+      if (runtime.pattern.kind !== 'event') continue
+      const pattern = runtime.pattern
+
+      let matches = false
+      switch (pattern.match) {
+        case 'any':
+          matches = true
+          break
+        case 'exact':
+          matches = eventTypeLower === pattern.event
+          break
+        case 'prefix':
+          matches = eventTypeLower.startsWith(pattern.event)
+          break
+      }
+      if (!matches) continue
+
+      runtime.entity.updateTriggerContext?.({
+        'event.type': event.type,
+        'event.payload': event.data
+      })
+
+      const eventContext: BehaviorEventContext = { type: 'event', event }
+      this.runBehaviorTrigger(runtime, eventContext)
+    }
+  }
+
+  private runBehaviorTrigger(runtime: BehaviorTriggerRuntime, eventContext: BehaviorEventContext): void {
+    const context = this.buildBehaviorContext(runtime.entity, eventContext)
+    if (runtime.where) {
+      const result = runtime.where.evaluate(context)
+      if (!this.toBoolean(result)) {
+        return
+      }
+    }
+
+    this.executeBehaviorActions(runtime, context, eventContext)
+  }
+
+  private executeBehaviorActions(
+    runtime: BehaviorTriggerRuntime,
+    context: Record<string, any>,
+    eventContext: BehaviorEventContext
+  ): void {
+    for (const action of runtime.actions) {
+      switch (action.kind) {
+        case 'say': {
+          const templateContext = {
+            ...context,
+            event: eventContext,
+            last: {
+              utterance: this.lastUtterance?.text ?? '',
+              speaker: this.lastUtterance?.speaker ?? ''
+            },
+            translate: {
+              th: eventContext.utterance?.text ?? ''
+            }
+          }
+          const rendered = action.text
+            ? replacePlaceholders(action.text, templateContext)
+            : eventContext.utterance?.text
+          if (rendered && rendered.trim().length > 0) {
+            this.recordSpeech(runtime.entity, rendered)
+            this.lastUtterance = { text: rendered, speaker: runtime.entity.id }
+            this.logger.push({
+              type: 'behavior.say',
+              data: { entity: runtime.entity.id, text: rendered }
+            })
+          }
+          break
+        }
+        case 'mod.emotion': {
+          if (!runtime.entity.emotion) {
+            runtime.entity.emotion = {
+              valence: 0,
+              arousal: 0.5,
+              dominance: 0.5
+            } as EmotionalState
+          }
+          const emotion = runtime.entity.emotion
+          if (action.v) {
+            const value = this.evaluateNumberExpression(action.v, context)
+            if (value !== undefined) {
+              emotion.valence = Math.max(-1, Math.min(1, value))
+              context.v = emotion.valence
+            }
+          }
+          if (action.a) {
+            const value = this.evaluateNumberExpression(action.a, context)
+            if (value !== undefined) {
+              emotion.arousal = Math.max(0, Math.min(1, value))
+              context.a = emotion.arousal
+            }
+          }
+          if (action.d) {
+            const value = this.evaluateNumberExpression(action.d, context)
+            if (value !== undefined) {
+              const next = Math.max(0, Math.min(1, value))
+              emotion.dominance = next
+              context.d = next
+            }
+          }
+          break
+        }
+        case 'relation.update': {
+          let targetId = action.target
+          if (!targetId && eventContext.speaker) {
+            targetId = eventContext.speaker.id
+          }
+          if (!targetId) break
+          if (!runtime.entity.relationships) {
+            runtime.entity.enable?.('relationships')
+            runtime.entity.relationships ??= new Map<string, any>()
+          }
+          const relationships = runtime.entity.relationships
+          if (!relationships) break
+          let relationship = relationships.get(targetId) as (Relationship & Record<string, number>) | undefined
+          if (!relationship) {
+            relationship = createRelationship(0, 0) as Relationship & Record<string, number>
+            relationships.set(targetId, relationship)
+          }
+          const metric = action.metric
+          const currentValue = typeof relationship[metric] === 'number' ? relationship[metric] : 0
+          const contextWithMetric = { ...context, [metric]: currentValue }
+          const computedRaw = this.evaluateNumberExpression(action.expr, contextWithMetric)
+          if (typeof computedRaw !== 'number') break
+          let nextValue = action.mode === 'delta' ? currentValue + computedRaw : computedRaw
+          if (nextValue < 0) nextValue = 0
+          if (nextValue > 1) nextValue = 1
+          relationship[metric] = nextValue
+          context[metric] = nextValue
+          break
+        }
+        case 'memory.write': {
+          if (!runtime.entity.memory) {
+            runtime.entity.enable?.('memory')
+          }
+          if (!runtime.entity.memory) break
+          const salience = action.salience ? this.evaluateNumberExpression(action.salience, context) ?? 0.5 : 0.5
+          const templateContext = {
+            ...context,
+            event: eventContext,
+            last: {
+              utterance: this.lastUtterance?.text ?? '',
+              speaker: this.lastUtterance?.speaker ?? ''
+            }
+          }
+          const value = action.value ? replacePlaceholders(action.value, templateContext) : eventContext.utterance?.text
+          runtime.entity.remember({
+            timestamp: this.worldTime,
+            type: (action.memoryKind as any) ?? 'fact',
+            subject: action.target ?? (eventContext.speaker?.id ?? 'event'),
+            content: { value },
+            salience
+          })
+          break
+        }
+        case 'memory.recall': {
+          if (!runtime.entity.memory) {
+            runtime.entity.enable?.('memory')
+          }
+          const buffer = runtime.entity.memory
+          if (!buffer) break
+
+          const templateContext = {
+            ...context,
+            event: eventContext,
+            last: {
+              utterance: this.lastUtterance?.text ?? '',
+              speaker: this.lastUtterance?.speaker ?? ''
+            }
+          }
+
+          let subject = action.target
+          if (subject) {
+            const rendered = replacePlaceholders(subject, templateContext)
+            subject = rendered?.trim().length ? rendered : subject
+          } else if (eventContext.speaker) {
+            subject = eventContext.speaker.id
+          }
+
+          const filter: MemoryFilter = {}
+          let windowSeconds: number | undefined
+
+          if (action.memoryKind) {
+            filter.type = action.memoryKind as MemoryFilter['type']
+          }
+          if (subject && subject.trim().length > 0) {
+            filter.subject = subject.trim()
+          }
+          if (action.window) {
+            const parsedWindow = this.parseDuration(action.window)
+            if (parsedWindow !== undefined && parsedWindow >= 0) {
+              windowSeconds = parsedWindow
+            }
+          }
+
+          const baseFilter = Object.keys(filter).length > 0 ? filter : undefined
+          const recalled: Memory[] = buffer.recall(baseFilter)
+          const filtered = windowSeconds !== undefined
+            ? this.filterMemoriesByWindow(recalled, windowSeconds)
+            : recalled
+          const latest = filtered.length > 0 ? filtered[filtered.length - 1] : undefined
+
+          setPathValue(context, 'memory.recall.items', filtered)
+          setPathValue(context, 'memory.recall.latest', latest)
+          setPathValue(context, 'memory.recall.count', filtered.length)
+          break
+        }
+        case 'context.set': {
+          if (!action.entries || Object.keys(action.entries).length === 0) break
+          const payload: Record<string, any> = {}
+          for (const [key, expr] of Object.entries(action.entries)) {
+            const value = expr.evaluate(context)
+            setPathValue(context, key, value)
+            payload[key] = value
+          }
+          if (Object.keys(payload).length > 0) {
+            runtime.entity.updateTriggerContext?.(payload)
+            this.broadcastContext(payload)
+          }
+          break
+        }
+        case 'emit': {
+          const payload: Record<string, any> = {}
+          if (action.payload) {
+            for (const [key, expr] of Object.entries(action.payload)) {
+              payload[key] = expr.evaluate(context)
+            }
+          }
+          this.broadcastEvent(action.event, payload)
+          break
+        }
+        case 'log':
+          this.logger.push({
+            type: 'behavior.log',
+            data: { entity: runtime.entity.id },
+            text: action.text
+          })
+          break
+      }
+    }
+  }
+
+  private buildBehaviorContext(entity: Entity, eventContext: BehaviorEventContext): Record<string, any> {
+    const emotion = entity.emotion ?? { valence: 0, arousal: 0.5, dominance: 0.5 }
+    return {
+      time: { world: this.worldTime, tick: this.tickCount },
+      entity: {
+        id: entity.id,
+        emotion,
+        position: { x: entity.x, y: entity.y }
+      },
+      event: eventContext,
+      last: {
+        utterance: this.lastUtterance?.text ?? '',
+        speaker: this.lastUtterance?.speaker ?? ''
+      },
+      metrics: eventContext.metrics ?? { agreement: 1, novelty: 1 },
+      pack: {
+        functions: this.packFunctions,
+        compose: this.packCompose,
+        emergence: this.packEmergence
+      },
+      v: emotion.valence ?? 0,
+      a: emotion.arousal ?? 0.5,
+      d: typeof emotion.dominance === 'number' ? emotion.dominance : 0.5
+    }
+  }
+
+  private createExpression(source?: string): Expression | undefined {
+    if (!source) return undefined
+    try {
+      const functionMap = Object.keys(this.expressionFunctions).length > 0
+        ? this.expressionFunctions
+        : undefined
+      return new Expression(source, functionMap)
+    } catch (error) {
+      console.warn('[World] Failed to compile expression', source, error)
+      return undefined
+    }
+  }
+
+  private evaluateNumberExpression(expr: Expression | undefined, context: Record<string, any>): number | undefined {
+    if (!expr) return undefined
+    const value = expr.evaluate(context)
+    if (typeof value === 'number' && isFinite(value)) return value
+    if (typeof value === 'string') {
+      const num = parseFloat(value)
+      if (!isNaN(num)) return num
+    }
+    if (typeof value === 'boolean') return value ? 1 : 0
+    return undefined
+  }
+
+  private toBoolean(value: any): boolean {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value !== 0
+    if (typeof value === 'string') return value.length > 0 && value !== '0'
+    return Boolean(value)
   }
 
   /**
@@ -1713,4 +3076,16 @@ export class World {
     // Destroy engine
     this.engine.destroy()
   }
+  getPackFunction(name: string): unknown {
+    return this.packFunctions[name]
+  }
+
+  getPackCompose(): Record<string, unknown> {
+    return { ...this.packCompose }
+  }
+
+  getPackEmergence(): Record<string, unknown> {
+    return { ...this.packEmergence }
+  }
+
 }

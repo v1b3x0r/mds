@@ -6,7 +6,7 @@ A human-readable history of what changed and why it matters.
 
 [7.1.0] — World Observability Hooks
 
-📅 2025-11-02
+📅 2025-11-02 (Time Traveler Codex 😅)
 
 ⸻
 
