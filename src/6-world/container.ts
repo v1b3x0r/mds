@@ -46,7 +46,8 @@ import {
 import {
   CollectiveIntelligence,
   WorldStats,
-  PatternDetection
+  PatternDetection,
+  EmotionalClimate
 } from '@mds/3-cognition/world-mind'
 
 // v5.8.4: Direct imports to avoid circular dependency (world/index.ts exports World)
@@ -365,6 +366,9 @@ export class World {
   // Phase 1: Resource fields (v5.9 - Material Pressure System)
   resourceFields = new Map<string, ResourceField>()
 
+  // Task 1.4: Emotional climate (world-mind collective emotion)
+  emotionalClimate: EmotionalClimate
+
   // Options
   options: WorldOptions
 
@@ -417,6 +421,9 @@ export class World {
     if (options.features?.linguistics || options.linguistics?.enabled) {
       this.initializeLinguistics(options)
     }
+
+    // Task 1.4: Initialize emotional climate
+    this.emotionalClimate = CollectiveIntelligence.createEmotionalClimate()
 
     if (options.contextProviders && options.contextProviders.length > 0) {
       for (const registration of options.contextProviders) {
@@ -1206,6 +1213,31 @@ export class World {
       if (entity.needs && entity.emotion) {
         entity.updateNeeds(dt, this.worldTime)
 
+        // Task 1.4: Record suffering in emotional climate when needs are critical
+        const criticalNeeds = entity.getCriticalNeeds()
+        if (criticalNeeds.length > 0) {
+          // Calculate suffering intensity (average of all critical needs)
+          let totalSuffering = 0
+          for (const needId of criticalNeeds) {
+            const need = entity.getNeed(needId)
+            if (need) {
+              // Severity = how critical (0 = at threshold, 1 = depleted)
+              const severity = 1 - (need.current / need.criticalThreshold)
+              totalSuffering += severity
+            }
+          }
+          const avgSuffering = totalSuffering / criticalNeeds.length
+
+          // Record suffering occasionally (1% chance per tick to avoid spam)
+          if (Math.random() < 0.01) {
+            CollectiveIntelligence.recordSuffering(
+              this.emotionalClimate,
+              avgSuffering * 0.3,  // Scale down for gentle influence
+              this.worldTime
+            )
+          }
+        }
+
         // Task 1.3: Entities speak about critical needs (link to lexicon)
         if (this.transcript && this.options.features?.linguistics) {
           // Occasional utterances when needs are critical (every ~10-30 ticks)
@@ -1248,6 +1280,19 @@ export class World {
       // Intent timeout evaluation
       if (entity.intent) {
         entity.intent.update(Date.now())
+      }
+    }
+
+    // Task 1.4: Update emotional climate (decay over time)
+    CollectiveIntelligence.updateEmotionalClimate(this.emotionalClimate, dt)
+
+    // Task 1.5: Apply climate influence to all entities
+    const climateInfluence = CollectiveIntelligence.getClimateInfluence(this.emotionalClimate)
+    if (Math.abs(climateInfluence.valence) + Math.abs(climateInfluence.arousal) + Math.abs(climateInfluence.dominance) > 0.001) {
+      for (const entity of this.entities) {
+        if (entity.emotion) {
+          entity.feel(climateInfluence)
+        }
       }
     }
   }
@@ -2002,6 +2047,41 @@ export class World {
     for (const field of this.resourceFields.values()) {
       updateResourceField(field, dt, this.worldTime)
     }
+  }
+
+  /**
+   * Record entity death in emotional climate (Task 1.4)
+   *
+   * @param entity - Entity that died
+   * @param intensity - How significant the death (0..1, default: 0.5)
+   *
+   * @example
+   * // When entity dies of thirst
+   * world.recordEntityDeath(entity, 0.8)  // High intensity
+   * world.despawn(entity)
+   */
+  recordEntityDeath(entity: Entity, intensity: number = 0.5): void {
+    CollectiveIntelligence.recordDeath(
+      this.emotionalClimate,
+      entity.id,
+      intensity,
+      this.worldTime
+    )
+  }
+
+  /**
+   * Get current emotional climate state
+   *
+   * @returns Emotional climate snapshot
+   *
+   * @example
+   * const climate = world.getEmotionalClimate()
+   * console.log(`Grief: ${climate.grief}, Vitality: ${climate.vitality}`)
+   * console.log(CollectiveIntelligence.describeClimate(climate))
+   * // → "Grieving and tense"
+   */
+  getEmotionalClimate(): EmotionalClimate {
+    return { ...this.emotionalClimate }
   }
 
   /**
