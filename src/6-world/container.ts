@@ -1202,6 +1202,23 @@ export class World {
         }
       }
 
+      // Phase 1.6b: Resource needs update (Task 1.1)
+      if (entity.needs && entity.emotion) {
+        entity.updateNeeds(dt, this.worldTime)
+
+        // Task 1.3: Entities speak about critical needs (link to lexicon)
+        if (this.transcript && this.options.features?.linguistics) {
+          // Occasional utterances when needs are critical (every ~10-30 ticks)
+          const speakChance = 0.05  // 5% chance per tick when critical
+          if (Math.random() < speakChance) {
+            const utterance = entity.speakAboutNeeds()
+            if (utterance) {
+              this.recordSpeech(entity, utterance)
+            }
+          }
+        }
+      }
+
       // Phase 5: Emotion-Physics coupling (if physics enabled)
       if (this.options.features?.physics && entity.emotion) {
         // Joy (high valence) → reduces entropy (order increases)

@@ -2213,6 +2213,89 @@ export class Entity implements MessageParticipant {
     return snapshot
   }
 
+  /**
+   * Generate speech about critical needs (Task 1.3)
+   * Returns utterance expressing need, or undefined if no critical needs
+   *
+   * @param lang - Language code (optional, entity chooses if not specified)
+   * @returns Utterance text or undefined
+   *
+   * @example
+   * const utterance = entity.speakAboutNeeds()
+   * // Entity with low water: "I need water"
+   * // Entity with multiple critical: "Water... I need water"
+   */
+  speakAboutNeeds(lang?: string): string | undefined {
+    const critical = this.getCriticalNeeds()
+    if (critical.length === 0) return undefined
+
+    // Get language preference
+    const preference = this.getLanguagePreferenceOrder(lang)
+    const selectedLang = preference[0] ?? 'en'
+
+    // Get most critical need (lowest level)
+    let mostCritical = critical[0]
+    let lowestLevel = this.needs!.get(critical[0])!.current
+
+    for (const needId of critical) {
+      const need = this.needs!.get(needId)
+      if (need && need.current < lowestLevel) {
+        lowestLevel = need.current
+        mostCritical = needId
+      }
+    }
+
+    // Generate utterance based on language and severity
+    const severity = 1 - lowestLevel  // 0..1 (higher = more critical)
+
+    // Need phrases by language
+    const phrases: Record<string, Record<string, string[]>> = {
+      en: {
+        desperate: ['Water...', 'Need water', 'So thirsty', 'Water please', 'Dying of thirst'],
+        urgent: ['I need water', 'Looking for water', 'Need to find water', 'Water nearby?'],
+        moderate: ['Getting thirsty', 'Could use some water', 'Water would be nice']
+      },
+      th: {
+        desperate: ['น้ำ...', 'ต้องการน้ำ', 'กระหายน้ำมาก', 'ขอน้ำด้วย', 'กำลังจะตาย'],
+        urgent: ['ฉันต้องการน้ำ', 'กำลังหาน้ำ', 'ต้องหาน้ำ', 'มีน้ำแถวนี้ไหม?'],
+        moderate: ['เริ่มกระหายน้ำ', 'อยากได้น้ำ', 'น้ำก็ดีนะ']
+      }
+    }
+
+    // Select phrase based on severity
+    let category: 'desperate' | 'urgent' | 'moderate'
+    if (severity > 0.8) {
+      category = 'desperate'
+    } else if (severity > 0.5) {
+      category = 'urgent'
+    } else {
+      category = 'moderate'
+    }
+
+    // Try selected language, fallback to English
+    const langPhrases = phrases[selectedLang] || phrases.en
+    const categoryPhrases = langPhrases[category]
+
+    if (!categoryPhrases || categoryPhrases.length === 0) {
+      // Generic fallback
+      return selectedLang === 'th' ? `ต้องการ${mostCritical}` : `Need ${mostCritical}`
+    }
+
+    // Pick random phrase from category and replace 'water' with actual resource name
+    let phrase = categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)]
+
+    // Replace 'water' or 'น้ำ' with actual resource name
+    phrase = phrase.replace(/water/gi, mostCritical)
+    phrase = phrase.replace(/น้ำ/g, mostCritical)
+
+    // If phrase doesn't contain the resource name yet, append it
+    if (!phrase.toLowerCase().includes(mostCritical.toLowerCase())) {
+      phrase = `${phrase}... ${mostCritical}`
+    }
+
+    return phrase
+  }
+
   // ========================================
   // v5.5: P2P Cognition Methods
   // ========================================
