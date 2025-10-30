@@ -55,36 +55,46 @@ export class LinguisticCrystallizer {
 
   /**
    * Called every world tick
+   * @returns Number of new terms created this tick
    */
-  tick(transcript: TranscriptBuffer, lexicon: WorldLexicon): void {
-    if (!this.config.enabled) return
+  tick(transcript: TranscriptBuffer, lexicon: WorldLexicon): number {
+    if (!this.config.enabled) return 0
 
     this.tickCount++
 
+    let newTermsCount = 0
+
     // Run analysis every N ticks
     if (this.tickCount % this.config.analyzeEvery === 0) {
-      this.analyze(transcript, lexicon)
+      newTermsCount = this.analyze(transcript, lexicon)
     }
 
     // Decay unused terms
     lexicon.decay(1000)  // Assume 1 tick ≈ 1 second
+
+    return newTermsCount
   }
 
   /**
    * Analyze transcript and extract patterns
+   * @returns Number of new terms created
    */
-  private analyze(transcript: TranscriptBuffer, lexicon: WorldLexicon): void {
+  private analyze(transcript: TranscriptBuffer, lexicon: WorldLexicon): number {
     const recent = transcript.getSince(this.lastAnalysis)
     this.lastAnalysis = Date.now()
 
-    if (recent.length === 0) return
+    if (recent.length === 0) return 0
 
     // Local pattern detection (frequency-based)
     const patterns = this.detectLocalPatterns(recent)
 
-    // Add to lexicon
+    // Add to lexicon and track new terms
+    let newTermsCount = 0
     for (const pattern of patterns) {
-      lexicon.add(pattern)
+      const result = lexicon.add(pattern)
+      if (result.created) {
+        newTermsCount++
+      }
     }
 
     // Optional: coining combined terms from frequent patterns in this batch
@@ -96,7 +106,7 @@ export class LinguisticCrystallizer {
         const a = sorted[0], b = sorted[1]
         const coined = `${a.term} ${b.term}`.trim().toLowerCase()
         if (coined.length >= this.config.minLength && coined.length <= this.config.maxLength) {
-          lexicon.add({
+          const result = lexicon.add({
             term: coined,
             meaning: `Coined from '${a.term}' + '${b.term}'`,
             origin: a.origin,
@@ -107,9 +117,14 @@ export class LinguisticCrystallizer {
             relatedTerms: [a.term, b.term],
             emotionContext: { valence: 0, arousal: 0.6 }
           })
+          if (result.created) {
+            newTermsCount++
+          }
         }
       }
     }
+
+    return newTermsCount
   }
 
   /**

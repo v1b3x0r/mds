@@ -248,12 +248,19 @@ export interface WorldAnalyticsEvent {
   collectiveEmotion: EmotionalState | null
 }
 
+export interface WorldEmergenceEvent {
+  newTerms: number      // Number of new terms created
+  totalTerms: number    // Total terms in lexicon
+  novelty: number       // Current novelty metric (0..1)
+}
+
 type WorldEventMap = {
   tick: { time: number; dt: number }
   context: WorldContextEvent
   event: WorldEvent
   analytics: WorldAnalyticsEvent
   utterance: Utterance
+  'emergence.chunk': WorldEmergenceEvent  // Layer 5: Pattern emergence
 }
 
 /**
@@ -336,6 +343,15 @@ export class World {
   lexicon?: WorldLexicon
   private crystallizer?: LinguisticCrystallizer
   protoGenerator?: import('@mds/6-world/linguistics/proto-language').ProtoLanguageGenerator  // v6.1: Emergent language generation
+
+  // Layer 5: Emergence Observability (v5.9)
+  emergence = {
+    novelty: 0,           // 0..1 (ratio of new patterns recently)
+    coherence: 0,         // 0..1 (how organized patterns are)
+    lexiconSize: 0,       // total terms in lexicon
+    activePatterns: 0,    // patterns used recently
+    emotionalDensity: 0   // avg emotional intensity (arousal)
+  }
 
   // Options
   options: WorldOptions
@@ -950,6 +966,9 @@ export class World {
     // Phase 4.5: Linguistics update (Phase 10 / v6.0 - if enabled)
     if (this.options.features?.linguistics && this.crystallizer) {
       this.updateLinguistics()
+
+      // Layer 5: Update emergence state after linguistics
+      this.updateEmergenceState()
     }
 
     // Phase 5: Rendering update
@@ -1370,11 +1389,91 @@ export class World {
    * Phase 4.5: Linguistics update (Phase 10 / v6.0)
    * - Run crystallizer to detect patterns in transcript
    * - Update lexicon with new terms
+   * - Emit emergence events (Layer 5)
    */
   private updateLinguistics(): void {
     if (!this.crystallizer || !this.transcript || !this.lexicon) return
 
-    this.crystallizer.tick(this.transcript, this.lexicon)
+    // Run crystallizer and get number of new terms
+    const newTerms = this.crystallizer.tick(this.transcript, this.lexicon)
+
+    // Emit emergence.chunk event if new patterns emerged
+    if (newTerms > 0) {
+      this.emit('emergence.chunk', {
+        newTerms,
+        totalTerms: this.lexicon.getAll().length,
+        novelty: this.emergence.novelty
+      })
+    }
+  }
+
+  /**
+   * Layer 5: Update emergence state
+   * Analyzes lexicon and entity emotions to calculate emergence metrics
+   */
+  private updateEmergenceState(): void {
+    if (!this.lexicon) return
+
+    const entries = this.lexicon.getAll()
+    const now = Date.now()
+    const recentWindow = 60000  // 1 minute
+
+    // Recently used patterns (active in last minute)
+    const recentlyUsed = entries.filter(e => now - e.lastUsed < recentWindow)
+
+    // New patterns (created in last 10 seconds)
+    const newTerms = entries.filter(e => now - e.firstSeen < 10000)
+
+    // Update metrics
+    this.emergence.lexiconSize = entries.length
+    this.emergence.activePatterns = recentlyUsed.length
+
+    // Novelty = ratio of new terms (high at start, decreases over time)
+    this.emergence.novelty = entries.length > 0
+      ? newTerms.length / entries.length
+      : 0
+
+    // Coherence = how similar emotions are across patterns
+    this.emergence.coherence = this.calculatePatternCoherence(entries)
+
+    // Emotional Density = avg arousal across all entities
+    if (this.entities.length > 0) {
+      const totalArousal = this.entities.reduce((sum, e) => {
+        return sum + (e.emotion?.arousal ?? 0)
+      }, 0)
+      this.emergence.emotionalDensity = totalArousal / this.entities.length
+    } else {
+      this.emergence.emotionalDensity = 0
+    }
+  }
+
+  /**
+   * Calculate pattern coherence (how organized the lexicon is)
+   * Higher = more emotionally coherent patterns
+   */
+  private calculatePatternCoherence(entries: import('@mds/6-world/linguistics/lexicon').LexiconEntry[]): number {
+    if (entries.length < 2) return 0
+
+    // Compare emotion contexts of all pattern pairs
+    let coherenceSum = 0
+    let comparisons = 0
+
+    for (let i = 0; i < entries.length - 1; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i].emotionContext
+        const b = entries[j].emotionContext
+
+        if (a && b) {
+          // Similarity = 1 - distance in valence space
+          const valenceDist = Math.abs(a.valence - b.valence)
+          const similarity = 1 - valenceDist
+          coherenceSum += similarity
+          comparisons++
+        }
+      }
+    }
+
+    return comparisons > 0 ? coherenceSum / comparisons : 0
   }
 
   /**
@@ -1565,6 +1664,21 @@ export class World {
    */
   get events(): WorldEvent[] {
     return this.eventLog
+  }
+
+  /**
+   * Get emergence state (Layer 5)
+   * Returns metrics about pattern formation and emotional climate
+   *
+   * @returns Emergence metrics for UI/analytics
+   *
+   * @example
+   * const state = world.getEmergenceState()
+   * console.log(`Lexicon size: ${state.lexiconSize}`)
+   * console.log(`Novelty: ${state.novelty.toFixed(2)}`)
+   */
+  getEmergenceState() {
+    return { ...this.emergence }
   }
 
   /**
