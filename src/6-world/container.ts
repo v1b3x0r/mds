@@ -1240,7 +1240,7 @@ export class World {
 
         // Task 1.3: Entities speak about critical needs (link to lexicon)
         if (this.transcript && this.options.features?.linguistics) {
-          // Occasional utterances when needs are critical (every ~10-30 ticks)
+          // Occasional utterances when needs are critical (average of 1 utterance every 20 ticks)
           const speakChance = 0.05  // 5% chance per tick when critical
           if (Math.random() < speakChance) {
             const utterance = entity.speakAboutNeeds()
