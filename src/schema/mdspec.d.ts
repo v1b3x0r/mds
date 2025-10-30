@@ -261,6 +261,28 @@ export interface MdsLanguageProfile {
 }
 
 /**
+ * Resource need definition (v5.9 - Material Pressure System)
+ */
+export interface MdsNeedConfig {
+  id: string                    // Resource identifier (e.g., "water", "food", "energy")
+  initial?: number              // Initial level (0..1, default: 1.0)
+  depletionRate: number         // Depletion per second (e.g., 0.001 = depletes in ~16 minutes)
+  criticalThreshold?: number    // When to trigger critical state (default: 0.2)
+  emotionalImpact?: {           // How critical need affects emotion (PAD model)
+    valence: number             // Change to pleasure (-1..1, typically negative)
+    arousal: number             // Change to arousal (0..1, typically increases)
+    dominance: number           // Change to dominance (0..1, typically decreases)
+  }
+}
+
+/**
+ * Needs configuration (v5.9 - Material Pressure System)
+ */
+export interface MdsNeedsConfig {
+  resources?: MdsNeedConfig[]   // Array of resource needs
+}
+
+/**
  * Complete material definition (v5.1+)
  */
 export interface MdsMaterial {
@@ -299,6 +321,7 @@ export interface MdsMaterial {
   skills?: MdsSkillsConfig
   cognition?: MdsCognitionConfig
   world_mind?: MdsWorldMindConfig
+  needs?: MdsNeedsConfig      // v5.9: Resource needs (water, food, energy)
 
   notes?: string[]            // design notes
 }
