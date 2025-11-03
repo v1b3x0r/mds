@@ -16,10 +16,10 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: package-lock.json
-
+          
       - name: Install dependencies
         run: npm install --prefer-offline
-
+      
       - name: Type check
         run: npm run type-check
 
@@ -28,5 +28,3 @@ jobs:
 
       - name: Run tests
         run: npm run test
-
-
