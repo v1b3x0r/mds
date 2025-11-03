@@ -131,6 +131,9 @@
 
 ✅ Result: `<pre>` in the demo simply prints `world.logger.tail(40).join("\n")`.
 
+### Demo
+- `npm run dev` → เปิดเบราว์เซอร์ที่ `/examples/cluster.html` เพื่อดู world terminal แบบเรียลไทม์ (ด้านซ้ายเป็น climate/entity monitor, ด้านขวาเป็น log stream ที่ดึงจาก `WorldLogger` โดยตรง)
+
 ---
 
 ## Implementation Order
@@ -168,6 +171,8 @@
 - 2025-10-30 · Added Bun integration tests covering `event(...)` triggers and `memory.recall` pipelines to lock in Layer 3+4 semantics.
 - 2025-10-30 · Updated sample materials (guardian golem, paper.curious) to use declarative triggers (`event`, `mention`, `memory.recall`, `context.set`) as live fixtures before entering Layer 5.
 - 2025-10-30 · Layer 5 emergence loop wired: `world.emergence` config now tunes crystallizer/lexicon, world logs `emergence.chunk|blend`, and novelty/diversity metrics stream through context + tests (`tests/emergence-loop.test.ts`).
+- 2025-11-03 · Layer 6 locale overlay & proto composer online: packs/MDM provide overlays, entities format `say` actions via `utterance.policy`, and new tests verify modal speech + overlay references (`tests/behavior-triggers.test.ts`).
+- 2025-11-04 · Logger now records speech mode + climate/needs snapshot, `translation.learn` fires declarative memory bindings, and Athena lexicon fixture (`materials/examples/entity.athena.lexicon.mdm`) proves mention → translation → response pipeline with Bun coverage (`tests/behavior-triggers.test.ts`).
 
 ---
 

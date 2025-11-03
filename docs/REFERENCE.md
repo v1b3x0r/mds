@@ -1,7 +1,7 @@
 # MDS API Reference
 
-**Version:** 5.9.0
-**Last Updated:** 2025-10-30
+**Version:** 5.9.2
+**Last Updated:** 2025-11-04
 
 Complete API documentation for MDS (Material Definition System).
 
@@ -1340,5 +1340,5 @@ See:
 ---
 
 **Last Updated:** 2025-10-30
-**Version:** 5.9.0
+**Version:** 5.9.2
 **Built with 🤍 in Chiang Mai, Thailand 🇹🇭**
