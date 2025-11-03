@@ -98,6 +98,7 @@ export class LinguisticCrystallizer {
 
   /**
    * Called every world tick
+   * @returns Number of new terms created this tick
    */
   tick(transcript: TranscriptBuffer, lexicon: WorldLexicon): CrystallizerTickOutcome {
     const outcome: CrystallizerTickOutcome = {
@@ -126,6 +127,7 @@ export class LinguisticCrystallizer {
 
   /**
    * Analyze transcript and extract patterns
+   * @returns Number of new terms created
    */
   private analyze(
     transcript: TranscriptBuffer,
@@ -146,7 +148,7 @@ export class LinguisticCrystallizer {
     // Local pattern detection (frequency-based)
     const patterns = this.detectLocalPatterns(recent)
 
-    // Add to lexicon
+    // Add to lexicon and track new terms
     for (const pattern of patterns) {
       const result = lexicon.add(pattern)
       if (result.created) {

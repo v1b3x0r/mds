@@ -45,6 +45,7 @@ export class WorldLexicon {
 
   /**
    * Add or update term in lexicon
+   * @returns {entry, created} - The entry and whether it was newly created
    */
   add(entry: Omit<LexiconEntry, 'weight' | 'decayRate'>): { entry: LexiconEntry; created: boolean } {
     const existing = this.entries.get(entry.term)

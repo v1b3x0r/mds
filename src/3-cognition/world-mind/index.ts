@@ -10,5 +10,7 @@ export {
 export type {
   WorldStats,
   EmergentPattern,
-  PatternDetection
+  PatternDetection,
+  EmotionalClimate,
+  EmotionalClimateEvent
 } from '@mds/3-cognition/world-mind/collective'

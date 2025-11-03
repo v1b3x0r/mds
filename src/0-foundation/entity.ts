@@ -105,6 +105,22 @@ export interface DeclarativeSnapshot {
 }
 
 /**
+ * Resource need tracking (v5.9 - Material Pressure System)
+ */
+export interface Need {
+  id: string                    // Resource identifier (e.g., "water", "food", "energy")
+  current: number               // Current level (0..1)
+  depletionRate: number         // Depletion per second
+  criticalThreshold: number     // When to trigger critical state
+  emotionalImpact?: {           // How critical need affects emotion
+    valence: number             // Change to pleasure (-1..1)
+    arousal: number             // Change to arousal (0..1)
+    dominance: number           // Change to dominance (0..1)
+  }
+  lastUpdated: number           // World time when last updated
+}
+
+/**
  * Entity class - Living material instance
  * v5.2: Implements MessageParticipant for communication compatibility
  */
@@ -168,6 +184,9 @@ export class Entity implements MessageParticipant {
   // v5.5: P2P Cognition (optional)
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
 
+  // v5.9: Material Pressure System (optional)
+  needs?: Map<string, Need>                     // Resource needs tracking (water, food, energy)
+
   // v5.1: Declarative config (from heroblind.mdm)
   private dialoguePhrases?: import('@mds/7-interface/io/mdm-parser').ParsedDialogue
   private emotionTriggers?: import('@mds/7-interface/io/mdm-parser').EmotionTrigger[]
@@ -193,8 +212,10 @@ export class Entity implements MessageParticipant {
     lastPositive: 0,
     lastNegative: 0
   }
-  private utterancePolicy?: ParsedUtterancePolicy
-  private appliedLocaleOverlay?: ParsedLocaleOverlay
+  // @ts-expect-error - Reserved for future utterance policy system
+  private _utterancePolicy?: ParsedUtterancePolicy
+  // @ts-expect-error - Reserved for future locale overlay system
+  private _appliedLocaleOverlay?: ParsedLocaleOverlay
 
   // v5.6: Autonomous behavior flag
   private _isAutonomous: boolean = false
@@ -324,9 +345,9 @@ export class Entity implements MessageParticipant {
       }
 
       if (parsed.utterancePolicy) {
-        this.utterancePolicy = parsed.utterancePolicy
+        this._utterancePolicy = parsed.utterancePolicy
         if (parsed.utterancePolicy.overlay) {
-          this.appliedLocaleOverlay = parsed.utterancePolicy.overlay
+          this._appliedLocaleOverlay = parsed.utterancePolicy.overlay
         }
       }
 
@@ -382,6 +403,21 @@ export class Entity implements MessageParticipant {
     // Auto-generate weights if only nativeLanguage provided
     if (this.nativeLanguage && !this.languageWeights) {
       this.languageWeights = { [this.nativeLanguage]: 1.0 }
+    }
+
+    // v5.9: Initialize needs system
+    if (m.needs?.resources && m.needs.resources.length > 0) {
+      this.needs = new Map()
+      for (const needConfig of m.needs.resources) {
+        this.needs.set(needConfig.id, {
+          id: needConfig.id,
+          current: needConfig.initial ?? 1.0,
+          depletionRate: needConfig.depletionRate,
+          criticalThreshold: needConfig.criticalThreshold ?? 0.2,
+          emotionalImpact: needConfig.emotionalImpact,
+          lastUpdated: 0  // Will be updated by World.tick()
+        })
+      }
     }
 
     // Create DOM element (v4 legacy mode - skip if using v5 renderer)
@@ -2039,6 +2075,243 @@ export class Entity implements MessageParticipant {
     const action = recentMemory.type || 'event'
 
     return `I remember ${subject} (${action})... ${stimulus || ''}`
+  }
+
+  // ========================================
+  // v5.9: Material Pressure System (Needs)
+  // ========================================
+
+  /**
+   * Update all resource needs (depletion over time)
+   * Should be called during entity update tick
+   *
+   * @param dt - Delta time in seconds
+   * @param worldTime - Current world time
+   *
+   * @example
+   * entity.updateNeeds(1, world.time)
+   * // Water depletes from 1.0 to 0.999 (depletionRate = 0.001/s)
+   * // If water < 0.2 → apply emotional impact
+   */
+  updateNeeds(dt: number, worldTime: number): void {
+    if (!this.needs || !this.emotion) return
+
+    for (const [needId, need] of this.needs.entries()) {
+      // Deplete resource
+      need.current = clamp(need.current - need.depletionRate * dt, 0, 1)
+      need.lastUpdated = worldTime
+
+      // Apply emotional impact if critical
+      if (need.current < need.criticalThreshold && need.emotionalImpact) {
+        const impact = need.emotionalImpact
+        // Scale impact by how critical (0 = max impact, criticalThreshold = no impact)
+        const severity = 1 - (need.current / need.criticalThreshold)
+
+        this.emotion.valence = clamp(
+          this.emotion.valence + impact.valence * severity * dt * 0.1,
+          -1,
+          1
+        )
+        this.emotion.arousal = clamp(
+          this.emotion.arousal + impact.arousal * severity * dt * 0.1,
+          0,
+          1
+        )
+        const currentDominance = typeof this.emotion.dominance === 'number'
+          ? this.emotion.dominance
+          : 0.5
+        this.emotion.dominance = clamp(
+          currentDominance + impact.dominance * severity * dt * 0.1,
+          0,
+          1
+        )
+      }
+
+      // Update needs map
+      this.needs.set(needId, need)
+    }
+  }
+
+  /**
+   * Get need by resource ID
+   *
+   * @param id - Resource identifier (e.g., "water", "food")
+   * @returns Need object or undefined if not found
+   *
+   * @example
+   * const waterNeed = entity.getNeed('water')
+   * console.log(`Water level: ${waterNeed.current}`)
+   */
+  getNeed(id: string): Need | undefined {
+    return this.needs?.get(id)
+  }
+
+  /**
+   * Set need level directly
+   *
+   * @param id - Resource identifier
+   * @param value - New level (0..1)
+   *
+   * @example
+   * entity.setNeed('water', 0.5)  // Set water to 50%
+   */
+  setNeed(id: string, value: number): void {
+    const need = this.needs?.get(id)
+    if (!need) return
+
+    need.current = clamp(value, 0, 1)
+    this.needs!.set(id, need)
+  }
+
+  /**
+   * Satisfy a need by increasing its level
+   *
+   * @param id - Resource identifier
+   * @param amount - Amount to increase (0..1)
+   *
+   * @example
+   * entity.satisfyNeed('water', 0.3)  // Drink water, +30% level
+   */
+  satisfyNeed(id: string, amount: number): void {
+    const need = this.needs?.get(id)
+    if (!need) return
+
+    need.current = clamp(need.current + amount, 0, 1)
+    this.needs!.set(id, need)
+  }
+
+  /**
+   * Check if a need is in critical state
+   *
+   * @param id - Resource identifier
+   * @returns true if need < criticalThreshold
+   *
+   * @example
+   * if (entity.isCritical('water')) {
+   *   console.log('Entity needs water urgently!')
+   * }
+   */
+  isCritical(id: string): boolean {
+    const need = this.needs?.get(id)
+    if (!need) return false
+    return need.current < need.criticalThreshold
+  }
+
+  /**
+   * Get all needs in critical state
+   *
+   * @returns Array of resource IDs that are critical
+   *
+   * @example
+   * const critical = entity.getCriticalNeeds()
+   * // → ["water", "energy"]
+   */
+  getCriticalNeeds(): string[] {
+    if (!this.needs) return []
+
+    const critical: string[] = []
+    for (const [id, need] of this.needs.entries()) {
+      if (need.current < need.criticalThreshold) {
+        critical.push(id)
+      }
+    }
+    return critical
+  }
+
+  /**
+   * Get snapshot of all needs
+   *
+   * @returns Record of resource IDs to current levels
+   *
+   * @example
+   * const snapshot = entity.getNeedsSnapshot()
+   * // → { water: 0.85, food: 0.62, energy: 0.34 }
+   */
+  getNeedsSnapshot(): Record<string, number> {
+    if (!this.needs) return {}
+
+    const snapshot: Record<string, number> = {}
+    for (const [id, need] of this.needs.entries()) {
+      snapshot[id] = need.current
+    }
+    return snapshot
+  }
+
+  /**
+   * Generate speech about critical needs (Task 1.3)
+   * Returns utterance expressing need, or undefined if no critical needs
+   *
+   * @param lang - Language code (optional, entity chooses if not specified)
+   * @returns Utterance text or undefined
+   *
+   * @example
+   * const utterance = entity.speakAboutNeeds()
+   * // Entity with low water: "I need water"
+   * // Entity with multiple critical: "Water... I need water"
+   */
+  speakAboutNeeds(lang?: string): string | undefined {
+    const critical = this.getCriticalNeeds()
+    if (critical.length === 0) return undefined
+
+    // Get language preference
+    const preference = this.getLanguagePreferenceOrder(lang)
+    const selectedLang = preference[0] ?? 'en'
+
+    // Get most critical need (lowest level)
+    let mostCritical = critical[0]
+    let lowestLevel = this.needs!.get(critical[0])!.current
+
+    for (const needId of critical) {
+      const need = this.needs!.get(needId)
+      if (need && need.current < lowestLevel) {
+        lowestLevel = need.current
+        mostCritical = needId
+      }
+    }
+
+    // Generate utterance based on language and severity
+    const severity = 1 - lowestLevel  // 0..1 (higher = more critical)
+
+    // Need phrases by language (use {resource} placeholder)
+    const phrases: Record<string, Record<string, string[]>> = {
+      en: {
+        desperate: ['{resource}...', 'Need {resource}', 'Need {resource} now', '{resource} please', 'Must have {resource}'],
+        urgent: ['I need {resource}', 'Looking for {resource}', 'Need to find {resource}', '{resource} nearby?'],
+        moderate: ['Getting low on {resource}', 'Could use some {resource}', '{resource} would be nice']
+      },
+      th: {
+        desperate: ['{resource}...', 'ต้องการ{resource}', 'ต้องการ{resource}มาก', 'ขอ{resource}ด้วย', 'ต้องการ{resource}ด่วน'],
+        urgent: ['ฉันต้องการ{resource}', 'กำลังหา{resource}', 'ต้องหา{resource}', 'มี{resource}แถวนี้ไหม?'],
+        moderate: ['เริ่มต้องการ{resource}', 'อยากได้{resource}', '{resource}ก็ดีนะ']
+      }
+    }
+
+    // Select phrase based on severity
+    let category: 'desperate' | 'urgent' | 'moderate'
+    if (severity > 0.8) {
+      category = 'desperate'
+    } else if (severity > 0.5) {
+      category = 'urgent'
+    } else {
+      category = 'moderate'
+    }
+
+    // Try selected language, fallback to English
+    const langPhrases = phrases[selectedLang] || phrases.en
+    const categoryPhrases = langPhrases[category]
+
+    if (!categoryPhrases || categoryPhrases.length === 0) {
+      // Generic fallback
+      return selectedLang === 'th' ? `ต้องการ${mostCritical}` : `Need ${mostCritical}`
+    }
+
+    // Pick random phrase from category and replace {resource} placeholder
+    let phrase = categoryPhrases[Math.floor(Math.random() * categoryPhrases.length)]
+
+    // Replace {resource} placeholder with actual resource name
+    phrase = phrase.replace(/\{resource\}/g, mostCritical)
+
+    return phrase
   }
 
   // ========================================

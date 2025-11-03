@@ -50,7 +50,8 @@ import {
 import {
   CollectiveIntelligence,
   WorldStats,
-  PatternDetection
+  PatternDetection,
+  EmotionalClimate
 } from '@mds/3-cognition/world-mind'
 
 // v5.8.4: Direct imports to avoid circular dependency (world/index.ts exports World)
@@ -65,16 +66,23 @@ import type { CrystallizerConfig, CrystallizerTickOutcome } from '@mds/6-world/l
 
 import { ProtoLanguageGenerator } from '@mds/6-world/linguistics/proto-language'
 import type { ContextProvider } from '@mds/7-interface/context'
-import { MdmParser, replacePlaceholders } from '@mds/7-interface/io/mdm-parser'
+import { replacePlaceholders } from '@mds/7-interface/io/mdm-parser'
 import type {
   ParsedBehaviorTrigger,
-  ParsedBehaviorAction,
-  ParsedLocaleOverlay,
-  ParsedUtterancePolicy
+  ParsedBehaviorAction
 } from '@mds/7-interface/io/mdm-parser'
 import { WorldLogger } from './logger'
 import { PackResolver, type PackResolverOptions, type PackAggregate } from '@mds/0-foundation/pack-resolver'
 import type { Memory, MemoryFilter } from '@mds/1-ontology/memory/buffer'
+
+// Phase 1: Resource field system (v5.9)
+import type { ResourceField } from '@mds/6-world/resources/field'
+import {
+  updateResourceField,
+  getIntensityAt,
+  consumeFrom,
+  findNearestField
+} from '@mds/6-world/resources/field'
 
 export interface WorldContextProviderConfig {
   provider: ContextProvider
@@ -301,12 +309,19 @@ export interface WorldAnalyticsEvent {
   collectiveEmotion: EmotionalState | null
 }
 
+export interface WorldEmergenceEvent {
+  newTerms: number      // Number of new terms created
+  totalTerms: number    // Total terms in lexicon
+  novelty: number       // Current novelty metric (0..1)
+}
+
 type WorldEventMap = {
   tick: { time: number; dt: number }
   context: WorldContextEvent
   event: WorldEvent
   analytics: WorldAnalyticsEvent
   utterance: Utterance
+  'emergence.chunk': WorldEmergenceEvent  // Layer 5: Pattern emergence
 }
 
 type BehaviorTriggerPattern =
@@ -517,6 +532,21 @@ export class World {
   private crystallizer?: LinguisticCrystallizer
   protoGenerator?: import('@mds/6-world/linguistics/proto-language').ProtoLanguageGenerator  // v6.1: Emergent language generation
 
+  // Layer 5: Emergence Observability (v5.9)
+  emergence = {
+    novelty: 0,           // 0..1 (ratio of new patterns recently)
+    coherence: 0,         // 0..1 (how organized patterns are)
+    lexiconSize: 0,       // total terms in lexicon
+    activePatterns: 0,    // patterns used recently
+    emotionalDensity: 0   // avg emotional intensity (arousal)
+  }
+
+  // Phase 1: Resource fields (v5.9 - Material Pressure System)
+  resourceFields = new Map<string, ResourceField>()
+
+  // Task 1.4: Emotional climate (world-mind collective emotion)
+  emotionalClimate: EmotionalClimate
+
   // Options
   options: WorldOptions
   definition?: WorldDefinition
@@ -592,6 +622,9 @@ export class World {
     if (options.features?.linguistics || options.linguistics?.enabled) {
       this.initializeLinguistics(options)
     }
+
+    // Task 1.4: Initialize emotional climate
+    this.emotionalClimate = CollectiveIntelligence.createEmotionalClimate()
 
     if (options.contextProviders && options.contextProviders.length > 0) {
       for (const registration of options.contextProviders) {
@@ -762,7 +795,7 @@ export class World {
 
     this.crystallizer = new LinguisticCrystallizer(crystallizerConfig)
     this.emergenceState.lastUpdateTime = this.worldTime
-    this.updateEmergenceState({ newEntries: [], coinedEntries: [] })
+    this.updateEmergenceStateWithOutcome({ newEntries: [], coinedEntries: [] })
 
     // v6.1: Create proto-language generator
     this.protoGenerator = new ProtoLanguageGenerator()
@@ -1129,6 +1162,9 @@ export class World {
       this.updatePhysics(effectiveDt)
     }
 
+    // Phase 1.6: Resource Fields (Phase 1 / v5.9 - Material Pressure System)
+    this.updateResourceFields(effectiveDt)
+
     // Phase 2: Mental update (v5 ontology - if enabled)
     if (this.options.features?.ontology) {
       this.updateMental(effectiveDt)
@@ -1384,6 +1420,48 @@ export class World {
         }
       }
 
+      // Phase 1.6b: Resource needs update (Task 1.1)
+      if (entity.needs && entity.emotion) {
+        entity.updateNeeds(dt, this.worldTime)
+
+        // Task 1.4: Record suffering in emotional climate when needs are critical
+        const criticalNeeds = entity.getCriticalNeeds()
+        if (criticalNeeds.length > 0) {
+          // Calculate suffering intensity (average of all critical needs)
+          let totalSuffering = 0
+          for (const needId of criticalNeeds) {
+            const need = entity.getNeed(needId)
+            if (need) {
+              // Severity = how critical (0 = at threshold, 1 = depleted)
+              const severity = 1 - (need.current / need.criticalThreshold)
+              totalSuffering += severity
+            }
+          }
+          const avgSuffering = totalSuffering / criticalNeeds.length
+
+          // Record suffering occasionally (1% chance per tick to avoid spam)
+          if (Math.random() < 0.01) {
+            CollectiveIntelligence.recordSuffering(
+              this.emotionalClimate,
+              avgSuffering * 0.3,  // Scale down for gentle influence
+              this.worldTime
+            )
+          }
+        }
+
+        // Task 1.3: Entities speak about critical needs (link to lexicon)
+        if (this.transcript && this.options.features?.linguistics) {
+          // Occasional utterances when needs are critical (average of 1 utterance every 20 ticks)
+          const speakChance = 0.05  // 5% chance per tick when critical
+          if (Math.random() < speakChance) {
+            const utterance = entity.speakAboutNeeds()
+            if (utterance) {
+              this.recordSpeech(entity, utterance)
+            }
+          }
+        }
+      }
+
       // Phase 5: Emotion-Physics coupling (if physics enabled)
       if (this.options.features?.physics && entity.emotion) {
         // Joy (high valence) → reduces entropy (order increases)
@@ -1413,6 +1491,19 @@ export class World {
       // Intent timeout evaluation
       if (entity.intent) {
         entity.intent.update(Date.now())
+      }
+    }
+
+    // Task 1.4: Update emotional climate (decay over time)
+    CollectiveIntelligence.updateEmotionalClimate(this.emotionalClimate, dt)
+
+    // Task 1.5: Apply climate influence to all entities
+    const climateInfluence = CollectiveIntelligence.getClimateInfluence(this.emotionalClimate)
+    if (Math.abs(climateInfluence.valence) + Math.abs(climateInfluence.arousal) + Math.abs(climateInfluence.dominance) > 0.001) {
+      for (const entity of this.entities) {
+        if (entity.emotion) {
+          entity.feel(climateInfluence)
+        }
       }
     }
   }
@@ -1586,15 +1677,16 @@ export class World {
    * Phase 4.5: Linguistics update (Phase 10 / v6.0)
    * - Run crystallizer to detect patterns in transcript
    * - Update lexicon with new terms
+   * - Emit emergence events (Layer 5)
    */
   private updateLinguistics(): void {
     if (!this.crystallizer || !this.transcript || !this.lexicon) return
 
     const outcome = this.crystallizer.tick(this.transcript, this.lexicon)
-    this.updateEmergenceState(outcome)
+    this.updateEmergenceStateWithOutcome(outcome)
   }
 
-  private updateEmergenceState(outcome: CrystallizerTickOutcome): void {
+  private updateEmergenceStateWithOutcome(outcome: CrystallizerTickOutcome): void {
     if (!this.transcript || !this.lexicon) return
 
     const nowMs = Date.now()
@@ -2225,7 +2317,7 @@ export class World {
       lastUpdateTime: this.worldTime
     }
 
-    this.updateEmergenceState({ newEntries: [], coinedEntries: [] })
+    this.updateEmergenceStateWithOutcome({ newEntries: [], coinedEntries: [] })
   }
 
   private toEmergenceOptions(value: unknown): EmergenceOptions | undefined {
@@ -3063,6 +3155,197 @@ export class World {
    */
   getOptions(): WorldOptions {
     return { ...this.options }
+  }
+
+  // ========================================
+  // Phase 1: Resource Field Management (v5.9)
+  // ========================================
+
+  /**
+   * Add resource field to world
+   *
+   * @param field - Resource field configuration
+   * @returns The added field
+   *
+   * @example
+   * // Add water well
+   * world.addResourceField({
+   *   id: 'well_1',
+   *   resourceType: 'water',
+   *   type: 'point',
+   *   position: { x: 200, y: 200 },
+   *   intensity: 1.0,
+   *   regenerationRate: 0.005
+   * })
+   */
+  addResourceField(field: ResourceField): ResourceField {
+    this.resourceFields.set(field.id, field)
+    return field
+  }
+
+  /**
+   * Remove resource field from world
+   *
+   * @param id - Field identifier
+   *
+   * @example
+   * world.removeResourceField('well_1')
+   */
+  removeResourceField(id: string): void {
+    this.resourceFields.delete(id)
+  }
+
+  /**
+   * Get resource field by ID
+   *
+   * @param id - Field identifier
+   * @returns Resource field or undefined
+   */
+  getResourceField(id: string): ResourceField | undefined {
+    return this.resourceFields.get(id)
+  }
+
+  /**
+   * Get all resource fields (optionally filtered by type)
+   *
+   * @param resourceType - Filter by resource type (optional)
+   * @returns Array of resource fields
+   *
+   * @example
+   * const waterFields = world.getResourceFields('water')
+   */
+  getResourceFields(resourceType?: string): ResourceField[] {
+    const fields = Array.from(this.resourceFields.values())
+
+    if (resourceType) {
+      return fields.filter(field => field.resourceType === resourceType)
+    }
+
+    return fields
+  }
+
+  /**
+   * Get resource intensity at position
+   *
+   * @param resourceType - Resource type (e.g., 'water')
+   * @param x - Position X
+   * @param y - Position Y
+   * @returns Combined intensity from all fields of that type (0..1+)
+   *
+   * @example
+   * const waterIntensity = world.getResourceIntensity('water', entity.x, entity.y)
+   * if (waterIntensity > 0.5) {
+   *   entity.satisfyNeed('water', waterIntensity * 0.1)
+   * }
+   */
+  getResourceIntensity(resourceType: string, x: number, y: number): number {
+    const fields = this.getResourceFields(resourceType)
+    let totalIntensity = 0
+
+    for (const field of fields) {
+      totalIntensity += getIntensityAt(field, x, y)
+    }
+
+    return totalIntensity
+  }
+
+  /**
+   * Find nearest resource field to position
+   *
+   * @param x - Position X
+   * @param y - Position Y
+   * @param resourceType - Filter by resource type (optional)
+   * @returns Nearest field or undefined
+   *
+   * @example
+   * const nearestWater = world.findNearestResourceField(entity.x, entity.y, 'water')
+   * if (nearestWater) {
+   *   console.log(`Water field "${nearestWater.id}" at distance ${distance}`)
+   * }
+   */
+  findNearestResourceField(
+    x: number,
+    y: number,
+    resourceType?: string
+  ): ResourceField | undefined {
+    return findNearestField(Array.from(this.resourceFields.values()), x, y, resourceType)
+  }
+
+  /**
+   * Consume resource from field at position
+   *
+   * @param resourceType - Resource type to consume
+   * @param x - Position X
+   * @param y - Position Y
+   * @param amount - Amount to consume (0..1)
+   * @returns Actual amount consumed (may be less if field is depleted)
+   *
+   * @example
+   * const consumed = world.consumeResource('water', entity.x, entity.y, 0.3)
+   * entity.satisfyNeed('water', consumed)
+   */
+  consumeResource(resourceType: string, x: number, y: number, amount: number): number {
+    const fields = this.getResourceFields(resourceType)
+    let totalConsumed = 0
+    let remaining = amount
+
+    // Try to consume from all nearby fields until satisfied
+    for (const field of fields) {
+      if (remaining <= 0) break
+
+      const consumed = consumeFrom(field, x, y, remaining, this.worldTime)
+      totalConsumed += consumed
+      remaining -= consumed
+    }
+
+    return totalConsumed
+  }
+
+  /**
+   * Update all resource fields (depletion and regeneration)
+   * Called automatically during tick loop
+   *
+   * @param dt - Delta time in seconds
+   */
+  private updateResourceFields(dt: number): void {
+    for (const field of this.resourceFields.values()) {
+      updateResourceField(field, dt, this.worldTime)
+    }
+  }
+
+  /**
+   * Record entity death in emotional climate (Task 1.4)
+   *
+   * @param entity - Entity that died
+   * @param intensity - How significant the death (0..1, default: 0.5)
+   *
+   * @example
+   * // When entity dies of thirst
+   * world.recordEntityDeath(entity, 0.8)  // High intensity
+   * world.despawn(entity)
+   */
+  recordEntityDeath(entity: Entity, intensity: number = 0.5): void {
+    CollectiveIntelligence.recordDeath(
+      this.emotionalClimate,
+      entity.id,
+      intensity,
+      this.worldTime
+    )
+  }
+
+  /**
+   * Get current emotional climate state
+   *
+   * @returns Emotional climate snapshot
+   *
+   * @example
+   * const climate = world.getEmotionalClimate()
+   * console.log(`Grief: ${climate.grief}, Vitality: ${climate.vitality}`)
+   * console.log(CollectiveIntelligence.describeClimate(climate))
+   * // → "Grieving and tense"
+   */
+  getEmotionalClimate(): EmotionalClimate {
+    return { ...this.emotionalClimate }
   }
 
   /**
