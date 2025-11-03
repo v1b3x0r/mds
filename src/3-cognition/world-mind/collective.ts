@@ -456,7 +456,9 @@ export class CollectiveIntelligence {
     arousal: number
     dominance: number
   } {
-    // Climate affects entities subtly (scale by 0.1 for gentle influence)
+    // Climate affects entities as background atmosphere
+    // Note: Actual influence will be adaptively weighted in container.ts
+    // based on contagion vs climate balance and tension levels
     return {
       // Grief and harmony affect valence
       valence: (climate.harmony - climate.grief) * 0.1,

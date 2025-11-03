@@ -185,11 +185,18 @@ test('Relational update phase (emotional contagion)', () => {
   const finalValenceA = entityA.emotion.valence
   const finalValenceB = entityB.emotion.valence
 
-  // A should become sadder (influenced by B)
-  assert(finalValenceA < initialValenceA, 'EntityA valence should decrease (contagion from B)')
+  // With climate system (v5.9), both entities receive positive influence
+  // However, contagion effect should still be visible:
+  // B (starting sad) should increase MORE than A (starting happy)
+  // because B gets both climate boost + contagion from A
 
-  // B should become happier (influenced by A)
-  assert(finalValenceB > initialValenceB, 'EntityB valence should increase (contagion from A)')
+  assert(finalValenceB > initialValenceB, 'EntityB valence should increase (climate + contagion from A)')
+  assert(finalValenceA >= initialValenceA, 'EntityA valence should stay same or increase (climate influence)')
+
+  // B should increase MORE than A (contagion effect visible)
+  const deltaA = finalValenceA - initialValenceA
+  const deltaB = finalValenceB - initialValenceB
+  assert(deltaB > deltaA, 'EntityB should increase MORE than A (contagion effect visible)')
 })
 
 // Test 8: Memory-based attraction

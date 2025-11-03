@@ -546,6 +546,7 @@ export class World {
 
   // Task 1.4: Emotional climate (world-mind collective emotion)
   emotionalClimate: EmotionalClimate
+  private cachedClimateInfluence: { valence: number; arousal: number; dominance: number } = { valence: 0, arousal: 0, dominance: 0 }
 
   // Options
   options: WorldOptions
@@ -778,10 +779,11 @@ export class World {
     this.lexicon = new WorldLexicon()
 
     // Create crystallizer with config
+    // Priority: user linguistics config > emergence config > defaults
     const crystallizerConfig: CrystallizerConfig = {
       enabled: true,
-      analyzeEvery: options.linguistics?.analyzeEvery ?? 50,
-      minUsage: options.linguistics?.minUsage ?? 3,
+      analyzeEvery: options.linguistics?.analyzeEvery ?? this.emergenceConfig.chunking.analyzeEvery ?? 50,
+      minUsage: options.linguistics?.minUsage ?? this.emergenceConfig.chunking.minUsage ?? 3,
       minLength: options.linguistics?.minLength ?? 2,
       maxLength: options.linguistics?.maxLength ?? 100,
       warmUpTicks: this.emergenceConfig.chunking.warmUpTicks,
@@ -789,9 +791,6 @@ export class World {
       coiningChance: this.emergenceConfig.blending.chance,
       minSpeakers: this.emergenceConfig.chunking.minSpeakers
     }
-
-    crystallizerConfig.analyzeEvery = this.emergenceConfig.chunking.analyzeEvery
-    crystallizerConfig.minUsage = this.emergenceConfig.chunking.minUsage
 
     this.crystallizer = new LinguisticCrystallizer(crystallizerConfig)
     this.emergenceState.lastUpdateTime = this.worldTime
@@ -1497,15 +1496,9 @@ export class World {
     // Task 1.4: Update emotional climate (decay over time)
     CollectiveIntelligence.updateEmotionalClimate(this.emotionalClimate, dt)
 
-    // Task 1.5: Apply climate influence to all entities
-    const climateInfluence = CollectiveIntelligence.getClimateInfluence(this.emotionalClimate)
-    if (Math.abs(climateInfluence.valence) + Math.abs(climateInfluence.arousal) + Math.abs(climateInfluence.dominance) > 0.001) {
-      for (const entity of this.entities) {
-        if (entity.emotion) {
-          entity.feel(climateInfluence)
-        }
-      }
-    }
+    // Task 1.5: Calculate climate influence (but don't apply yet)
+    // Will be adaptively blended with contagion in Phase 3
+    this.cachedClimateInfluence = CollectiveIntelligence.getClimateInfluence(this.emotionalClimate)
   }
 
   /**
@@ -1553,23 +1546,45 @@ export class World {
           if (a.emotion && b.emotion) {
             const contagionRate = 0.05 * dt  // 5% per second
 
-            // A influenced by B's emotion
-            const deltaA = {
+            // Calculate pure contagion deltas
+            const contagionDeltaA = {
               valence: (b.emotion.valence - a.emotion.valence) * contagionRate,
               arousal: (b.emotion.arousal - a.emotion.arousal) * contagionRate,
               dominance: (b.emotion.dominance - a.emotion.dominance) * contagionRate
             }
 
-            a.feel(deltaA)
-
-            // B influenced by A's emotion (reciprocal)
-            const deltaB = {
+            const contagionDeltaB = {
               valence: (a.emotion.valence - b.emotion.valence) * contagionRate,
               arousal: (a.emotion.arousal - b.emotion.arousal) * contagionRate,
               dominance: (a.emotion.dominance - b.emotion.dominance) * contagionRate
             }
 
-            b.feel(deltaB)
+            // Adaptive weighting: blend contagion + climate
+            // α (contagion weight) = 0.7 default
+            // β (climate weight) = 0.3 default
+            // Climate influence reduced by tension and population
+            const α = 0.7
+            const β = 0.3
+            const tensionFactor = 1 - this.emotionalClimate.tension
+            const populationScale = 1 / (1 + this.entities.length * 0.05)
+            const climateWeight = β * tensionFactor * populationScale
+
+            // Blend for entity A
+            const blendedDeltaA = {
+              valence: (contagionDeltaA.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
+              arousal: (contagionDeltaA.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
+              dominance: (contagionDeltaA.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
+            }
+
+            // Blend for entity B
+            const blendedDeltaB = {
+              valence: (contagionDeltaB.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
+              arousal: (contagionDeltaB.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
+              dominance: (contagionDeltaB.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
+            }
+
+            a.feel(blendedDeltaA)
+            b.feel(blendedDeltaB)
           }
 
           // Memory-based attraction (bonus force based on shared history)
@@ -1589,6 +1604,43 @@ export class World {
               b.vx -= fx * dt
               b.vy -= fy * dt
             }
+          }
+        }
+      }
+    }
+
+    // Apply climate influence to entities without nearby interactions
+    // (solo entities or those beyond interaction range)
+    const β = 0.3
+    const tensionFactor = 1 - this.emotionalClimate.tension
+    const populationScale = 1 / (1 + this.entities.length * 0.05)
+    const soloClimateWeight = β * tensionFactor * populationScale
+
+    if (Math.abs(this.cachedClimateInfluence.valence) + Math.abs(this.cachedClimateInfluence.arousal) > 0.001) {
+      for (const entity of entities) {
+        if (entity.emotion) {
+          // Track if entity had any interactions this tick
+          let hadInteraction = false
+          for (let j = 0; j < entities.length; j++) {
+            if (entities[j] === entity) continue
+            const other = entities[j]
+            const dx = other.x - entity.x
+            const dy = other.y - entity.y
+            const dist = Math.hypot(dx, dy)
+            if (dist < 80 && entity.memory && other.memory) {
+              hadInteraction = true
+              break
+            }
+          }
+
+          // Solo entities get pure climate influence (no contagion to blend with)
+          if (!hadInteraction) {
+            const soloClimateDelta = {
+              valence: this.cachedClimateInfluence.valence * soloClimateWeight,
+              arousal: this.cachedClimateInfluence.arousal * soloClimateWeight,
+              dominance: this.cachedClimateInfluence.dominance * soloClimateWeight
+            }
+            entity.feel(soloClimateDelta)
           }
         }
       }
