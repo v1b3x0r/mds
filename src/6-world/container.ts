@@ -66,10 +66,11 @@ import type { CrystallizerConfig, CrystallizerTickOutcome } from '@mds/6-world/l
 
 import { ProtoLanguageGenerator } from '@mds/6-world/linguistics/proto-language'
 import type { ContextProvider } from '@mds/7-interface/context'
-import { replacePlaceholders } from '@mds/7-interface/io/mdm-parser'
+import { MdmParser, replacePlaceholders } from '@mds/7-interface/io/mdm-parser'
 import type {
   ParsedBehaviorTrigger,
-  ParsedBehaviorAction
+  ParsedBehaviorAction,
+  ParsedLocaleOverlay
 } from '@mds/7-interface/io/mdm-parser'
 import { WorldLogger } from './logger'
 import { PackResolver, type PackResolverOptions, type PackAggregate } from '@mds/0-foundation/pack-resolver'
@@ -343,9 +344,10 @@ type BehaviorActionRuntime =
   | { kind: 'relation.update'; target?: string; metric: string; expr: Expression; mode: 'absolute' | 'delta' }
   | { kind: 'memory.write'; target?: string; memoryKind?: string; salience?: Expression; value?: string }
   | { kind: 'memory.recall'; target?: string; memoryKind?: string; window?: string }
-  | { kind: 'context.set'; entries: Record<string, Expression> }
+  | { kind: 'context.set'; entries: Record<string, Expression | string> }
   | { kind: 'emit'; event: string; payload?: Record<string, Expression> }
   | { kind: 'log'; text: string }
+  | { kind: 'translation.learn'; source?: string; lang: string; text: string }
 
 interface BehaviorEventContext {
   type: 'time' | 'mention' | 'event'
@@ -563,6 +565,8 @@ export class World {
   private expressionFunctions: Record<string, Function> = {}
   private emergenceConfig: EmergenceConfig = cloneEmergenceConfig(DEFAULT_EMERGENCE_CONFIG)
   private emergenceState: InternalEmergenceState = cloneEmergenceState(DEFAULT_EMERGENCE_STATE)
+  private localeOverlayRegistry = new Map<string, ParsedLocaleOverlay>()
+  private mdmParser = new MdmParser()
 
 
   // Context + events
@@ -1081,6 +1085,18 @@ export class World {
       if (!entity.skills) {
         entity.enable('skills')
       }
+    }
+
+    const utterancePolicy = entity.getUtterancePolicy()
+    if (utterancePolicy) {
+      let overlay: ParsedLocaleOverlay | undefined = utterancePolicy.overlay
+      if (!overlay && utterancePolicy.overlayRef) {
+        overlay = this.localeOverlayRegistry.get(utterancePolicy.overlayRef)
+        if (!overlay) {
+          console.warn(`[World] Locale overlay "${utterancePolicy.overlayRef}" not found for entity ${entity.id}`)
+        }
+      }
+      entity.applyLocaleOverlay(overlay)
     }
 
     this.registerBehaviorTriggers(entity)
@@ -1856,6 +1872,15 @@ export class World {
         patterns: this.patterns,
         collectiveEmotion: this.cachedCollectiveEmotion
       })
+
+      const climateSummary = CollectiveIntelligence.describeClimate(this.emotionalClimate)
+      this.broadcastContext({
+        'climate.grief': Number(this.emotionalClimate.grief.toFixed(3)),
+        'climate.vitality': Number(this.emotionalClimate.vitality.toFixed(3)),
+        'climate.tension': Number(this.emotionalClimate.tension.toFixed(3)),
+        'climate.harmony': Number(this.emotionalClimate.harmony.toFixed(3)),
+        'climate.mood': climateSummary
+      })
     }
   }
 
@@ -1900,7 +1925,7 @@ export class World {
    * const says = yuki.speak('greeting')
    * world.recordSpeech(yuki, says)
    */
-  recordSpeech(speaker: Entity, text: string, listener?: Entity): void {
+  recordSpeech(speaker: Entity, text: string, listener?: Entity, mode?: string): void {
     if (!this.transcript) {
       console.warn('v6.0: recordSpeech called but linguistics not enabled')
       return
@@ -1924,10 +1949,25 @@ export class World {
       }
     }
 
+    if (mode) {
+      utterance.mode = mode
+    }
+
     this.transcript.add(utterance)
     this.lastUtterance = { text, speaker: speaker.id }
     this.emit('utterance', utterance)
     this.handleUtteranceTriggers(utterance)
+
+    this.logger.push({
+      type: 'utterance',
+      text: `${speaker.id}: ${text}`,
+      data: {
+        entity: speaker.id,
+        listener: listener?.id,
+        text,
+        mode
+      }
+    })
   }
 
   /**
@@ -2231,6 +2271,7 @@ export class World {
 
       this.registerBootstrapMaterials(packAggregate.materials)
       this.registerBootstrapFields(packAggregate.fields)
+      this.registerLocaleOverlays(packAggregate.localeOverlays)
 
       if (packAggregate.notes.length > 0) {
         for (const note of packAggregate.notes) {
@@ -2251,6 +2292,11 @@ export class World {
     this.registerBootstrapFields(definition.fields, true)
     if (options.fields) {
       this.registerBootstrapFields(options.fields, true)
+    }
+
+    this.registerLocaleOverlays(definition.localeOverlays, true)
+    if (options.localeOverlays) {
+      this.registerLocaleOverlays(options.localeOverlays, true)
     }
 
     this.configureEmergence(definition, options)
@@ -2291,6 +2337,28 @@ export class World {
       if (!id || !field) continue
       if (overwrite || !this.fieldRegistry.has(id)) {
         this.registerField(id, field)
+      }
+    }
+  }
+
+  private registerLocaleOverlays(
+    overlays?: Record<string, MdsLocaleOverlay>,
+    overwrite = false
+  ): void {
+    if (!overlays) return
+    for (const [id, spec] of Object.entries(overlays)) {
+      if (!id || !spec) continue
+      if (!overwrite && this.localeOverlayRegistry.has(id)) continue
+      try {
+        const parsed = this.mdmParser.parseLocaleOverlay(spec)
+        this.localeOverlayRegistry.set(id, parsed)
+        this.logger.push({
+          type: 'locale.overlay.register',
+          data: { id },
+          text: `[locale] overlay registered (${id})`
+        })
+      } catch (error) {
+        console.warn(`[World] Failed to parse locale overlay "${id}":`, error)
       }
     }
   }
@@ -2667,10 +2735,29 @@ export class World {
         return { kind: 'memory.recall', target: action.target, memoryKind: action.memoryKind, window: action.window }
       }
       case 'context.set': {
-        const entries: Record<string, Expression> = {}
+        const entries: Record<string, Expression | string> = {}
         for (const [key, value] of Object.entries(action.entries)) {
-          const expr = this.createExpression(value)
-          if (expr) entries[key] = expr
+          if (value === undefined || value === null) continue
+          const trimmed = String(value).trim()
+          if (!trimmed) continue
+
+          const isTemplate = trimmed.includes('{{') && trimmed.includes('}}')
+          if (isTemplate) {
+            entries[key] = trimmed
+            continue
+          }
+
+          let expr: Expression | undefined
+          try {
+            expr = this.createExpression(trimmed)
+          } catch (error) {
+            expr = undefined
+          }
+          if (expr) {
+            entries[key] = expr
+          } else {
+            entries[key] = trimmed
+          }
         }
         if (Object.keys(entries).length === 0) return undefined
         return { kind: 'context.set', entries }
@@ -2687,6 +2774,13 @@ export class World {
       }
       case 'log':
         return { kind: 'log', text: action.text }
+      case 'translation.learn':
+        return {
+          kind: 'translation.learn',
+          source: action.source,
+          lang: action.lang,
+          text: action.text
+        }
       default:
         return undefined
     }
@@ -2876,6 +2970,13 @@ export class World {
     for (const action of runtime.actions) {
       switch (action.kind) {
         case 'say': {
+          const translationSource = eventContext.utterance?.text
+            ?? (eventContext.event && typeof eventContext.event.data?.text === 'string' ? eventContext.event.data.text : undefined)
+            ?? this.lastUtterance?.text
+            ?? ''
+          const translations = translationSource
+            ? runtime.entity.translateAll(translationSource)
+            : {}
           const templateContext = {
             ...context,
             event: eventContext,
@@ -2883,19 +2984,43 @@ export class World {
               utterance: this.lastUtterance?.text ?? '',
               speaker: this.lastUtterance?.speaker ?? ''
             },
-            translate: {
-              th: eventContext.utterance?.text ?? ''
-            }
+            translate: translations
           }
-          const rendered = action.text
+          const rendered = action.text !== undefined
             ? replacePlaceholders(action.text, templateContext)
             : eventContext.utterance?.text
-          if (rendered && rendered.trim().length > 0) {
-            this.recordSpeech(runtime.entity, rendered)
-            this.lastUtterance = { text: rendered, speaker: runtime.entity.id }
+          const vocabulary = this.lexicon
+            ? this.lexicon.getAll().map(entry => entry.term)
+            : undefined
+          const finalText = runtime.entity.formatUtterance(rendered, {
+            mode: action.mode,
+            lang: action.lang,
+            protoGenerator: this.protoGenerator,
+            vocabulary
+          })
+          if (finalText && finalText.trim().length > 0) {
+            const modeUsed = runtime.entity.getLastUtteranceMode?.()
+            context.utterance = {
+              ...(context.utterance ?? {}),
+              text: finalText,
+              mode: modeUsed
+            }
+            runtime.entity.updateTriggerContext?.({
+              'utterance.text': finalText,
+              'utterance.mode': modeUsed
+            })
+            this.recordSpeech(runtime.entity, finalText, undefined, modeUsed)
+            this.lastUtterance = { text: finalText, speaker: runtime.entity.id }
             this.logger.push({
               type: 'behavior.say',
-              data: { entity: runtime.entity.id, text: rendered }
+              text: `${runtime.entity.id}: ${finalText}`,
+              data: {
+                entity: runtime.entity.id,
+                text: finalText,
+                mode: modeUsed,
+                climate: this.safeClimateSnapshot(runtime.entity),
+                needs: runtime.entity.getCriticalNeeds()
+              }
             })
           }
           break
@@ -3041,8 +3166,23 @@ export class World {
         case 'context.set': {
           if (!action.entries || Object.keys(action.entries).length === 0) break
           const payload: Record<string, any> = {}
+          const templateContext = {
+            ...context,
+            event: eventContext,
+            last: {
+              utterance: this.lastUtterance?.text ?? '',
+              speaker: this.lastUtterance?.speaker ?? ''
+            }
+          }
           for (const [key, expr] of Object.entries(action.entries)) {
-            const value = expr.evaluate(context)
+            let value: any
+            if (expr instanceof Expression) {
+              value = expr.evaluate(context)
+            } else if (typeof expr === 'string') {
+              value = replacePlaceholders(expr, templateContext)
+            } else {
+              value = expr
+            }
             setPathValue(context, key, value)
             payload[key] = value
           }
@@ -3069,6 +3209,47 @@ export class World {
             text: action.text
           })
           break
+        case 'translation.learn': {
+          const templateContext = {
+            ...context,
+            event: eventContext,
+            last: {
+              utterance: this.lastUtterance?.text ?? '',
+              speaker: this.lastUtterance?.speaker ?? ''
+            }
+          }
+          const rawSource = action.source
+            ? replacePlaceholders(action.source, templateContext)
+            : (eventContext.utterance?.text ?? this.lastUtterance?.text ?? '')
+          const lang = action.lang ? replacePlaceholders(action.lang, templateContext) : ''
+          const translatedText = replacePlaceholders(action.text, templateContext)
+          if (rawSource && lang && translatedText) {
+            runtime.entity.learnTranslation(rawSource, lang, translatedText)
+            const translations = runtime.entity.translateAll(rawSource)
+            context.translate = translations
+            runtime.entity.updateTriggerContext?.({
+              'translation.last.source': rawSource,
+              'translation.last.lang': lang,
+              'translation.last.text': translatedText
+            })
+            runtime.entity.handleDeclarativeEvent?.(
+              'translation.learn',
+              { source: rawSource, lang, text: translatedText },
+              this.worldTime
+            )
+            this.logger.push({
+              type: 'translation.learn',
+              text: `${runtime.entity.id} learned ${lang}: ${translatedText}`,
+              data: {
+                entity: runtime.entity.id,
+                source: rawSource,
+                lang,
+                text: translatedText
+              }
+            })
+          }
+          break
+        }
       }
     }
   }
@@ -3097,6 +3278,31 @@ export class World {
       a: emotion.arousal ?? 0.5,
       d: typeof emotion.dominance === 'number' ? emotion.dominance : 0.5
     }
+  }
+
+  private safeClimateSnapshot(entity: Entity): Record<string, number | string> | undefined {
+    const context = entity.getTriggerContextSnapshot?.()
+    if (!context) return undefined
+
+    const keys = [
+      'climate.grief',
+      'climate.vitality',
+      'climate.tension',
+      'climate.harmony',
+      'climate.mood'
+    ]
+
+    const result: Record<string, number | string> = {}
+    for (const key of keys) {
+      const value = context[key]
+      if (typeof value === 'number' && isFinite(value)) {
+        result[key] = Number(value.toFixed(3))
+      } else if (typeof value === 'string' && value.trim().length > 0) {
+        result[key] = value
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined
   }
 
   private createExpression(source?: string): Expression | undefined {
@@ -3421,6 +3627,10 @@ export class World {
 
   getPackEmergence(): Record<string, unknown> {
     return { ...this.packEmergence }
+  }
+
+  getLocaleOverlay(id: string): ParsedLocaleOverlay | undefined {
+    return this.localeOverlayRegistry.get(id)
   }
 
 }

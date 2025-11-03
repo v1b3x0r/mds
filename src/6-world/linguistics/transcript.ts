@@ -16,6 +16,7 @@ export interface Utterance {
   speaker: string         // Entity ID
   text: string            // What was said
   listener?: string       // Target entity ID (if direct message)
+  mode?: string           // Speech mode (emoji|proto|short|auto-resolved)
   timestamp: number       // When said (Date.now())
   emotion: {
     valence: number       // -1 to 1

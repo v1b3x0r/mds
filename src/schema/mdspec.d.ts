@@ -118,6 +118,13 @@ export type MdsBehaviorAction =
         text: string
       }
     }
+  | {
+      'translation.learn': {
+        source?: string
+        lang: string
+        text: string
+      }
+    }
 
 /**
  * Physics properties for material movement

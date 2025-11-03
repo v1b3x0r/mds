@@ -47,6 +47,14 @@ export { Field } from '@mds/0-foundation/field'
 // World container (v5 recommended)
 export { World } from '@mds/6-world'
 export type { WorldOptions, SpawnOptions, WorldEvent, WorldContextEvent, WorldAnalyticsEvent } from '@mds/6-world'
+export {
+  WorldLogger,
+  formatLogEntry
+} from '@mds/6-world'
+export type {
+  WorldLogEntry,
+  WorldLogListener
+} from '@mds/6-world'
 
 export {
   attachWorldEventSink,
