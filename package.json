@@ -24,7 +24,6 @@
   "files": [
     "dist",
     "materials",
-    "docs",
     "README.npm.md",
     "LICENSE"
   ],

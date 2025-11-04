@@ -4,6 +4,17 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[Unreleased] — Packaging Hygiene  
+📅 2025-11-04
+
+⸻
+
+🛠 Fixes
+
+- Removed `docs` directory from the npm `files` manifest to keep published bundles lean.
+
+⸻
+
 [5.9.2] — Layer 7·8 Stabilisation & Browser Logger  
 📅 2025-11-04
 
