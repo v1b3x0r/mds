@@ -174,6 +174,7 @@ export type ParsedBehaviorAction =
   | { kind: 'context.set'; entries: Record<string, string> }
   | { kind: 'emit'; event: string; payload?: Record<string, string> }
   | { kind: 'log'; text: string }
+  | { kind: 'translation.learn'; source?: string; lang: string; text: string }
 
 export interface ParsedMemoryBinding {
   trigger: string
@@ -309,6 +310,19 @@ export class MdmParser {
       const cfg = action.log
       if (!cfg?.text) return undefined
       return { kind: 'log', text: cfg.text }
+    }
+    if ('translation.learn' in action) {
+      const cfg = action['translation.learn']
+      if (!cfg?.lang || !cfg.text) {
+        console.warn('[MDM] translation.learn action missing lang or text')
+        return undefined
+      }
+      return {
+        kind: 'translation.learn',
+        source: cfg.source,
+        lang: cfg.lang,
+        text: cfg.text
+      }
     }
     console.warn('[MDM] Unknown behavior action', action)
     return undefined
@@ -714,15 +728,25 @@ export class MdmParser {
   parseUtterancePolicy(policy?: MdsUtterancePolicy): ParsedUtterancePolicy | undefined {
     if (!policy) return undefined
 
-    const modes = Array.isArray(policy.modes) && policy.modes.length > 0
+    let modes = Array.isArray(policy.modes) && policy.modes.length > 0
       ? policy.modes
           .map(value => typeof value === 'string' ? value : String(value))
           .filter(mode => mode.trim().length > 0)
       : ['auto']
-    const defaultModeCandidate = typeof policy.defaultMode === 'string' ? policy.defaultMode : undefined
-    const defaultMode = defaultModeCandidate && modes.includes(defaultModeCandidate)
-      ? defaultModeCandidate
-      : modes[0]
+    if (modes.length === 0) {
+      modes = ['auto']
+    }
+    const defaultModeCandidate = typeof policy.defaultMode === 'string'
+      ? policy.defaultMode.trim()
+      : undefined
+    let defaultMode: string
+    if (defaultModeCandidate === 'auto') {
+      defaultMode = 'auto'
+    } else if (defaultModeCandidate && modes.includes(defaultModeCandidate)) {
+      defaultMode = defaultModeCandidate
+    } else {
+      defaultMode = modes[0] ?? 'auto'
+    }
 
     let overlay: ParsedLocaleOverlay | undefined
     let overlayRef: string | undefined
@@ -943,15 +967,29 @@ export function replacePlaceholders(
   })
 }
 
+function isPlainObject(value: unknown): value is Record<string, any> {
+  if (!value || typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
 function flattenContext(
   context: Record<string, any>,
   prefix = '',
-  target: Record<string, any> = {}
+  target: Record<string, any> = {},
+  visited: WeakSet<object> = new WeakSet()
 ): Record<string, any> {
+  if (isPlainObject(context)) {
+    if (visited.has(context)) {
+      return target
+    }
+    visited.add(context)
+  }
+
   for (const [key, value] of Object.entries(context)) {
     const compositeKey = prefix ? `${prefix}.${key}` : key
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      flattenContext(value, compositeKey, target)
+    if (isPlainObject(value)) {
+      flattenContext(value, compositeKey, target, visited)
     } else {
       target[compositeKey] = value
     }

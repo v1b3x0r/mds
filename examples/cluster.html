@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>MDS Layer 8 · World Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --bg-primary: #020617;
+        --bg-panel: #0b1120;
+        --bg-accent: rgba(56, 189, 248, 0.08);
+        --border: rgba(148, 163, 184, 0.12);
+        --text-primary: #e2e8f0;
+        --text-muted: rgba(148, 163, 184, 0.88);
+        --accent: rgba(56, 189, 248, 0.6);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 45%),
+          var(--bg-primary);
+        color: var(--text-primary);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.1fr);
+        min-height: 100vh;
+      }
+
+      .stats-panel {
+        padding: 32px clamp(24px, 3vw, 48px);
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), transparent),
+          radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.1), transparent 50%),
+          var(--bg-panel);
+      }
+
+      .stats-panel h1 {
+        font-size: clamp(20px, 2.4vw, 32px);
+        margin: 0;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .stats-panel h1 span {
+        font-size: 0.6em;
+        color: var(--accent);
+        letter-spacing: 0.3em;
+      }
+
+      .section {
+        background: rgba(15, 23, 42, 0.72);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px clamp(16px, 3vw, 24px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 12px 40px rgba(15, 23, 42, 0.35);
+      }
+
+      .section + .section {
+        margin-top: 16px;
+      }
+
+      .section-title {
+        font-size: 13px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+      }
+
+      .section strong {
+        font-size: clamp(16px, 2vw, 22px);
+        color: #38bdf8;
+      }
+
+      .climate-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .climate-card {
+        padding: 12px;
+        border-radius: 12px;
+        background: rgba(30, 41, 59, 0.65);
+        border: 1px solid rgba(148, 163, 184, 0.08);
+      }
+
+      .climate-card .label {
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .climate-card .value {
+        margin-top: 6px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .entity-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .entity-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(15, 23, 42, 0.55);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .entity-card header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .entity-card header span {
+        font-size: 22px;
+      }
+
+      .entity-card .body {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 14px;
+        color: rgba(226, 232, 240, 0.88);
+      }
+
+      .entity-card .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .tag {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.24);
+        color: #bae6fd;
+      }
+
+      .log-panel {
+        padding: clamp(20px, 3vw, 32px);
+        border-left: 1px solid var(--border);
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(2, 6, 23, 0.98));
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .log-panel h2 {
+        margin: 0;
+        font-size: clamp(16px, 1.8vw, 22px);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      #world-log {
+        flex: 1;
+        margin: 0;
+        padding: 18px clamp(16px, 2.4vw, 22px);
+        border-radius: 14px;
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.08);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.35);
+        overflow: auto;
+        font-size: 13px;
+        line-height: 1.55;
+        letter-spacing: 0.04em;
+        white-space: pre-wrap;
+        word-break: break-word;
+        scroll-behavior: smooth;
+      }
+
+      .log-footer {
+        font-size: 12px;
+        color: var(--text-muted);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #38bdf8;
+        display: inline-block;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.65);
+        margin-right: 8px;
+      }
+
+      @media (max-width: 960px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .log-panel {
+          border-left: none;
+          border-top: 1px solid var(--border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <section class="stats-panel">
+        <h1>Emergent World <span>layer 8 terminal</span></h1>
+        <div class="section">
+          <div class="section-title">World Clock</div>
+          <strong id="world-clock">T+0000.0s</strong>
+        </div>
+
+        <div class="section" id="climate-block">
+          <div class="section-title">Emotional Climate</div>
+          <strong id="climate-summary">Booting...</strong>
+          <div class="climate-grid" id="climate-grid"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Entities</div>
+          <div class="entity-list" id="entity-list"></div>
+        </div>
+      </section>
+
+      <section class="log-panel">
+        <h2><span class="status-dot"></span> World Terminal</h2>
+        <pre id="world-log">Initializing semantic stream...</pre>
+        <div class="log-footer">
+          <span id="log-count">0 entries</span>
+          <span id="last-update">Awaiting signal</span>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="/examples/cluster.ts"></script>
+  </body>
+</html>

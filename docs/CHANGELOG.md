@@ -4,6 +4,32 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.9.2] — Layer 7·8 Stabilisation & Browser Logger  
+📅 2025-11-04
+
+⸻
+
+✨ Highlights
+
+- **World Logger Stream** — `WorldLogger.subscribe()` + `formatLogEntry()` for real-time viewers, with mode/climate/needs payloads on `behavior.say` and translation events.  
+- **Athena Lexicon Flow** — Declarative `translation.learn` + `memory.write` pipeline validated by new integration tests; sample material `entity.athena.lexicon.mdm` shows mention → translate → respond loop.  
+- **Layer 8 Demo** — `/examples/cluster.html` renders headless world, emotional climate dashboard, and live terminal powered by the new logger stream.  
+- **Browser-safe Context** — `OSContextProvider` now avoids Node globals during bundling and falls back gracefully on the web.  
+- **Climate Hooks** — Demo world now syncs broadcast frames into `world.emotionalClimate`, keeping UI in lockstep with engine state.
+
+🛠 Fixes
+
+- Allow `context.set` actions to accept template strings (no more expression errors on `{{translate.th}}`).  
+- Eliminate proto recursion by scoping Athena’s trigger (`where` checks speaker material).
+
+📦 Bundle Size (post-optimisation)
+
+- **Full**: 443.72 KB (106.53 KB gzipped)  
+- **Lite**: 350.08 KB (85.25 KB gzipped)  
+- **Validator**: 25.86 KB (4.38 KB gzipped)
+
+⸻
+
 [5.9.0] — Material Pressure System (Phase 1)
 
 📅 2025-10-30

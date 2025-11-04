@@ -11,13 +11,85 @@
  * - system.load: Load average (1min)
  */
 
-import os from 'os'
-import { execSync } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
 import { BaseContextProvider } from '@mds/7-interface/context/ContextProvider'
 
 export interface OSContextConfig {
   pollInterval?: number  // milliseconds (default: 10000)
+}
+
+type MinimalCPUInfo = {
+  times: { idle: number; user: number; nice: number; sys: number; irq: number }
+}
+
+type MinimalOSModule = {
+  cpus(): MinimalCPUInfo[]
+  totalmem(): number
+  freemem(): number
+  uptime(): number
+  loadavg(): number[]
+}
+
+const isNodeRuntime =
+  typeof process !== 'undefined' &&
+  !!process.versions?.node &&
+  typeof window === 'undefined'
+
+const FALLBACK_OS: MinimalOSModule = {
+  cpus: () => [
+    { times: { idle: 0, user: 0, nice: 0, sys: 0, irq: 0 } }
+  ],
+  totalmem: () => 1,
+  freemem: () => 1,
+  uptime: () => 0,
+  loadavg: () => [0, 0, 0]
+}
+
+type NodeModules = {
+  os: MinimalOSModule
+  execSync?: typeof import('child_process')['execSync']
+  existsSync?: (path: string) => boolean
+  readFileSync?: (path: string, encoding: BufferEncoding) => string
+}
+
+let nodeModules: NodeModules | null = null
+let nodeModulesPromise: Promise<void> | null = null
+
+function ensureNodeModules(): void {
+  if (!isNodeRuntime || nodeModules || nodeModulesPromise) return
+  nodeModulesPromise = Promise.all([
+    import('os'),
+    import('child_process'),
+    import('fs')
+  ]).then(([os, child, fs]) => {
+    nodeModules = {
+      os: ((os as any).default ?? os) as MinimalOSModule,
+      execSync: (child as typeof import('child_process')).execSync,
+      existsSync: (fs as typeof import('fs')).existsSync,
+      readFileSync: (fs as typeof import('fs')).readFileSync
+    }
+  }).catch(() => {
+    nodeModules = null
+  })
+}
+
+function getOS(): MinimalOSModule {
+  ensureNodeModules()
+  return nodeModules?.os ?? FALLBACK_OS
+}
+
+function getExecSync() {
+  ensureNodeModules()
+  return nodeModules?.execSync
+}
+
+function getExistsSync() {
+  ensureNodeModules()
+  return nodeModules?.existsSync
+}
+
+function getReadFileSync() {
+  ensureNodeModules()
+  return nodeModules?.readFileSync
 }
 
 export class OSContextProvider extends BaseContextProvider {
@@ -34,6 +106,7 @@ export class OSContextProvider extends BaseContextProvider {
    * Get current OS metrics as context
    */
   getContext(): Record<string, any> {
+    const os = getOS()
     return {
       'cpu.usage': this.getCPUUsage(),
       'memory.usage': this.getMemoryUsage(),
@@ -48,7 +121,7 @@ export class OSContextProvider extends BaseContextProvider {
    * Initialize CPU tracking
    */
   private initCPU(): void {
-    const cpus = os.cpus()
+    const cpus = getOS().cpus()
     this.lastCPUTimes = cpus.map(cpu => ({
       idle: cpu.times.idle,
       total: (Object.values(cpu.times) as number[]).reduce((a, b) => a + b, 0)
@@ -59,11 +132,11 @@ export class OSContextProvider extends BaseContextProvider {
    * Get CPU usage (0..1)
    */
   private getCPUUsage(): number {
-    const cpus = os.cpus()
+    const cpus = getOS().cpus()
     let totalUsage = 0
 
     cpus.forEach((cpu, i) => {
-      const lastTimes = this.lastCPUTimes[i]
+      const lastTimes = this.lastCPUTimes[i] ?? { idle: cpu.times.idle, total: (Object.values(cpu.times) as number[]).reduce((a, b) => a + b, 0) }
       const idle = cpu.times.idle
       const total = (Object.values(cpu.times) as number[]).reduce((a, b) => a + b, 0)
 
@@ -84,6 +157,7 @@ export class OSContextProvider extends BaseContextProvider {
    * Get memory usage (0..1)
    */
   private getMemoryUsage(): number {
+    const os = getOS()
     const totalMem = os.totalmem()
     const freeMem = os.freemem()
     return (totalMem - freeMem) / totalMem
@@ -93,9 +167,15 @@ export class OSContextProvider extends BaseContextProvider {
    * Get battery level (macOS, Linux, fallback for others)
    */
   private getBatteryLevel(): { level: number, charging: boolean } {
+    if (!isNodeRuntime) {
+      return { level: 1, charging: true }
+    }
+
     try {
-      // macOS: Read from pmset
-      if (process.platform === 'darwin') {
+      const platform = typeof process !== 'undefined' ? process.platform : ''
+
+      const execSync = getExecSync()
+      if (platform === 'darwin' && execSync) {
         const output = execSync('pmset -g batt', { encoding: 'utf-8', timeout: 1000 })
 
         // Parse: "67%; discharging" or "100%; AC Power"
@@ -111,7 +191,9 @@ export class OSContextProvider extends BaseContextProvider {
       }
 
       // Linux: Read from /sys/class/power_supply/BAT0/
-      if (process.platform === 'linux') {
+      const existsSync = getExistsSync()
+      const readFileSync = getReadFileSync()
+      if (platform === 'linux' && existsSync && readFileSync) {
         const capacityPath = '/sys/class/power_supply/BAT0/capacity'
         const statusPath = '/sys/class/power_supply/BAT0/status'
 

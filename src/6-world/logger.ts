@@ -10,9 +10,12 @@ export interface WorldLogEntry {
   data?: Record<string, unknown>
 }
 
+export type WorldLogListener = (entry: WorldLogEntry) => void
+
 export class WorldLogger {
   private entries: WorldLogEntry[] = []
   private capacity: number
+  private listeners = new Set<WorldLogListener>()
 
   constructor(capacity: number = 1000) {
     this.capacity = Math.max(10, capacity)
@@ -31,6 +34,12 @@ export class WorldLogger {
       const overflow = this.entries.length - this.capacity
       this.entries.splice(0, overflow)
     }
+
+    if (this.listeners.size > 0) {
+      for (const listener of this.listeners) {
+        listener(item)
+      }
+    }
   }
 
   tail(count = 40): WorldLogEntry[] {
@@ -39,22 +48,67 @@ export class WorldLogger {
   }
 
   tailText(count = 40): string[] {
-    return this.tail(count).map(entry => entry.text ?? this.format(entry))
+    return this.tail(count).map(entry => formatLogEntry(entry))
   }
 
   clear(): void {
     this.entries = []
   }
 
-  private format(entry: WorldLogEntry): string {
-    const time = new Date(entry.timestamp).toISOString()
-    if (entry.data) {
-      try {
-        return `[${time}] ${entry.type}: ${JSON.stringify(entry.data)}`
-      } catch {
-        return `[${time}] ${entry.type}`
-      }
+  subscribe(listener: WorldLogListener): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
     }
-    return `[${time}] ${entry.type}`
+  }
+
+  setCapacity(capacity: number): void {
+    this.capacity = Math.max(10, capacity)
+    if (this.entries.length > this.capacity) {
+      this.entries.splice(0, this.entries.length - this.capacity)
+    }
+  }
+}
+
+export function formatLogEntry(entry: WorldLogEntry): string {
+  const iso = new Date(entry.timestamp).toISOString()
+  const time = iso.split('T')[1]?.replace('Z', '') ?? iso
+
+  switch (entry.type) {
+    case 'behavior.say': {
+      const speaker = (entry.data?.entity as string | undefined) ?? 'entity'
+      const text = entry.data?.text ?? entry.text ?? ''
+      const mode = entry.data?.mode ? ` (${entry.data.mode})` : ''
+      return `[${time}] ${speaker}${mode}: ${text}`
+    }
+    case 'utterance': {
+      const speaker = (entry.data?.entity as string | undefined) ?? 'entity'
+      const text = entry.data?.text ?? entry.text ?? ''
+      const mode = entry.data?.mode ? ` (${entry.data.mode})` : ''
+      return `[${time}] ${speaker}${mode}: ${text}`
+    }
+    case 'translation.learn': {
+      const source = entry.data?.source ?? entry.data?.original ?? ''
+      const lang = entry.data?.lang ?? 'lang'
+      const text = entry.data?.text ?? entry.text ?? ''
+      return `[${time}] translation → ${lang}: ${text}${source ? ` ← ${source}` : ''}`
+    }
+    case 'behavior.context':
+    case 'context':
+      return `[${time}] context: ${safeStringify(entry.data)}`
+    default:
+      if (entry.text && entry.text.trim().length > 0) {
+        return `[${time}] ${entry.text}`
+      }
+      return `[${time}] ${entry.type}${entry.data ? `: ${safeStringify(entry.data)}` : ''}`
+  }
+}
+
+function safeStringify(data: Record<string, unknown> | undefined): string {
+  if (!data) return ''
+  try {
+    return JSON.stringify(data)
+  } catch {
+    return '[unserializable]'
   }
 }

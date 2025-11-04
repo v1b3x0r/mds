@@ -87,13 +87,13 @@ Result: **NPC remembers. Forever.** No manual state management.
 
 ---
 
-## 3. CURRENT STATE — v5.9.0 (Production Ready)
+## 3. CURRENT STATE — v5.9.2 (Production Ready)
 
 ### Bundle Size
 
-- **Full bundle:** 359.66 KB (gzipped) — includes Phase 1: Material Pressure System
-- **Lite bundle:** 266.80 KB (gzipped) — core only, no LLM
-- **Validator:** 17.25 KB (3.19 KB gzipped) — dev/test helper
+- **Full bundle:** 443.72 KB (106.53 KB gzipped) — includes Layer 7/8 upgrades + Material Pressure System
+- **Lite bundle:** 350.08 KB (85.25 KB gzipped)
+- **Validator:** 25.86 KB (4.38 KB gzipped)
 
 ### Core Systems
 
@@ -124,7 +124,7 @@ Result: **NPC remembers. Forever.** No manual state management.
 ### Test Coverage
 
 - **192 tests** (100% pass)
-- Coverage: Memory, Emotion, Learning, Physics, Communication, World Mind, all Phase 2 systems
+- Coverage: Memory, Emotion, Learning, Physics, Communication, World Mind, Layer 7–8 behavior triggers + logger
 
 ---
 
@@ -346,7 +346,7 @@ npm run type-check     # TypeScript validation
 
 ## 7. VERSION SUMMARY — Current Only
 
-**Current Version:** v5.9.0 (2025-10-30)
+**Current Version:** v5.9.2 (2025-11-04)
 
 **Key Changes (Phase 1: Material Pressure System):**
 - **Resource Needs** — Entities have needs (water, food, energy) that deplete over time

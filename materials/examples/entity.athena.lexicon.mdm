@@ -1,0 +1,77 @@
+{
+  "$schema": "https://mds.v1b3.dev/schema/v5.9",
+  "material": "entity.athena.lexicon",
+  "intent": "semantic_translate",
+  "essence": {
+    "en": "A patient archivist that hears foreign speech, annotates the meaning, and replies with a Thai gloss.",
+    "th": "นักจดบันทึกที่คอยฟังภาษาอื่น บันทึกความหมาย และตอบกลับด้วยคำแปลไทยอย่างนุ่มนวล"
+  },
+  "utterance": {
+    "policy": {
+      "modes": ["short", "proto"],
+      "defaultMode": "auto"
+    }
+  },
+  "memory": {
+    "bindings": [
+      {
+        "trigger": "translation.learn",
+        "target": "translation.latest.text",
+        "value": "{{event.payload.text}}",
+        "type": "fact",
+        "salience": 0.9
+      },
+      {
+        "trigger": "translation.learn",
+        "target": "translation.latest.lang",
+        "value": "{{event.payload.lang}}",
+        "type": "fact",
+        "salience": 0.6
+      },
+      {
+        "trigger": "translation.learn",
+        "target": "translation.latest.source",
+        "value": "{{event.payload.source}}",
+        "type": "observation",
+        "salience": 0.7
+      }
+    ]
+  },
+  "behavior": {
+    "triggers": [
+      {
+        "id": "athena-lexicon-intake",
+        "on": "mention(others)",
+        "where": "event.utterance.text != '' && event.speaker.m.material == \"entity.signal\"",
+        "actions": [
+          {
+            "translation.learn": {
+              "source": "{{event.utterance.text}}",
+              "lang": "th",
+              "text": "🌱 {{event.utterance.text}} (แปล)"
+            }
+          },
+          {
+            "memory.write": {
+              "target": "translation.latest",
+              "kind": "fact",
+              "salience": "min(1, 0.75 + metrics.novelty * 0.1)",
+              "value": "{{event.utterance.text}} -> {{translate.th}}"
+            }
+          },
+          {
+            "say": {
+              "text": "{{translate.th}}",
+              "mode": "short",
+              "lang": "th"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "notes": [
+    "demo entity for Layer 7 lexical pipeline — learns translations declaratively",
+    "memory bindings capture source/lang/text for the logger and analytics surfaces"
+  ]
+}

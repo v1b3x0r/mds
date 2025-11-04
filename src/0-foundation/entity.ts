@@ -66,6 +66,18 @@ import type {
   ParsedLocaleOverlay
 } from '@mds/7-interface/io/mdm-parser'
 
+type ProtoGeneratorLike = {
+  generate(config: {
+    vocabularyPool: string[]
+    emotion?: { valence: number; arousal: number }
+    minWords?: number
+    maxWords?: number
+    allowParticles?: boolean
+    allowEmoji?: boolean
+    creativity?: number
+  }): string
+}
+
 export interface EntityWorldBridge {
   broadcastEvent: (type: string, payload?: any) => void
   broadcastContext?: (context: Record<string, any>) => void
@@ -212,10 +224,20 @@ export class Entity implements MessageParticipant {
     lastPositive: 0,
     lastNegative: 0
   }
-  // @ts-expect-error - Reserved for future utterance policy system
-  private _utterancePolicy?: ParsedUtterancePolicy
-  // @ts-expect-error - Reserved for future locale overlay system
-  private _appliedLocaleOverlay?: ParsedLocaleOverlay
+  private utterancePolicy?: ParsedUtterancePolicy
+  private appliedLocaleOverlay?: ParsedLocaleOverlay
+  private translationLexicon: Map<string, Map<string, string>> = new Map()
+  private lastUtteranceMode?: string
+
+  private getTriggerNumber(key: string, defaultValue = 0): number {
+    const value = this.triggerContext[key]
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      if (!isNaN(parsed)) return parsed
+    }
+    return defaultValue
+  }
 
   // v5.6: Autonomous behavior flag
   private _isAutonomous: boolean = false
@@ -345,9 +367,9 @@ export class Entity implements MessageParticipant {
       }
 
       if (parsed.utterancePolicy) {
-        this._utterancePolicy = parsed.utterancePolicy
+        this.utterancePolicy = parsed.utterancePolicy
         if (parsed.utterancePolicy.overlay) {
-          this._appliedLocaleOverlay = parsed.utterancePolicy.overlay
+          this.appliedLocaleOverlay = parsed.utterancePolicy.overlay
         }
       }
 
@@ -820,7 +842,11 @@ export class Entity implements MessageParticipant {
    * @param category - 'intro', 'self_monologue', or event name (e.g., 'greeting', 'question')
    * @param lang - Language override (optional, entity chooses if not specified)
    */
-  speak(category?: string, lang?: string): string | undefined {
+  speak(
+    category?: string,
+    lang?: string,
+    options?: { mode?: string; protoGenerator?: ProtoGeneratorLike; vocabulary?: string[] }
+  ): string | undefined {
     // v5.7: Entity chooses language autonomously
     const preference = this.getLanguagePreferenceOrder(lang)
     const selectedLang = preference[0] ?? 'en'
@@ -862,7 +888,88 @@ export class Entity implements MessageParticipant {
       })
     }
 
-    return phrase
+    const formatted = this.formatUtterance(phrase, {
+      mode: options?.mode,
+      lang: selectedLang,
+      protoGenerator: options?.protoGenerator,
+      vocabulary: options?.vocabulary
+    })
+
+    return formatted
+  }
+
+  getUtterancePolicy(): ParsedUtterancePolicy | undefined {
+    return this.utterancePolicy
+  }
+
+  applyLocaleOverlay(overlay?: ParsedLocaleOverlay): void {
+    this.appliedLocaleOverlay = overlay
+  }
+
+  getLastUtteranceMode(): string | undefined {
+    return this.lastUtteranceMode
+  }
+
+  getTriggerContextSnapshot(): Record<string, any> {
+    return { ...this.triggerContext }
+  }
+
+  formatUtterance(
+    text?: string,
+    options: { mode?: string; lang?: string; protoGenerator?: ProtoGeneratorLike; vocabulary?: string[] } = {}
+  ): string | undefined {
+    const policy = this.utterancePolicy
+    const overlay = this.appliedLocaleOverlay ?? policy?.overlay
+    const availableModes = policy?.modes ?? []
+
+    let selectedMode = options.mode
+    if (selectedMode && availableModes.length > 0 && !availableModes.includes(selectedMode)) {
+      selectedMode = undefined
+    }
+    if (!selectedMode) {
+      selectedMode = policy?.defaultMode
+    }
+    if (!selectedMode || selectedMode === 'auto') {
+      selectedMode = this.chooseAutomaticUtteranceMode(availableModes, overlay, text)
+    }
+    if (!selectedMode) {
+      selectedMode = text && text.trim().length > 0 ? 'short' : 'proto'
+    }
+
+    if (selectedMode) {
+      this.lastUtteranceMode = selectedMode
+      this.updateTriggerContext({ 'utterance.mode': selectedMode })
+    }
+
+    switch (selectedMode) {
+      case 'emoji': {
+        const emojiText = this.generateEmojiUtterance(overlay)
+        return emojiText
+      }
+      case 'proto': {
+        const protoText = this.generateProtoUtterance({
+          overlay,
+          protoGenerator: options.protoGenerator,
+          vocabulary: options.vocabulary
+        })
+        return protoText
+      }
+      case 'short':
+      default: {
+        let output = text ?? ''
+        if (!output || output.trim().length === 0) {
+          output = this.getBuiltInDialogue(
+            'intro',
+            options.lang ?? this.nativeLanguage ?? 'en',
+            this.getLanguagePreferenceOrder(options.lang)
+          )
+        }
+        output = output ?? ''
+        output = this.applyOverlayReplacements(output, overlay)
+        output = this.injectOverlayFlavor(output, overlay)
+        return output.trim() || undefined
+      }
+    }
   }
 
   /**
@@ -962,6 +1069,231 @@ export class Entity implements MessageParticipant {
     }
 
     return phrases[Math.floor(Math.random() * phrases.length)]
+  }
+
+  learnTranslation(source: string | undefined, lang: string | undefined, text: string | undefined): void {
+    const normalizedSource = this.normalizeTranslationSource(source)
+    const normalizedLang = typeof lang === 'string' ? lang.trim().toLowerCase() : ''
+    if (!normalizedSource || !normalizedLang || !text) return
+
+    let entry = this.translationLexicon.get(normalizedSource)
+    if (!entry) {
+      entry = new Map<string, string>()
+      this.translationLexicon.set(normalizedSource, entry)
+    }
+    entry.set(normalizedLang, text)
+
+    this.setMemoryFact(`translation.${normalizedLang}.${normalizedSource}`, text, this.age)
+  }
+
+  translate(text: string | undefined, lang: string): string | undefined {
+    if (!text) return undefined
+    const normalizedSource = this.normalizeTranslationSource(text)
+    if (!normalizedSource) return undefined
+    const entry = this.translationLexicon.get(normalizedSource)
+    if (!entry) return text
+    const normalizedLang = lang.trim().toLowerCase()
+    return entry.get(normalizedLang) ?? text
+  }
+
+  translateAll(text: string | undefined): Record<string, string> {
+    const result: Record<string, string> = {}
+    if (!text) return result
+
+    const normalizedSource = this.normalizeTranslationSource(text)
+    result.source = text
+    result.original = text
+
+    if (!normalizedSource) {
+      return result
+    }
+
+    const entry = this.translationLexicon.get(normalizedSource)
+    if (entry) {
+      for (const [lang, translated] of entry.entries()) {
+        result[lang] = translated
+      }
+    }
+
+    const fallbackLangs = new Set<string>(['th', 'en'])
+    if (this.nativeLanguage) {
+      fallbackLangs.add(this.nativeLanguage.toLowerCase())
+    }
+    for (const lang of fallbackLangs) {
+      if (!lang || result[lang]) continue
+      const translated = this.translate(text, lang)
+      if (translated) {
+        result[lang] = translated
+      }
+    }
+
+    result.default = text
+
+    return result
+  }
+
+  private chooseAutomaticUtteranceMode(
+    availableModes: string[],
+    overlay?: ParsedLocaleOverlay,
+    fallbackText?: string
+  ): string | undefined {
+    if (availableModes.length === 0) {
+      return fallbackText && fallbackText.trim().length > 0 ? 'short' : 'proto'
+    }
+
+    const grief = this.getTriggerNumber('climate.grief')
+    const tension = this.getTriggerNumber('climate.tension')
+    const vitality = this.getTriggerNumber('climate.vitality', 0.5)
+    const harmony = this.getTriggerNumber('climate.harmony', 0.5)
+    const mood = this.triggerContext['climate.mood']
+    const criticalNeeds = this.getCriticalNeeds().length
+
+    if (availableModes.includes('proto') && (criticalNeeds > 0 || grief > 0.35 || tension > 0.45)) {
+      return 'proto'
+    }
+
+    if (availableModes.includes('emoji')) {
+      const hasEmojiOverlay = !!(overlay?.emoji && overlay.emoji.length > 0)
+      const positiveEmotion = this.emotion ? this.emotion.valence > 0.25 : false
+      const positiveClimate = vitality > 0.55 || harmony > 0.6
+      const descriptivePositive = typeof mood === 'string' && /vital|harmonious|calm|hope|joy/i.test(mood)
+      if (hasEmojiOverlay || positiveEmotion || positiveClimate || descriptivePositive) {
+        return 'emoji'
+      }
+    }
+
+    if (availableModes.includes('short')) {
+      return 'short'
+    }
+
+    return availableModes[0]
+  }
+
+  private normalizeTranslationSource(value: string | undefined): string {
+    return typeof value === 'string' ? value.trim().toLowerCase() : ''
+  }
+
+  private applyOverlayReplacements(text: string, overlay?: ParsedLocaleOverlay): string {
+    if (!overlay) return text
+    let output = text
+    for (const rule of overlay.replacements) {
+      output = output.replace(rule.pattern, rule.replace)
+    }
+    return output
+  }
+
+  private injectOverlayFlavor(text: string, overlay?: ParsedLocaleOverlay): string {
+    if (!overlay) return text
+    let output = text
+    if (overlay.interjections?.length && Math.random() < 0.3) {
+      output = `${this.pickRandom(overlay.interjections)} ${output}`.trim()
+    }
+    if (overlay.particles?.length && Math.random() < 0.35) {
+      output = `${output} ${this.pickRandom(overlay.particles)}`
+    }
+    if (overlay.emoji?.length && Math.random() < 0.25) {
+      output = `${output} ${this.pickRandom(overlay.emoji)}`
+    }
+    return output.trim()
+  }
+
+  private generateEmojiUtterance(overlay?: ParsedLocaleOverlay): string {
+    const emojis = overlay?.emoji ?? []
+    if (emojis.length > 0) {
+      const count = this.randomInt(1, Math.min(3, emojis.length))
+      const selected = Array.from({ length: count }, () => this.pickRandom(emojis))
+      return selected.join(' ')
+    }
+    return '🌱'
+  }
+
+  private generateProtoUtterance(options: {
+    overlay?: ParsedLocaleOverlay
+    protoGenerator?: ProtoGeneratorLike
+    vocabulary?: string[]
+  }): string {
+    const overlay = options.overlay
+    const proto = overlay?.proto
+    const minWords = Math.max(1, proto?.minWords ?? 2)
+    const maxWords = Math.max(minWords, proto?.maxWords ?? Math.max(minWords, 3))
+    const wordCount = this.randomInt(minWords, maxWords)
+
+    const vocabularyPool: string[] = []
+    if (options.vocabulary) {
+      for (const term of options.vocabulary) {
+        if (typeof term === 'string' && term.trim().length > 0) {
+          vocabularyPool.push(term.trim())
+        }
+      }
+    }
+
+    const syllables = proto?.syllables && proto.syllables.length > 0
+      ? proto.syllables
+      : ['la', 'na', 'ra', 'sa']
+
+    const additionalWords = Math.max(wordCount * 2, 6)
+    for (let i = 0; i < additionalWords; i++) {
+      vocabularyPool.push(this.buildProtoWord(syllables))
+    }
+
+    if (vocabularyPool.length === 0) {
+      vocabularyPool.push(this.buildProtoWord(['la', 'na', 'ra']))
+    }
+
+    let sentence: string
+    if (options.protoGenerator) {
+      sentence = options.protoGenerator.generate({
+        vocabularyPool,
+        emotion: this.emotion
+          ? { valence: this.emotion.valence ?? 0, arousal: this.emotion.arousal ?? 0.5 }
+          : undefined,
+        minWords,
+        maxWords,
+        allowParticles: !!overlay?.particles?.length,
+        allowEmoji: !!overlay?.emoji?.length,
+        creativity: 0.6
+      })
+    } else {
+      const joiner = proto?.join ?? ' '
+      const words: string[] = []
+      for (let i = 0; i < wordCount; i++) {
+        words.push(this.pickRandom(vocabularyPool))
+      }
+      sentence = words.join(joiner)
+    }
+
+    sentence = this.applyOverlayReplacements(sentence, overlay)
+    sentence = this.injectOverlayFlavor(sentence, overlay)
+
+    if (proto?.emoji?.length) {
+      sentence = `${sentence} ${this.pickRandom(proto.emoji)}`.trim()
+    }
+
+    return sentence || '...'
+  }
+
+  private buildProtoWord(syllables: string[]): string {
+    const syllableCount = this.randomInt(1, 2)
+    const parts: string[] = []
+    for (let i = 0; i < syllableCount; i++) {
+      parts.push(this.pickRandom(syllables))
+    }
+    return parts.join('')
+  }
+
+  private pickRandom<T>(items: T[]): T {
+    if (!items || items.length === 0) {
+      // @ts-ignore
+      return undefined
+    }
+    const index = Math.floor(Math.random() * items.length)
+    return items[index]
+  }
+
+  private randomInt(min: number, max: number): number {
+    const low = Math.ceil(min)
+    const high = Math.floor(max)
+    return Math.floor(Math.random() * (high - low + 1)) + low
   }
 
   private getLanguagePreferenceOrder(primary?: string): string[] {
