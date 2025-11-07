@@ -78,6 +78,12 @@ import { PackResolver, type PackResolverOptions, type PackAggregate } from '@mds
 import type { Memory, MemoryFilter } from '@mds/1-ontology/memory/buffer'
 import { SpatialGrid } from '@mds/0-foundation/spatial-grid'
 
+// Performance constants
+const DEFAULT_WORLD_WIDTH = 1920        // Default world width in pixels
+const DEFAULT_WORLD_HEIGHT = 1080      // Default world height in pixels
+const ENTITY_INTERACTION_RADIUS = 80   // Proximity radius for entity interactions
+const MIN_ENTITY_DISTANCE = 0.001      // Minimum distance to avoid division by zero
+
 // Phase 1: Resource field system (v5.9)
 import type { ResourceField } from '@mds/6-world/resources/field'
 import {
@@ -637,10 +643,10 @@ export class World {
     this.emotionalClimate = CollectiveIntelligence.createEmotionalClimate()
 
     // Performance: Initialize spatial grid for entity proximity queries
-    // Cell size = interaction radius (80px) for optimal performance
-    const worldWidth = options.worldBounds?.maxX ?? 1920
-    const worldHeight = options.worldBounds?.maxY ?? 1080
-    this.spatialGrid = new SpatialGrid<Entity>(worldWidth, worldHeight, 80)
+    // Cell size = interaction radius for optimal performance
+    const worldWidth = options.worldBounds?.maxX ?? DEFAULT_WORLD_WIDTH
+    const worldHeight = options.worldBounds?.maxY ?? DEFAULT_WORLD_HEIGHT
+    this.spatialGrid = new SpatialGrid<Entity>(worldWidth, worldHeight, ENTITY_INTERACTION_RADIUS)
 
     if (options.contextProviders && options.contextProviders.length > 0) {
       for (const registration of options.contextProviders) {
@@ -1549,7 +1555,6 @@ export class World {
     const hadInteraction = new Set<Entity>()
 
     // Process entity interactions using spatial grid (O(N*k) where k = avg neighbors)
-    const INTERACTION_RADIUS = 80
     for (let i = 0; i < entities.length; i++) {
       const a = entities[i]
 
@@ -1557,7 +1562,7 @@ export class World {
       if (!a.memory) continue
 
       // Query nearby entities using spatial grid (much faster than checking all)
-      const nearby = this.spatialGrid!.query(a.x, a.y, INTERACTION_RADIUS, a)
+      const nearby = this.spatialGrid!.query(a.x, a.y, ENTITY_INTERACTION_RADIUS, a)
 
       for (let j = 0; j < nearby.length; j++) {
         const b = nearby[j]
@@ -1568,10 +1573,10 @@ export class World {
         // Calculate distance (once per pair)
         const dx = b.x - a.x
         const dy = b.y - a.y
-        const dist = Math.sqrt(dx * dx + dy * dy) || 0.001  // Small minimum to avoid division by zero
+        const dist = Math.sqrt(dx * dx + dy * dy) || MIN_ENTITY_DISTANCE
 
         // Memory formation (both entities remember each other)
-        const salience = 1.0 - (dist / INTERACTION_RADIUS)
+        const salience = 1.0 - (dist / ENTITY_INTERACTION_RADIUS)
         a.remember({
           timestamp: a.age,
           type: 'interaction',

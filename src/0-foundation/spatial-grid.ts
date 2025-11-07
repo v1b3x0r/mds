@@ -13,6 +13,13 @@
  * - Boundary awareness: Support world bounds for wrap/reflect/clamp
  */
 
+// Constants for spatial hashing
+const COORD_OFFSET = 32768  // Offset for negative coordinates (2^15)
+const COORD_MASK = 0xFFFF   // 16-bit mask for coordinate range
+
+// Frame coherence threshold
+const MOVE_THRESHOLD_RATIO = 0.5  // Skip update if moved < cellSize * ratio
+
 export interface GridEntity {
   x: number
   y: number
@@ -24,9 +31,9 @@ export interface GridEntity {
  * Max cell coords: 16 bits each (0-65535)
  */
 function spatialHash(cx: number, cy: number): number {
-  // Ensure positive coords (add 32768 offset for negative values)
-  const x = (cx + 32768) & 0xFFFF
-  const y = (cy + 32768) & 0xFFFF
+  // Ensure positive coords (add offset for negative values)
+  const x = (cx + COORD_OFFSET) & COORD_MASK
+  const y = (cy + COORD_OFFSET) & COORD_MASK
   return (x << 16) | y
 }
 
@@ -56,7 +63,7 @@ export class SpatialGrid<T extends GridEntity> {
     this.worldHeight = worldHeight
     this.cellSize = cellSize
     this.cells = new Map()
-    this.moveThreshold = cellSize * 0.5  // Skip if moved < half cell
+    this.moveThreshold = cellSize * MOVE_THRESHOLD_RATIO
   }
 
   /**
