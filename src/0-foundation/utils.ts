@@ -102,8 +102,8 @@ export function hasPseudoStyle(element: HTMLElement, pseudo: string): boolean {
  */
 export function deepClone<T>(value: T): T {
   // Use native structuredClone if available (fastest)
-  if (typeof globalThis !== 'undefined' && typeof (globalThis as any).structuredClone === 'function') {
-    return (globalThis as any).structuredClone(value)
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value)
   }
 
   // Fallback: Manual deep clone (faster than JSON.parse/stringify for small objects)

@@ -1568,7 +1568,7 @@ export class World {
         // Calculate distance (once per pair)
         const dx = b.x - a.x
         const dy = b.y - a.y
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1  // Faster than Math.hypot
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.001  // Small minimum to avoid division by zero
 
         // Memory formation (both entities remember each other)
         const salience = 1.0 - (dist / INTERACTION_RADIUS)
