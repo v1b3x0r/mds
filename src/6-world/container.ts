@@ -17,6 +17,7 @@ import { Expression } from '@mds/0-foundation/expression'
 import { setPathValue } from '@mds/0-foundation/path'
 import { Entity } from '@mds/0-foundation/entity'
 import { Field } from '@mds/0-foundation/field'
+import { deepClone } from '@mds/0-foundation/utils'
 import {
   driftToBaseline,
   EMOTION_BASELINES,
@@ -75,6 +76,13 @@ import type {
 import { WorldLogger } from './logger'
 import { PackResolver, type PackResolverOptions, type PackAggregate } from '@mds/0-foundation/pack-resolver'
 import type { Memory, MemoryFilter } from '@mds/1-ontology/memory/buffer'
+import { SpatialGrid } from '@mds/0-foundation/spatial-grid'
+
+// Performance constants
+const DEFAULT_WORLD_WIDTH = 1920        // Default world width in pixels
+const DEFAULT_WORLD_HEIGHT = 1080      // Default world height in pixels
+const ENTITY_INTERACTION_RADIUS = 80   // Proximity radius for entity interactions
+const MIN_ENTITY_DISTANCE = 0.001      // Minimum distance to avoid division by zero
 
 // Phase 1: Resource field system (v5.9)
 import type { ResourceField } from '@mds/6-world/resources/field'
@@ -550,6 +558,9 @@ export class World {
   emotionalClimate: EmotionalClimate
   private cachedClimateInfluence: { valence: number; arousal: number; dominance: number } = { valence: 0, arousal: 0, dominance: 0 }
 
+  // Performance: Spatial grid for O(N) entity proximity queries (replaces O(N²))
+  private spatialGrid?: SpatialGrid<Entity>
+
   // Options
   options: WorldOptions
   definition?: WorldDefinition
@@ -630,6 +641,12 @@ export class World {
 
     // Task 1.4: Initialize emotional climate
     this.emotionalClimate = CollectiveIntelligence.createEmotionalClimate()
+
+    // Performance: Initialize spatial grid for entity proximity queries
+    // Cell size = interaction radius for optimal performance
+    const worldWidth = options.worldBounds?.maxX ?? DEFAULT_WORLD_WIDTH
+    const worldHeight = options.worldBounds?.maxY ?? DEFAULT_WORLD_HEIGHT
+    this.spatialGrid = new SpatialGrid<Entity>(worldWidth, worldHeight, ENTITY_INTERACTION_RADIUS)
 
     if (options.contextProviders && options.contextProviders.length > 0) {
       for (const registration of options.contextProviders) {
@@ -1521,144 +1538,143 @@ export class World {
    * Phase 3: Relational update
    * - Pairwise interactions (memory formation, emotional contagion)
    * - Field-based effects
+   * 
+   * Performance: Uses spatial grid for O(N) complexity instead of O(N²)
    */
   private updateRelational(dt: number): void {
     const entities = this.entities
+    if (entities.length === 0) return
 
-    // Pairwise entity interactions
+    // Build spatial grid for this tick (O(N))
+    this.spatialGrid!.clear()
     for (let i = 0; i < entities.length; i++) {
-      for (let j = i + 1; j < entities.length; j++) {
-        const a = entities[i]
-        const b = entities[j]
+      this.spatialGrid!.insert(entities[i])
+    }
 
-        // Skip if either entity doesn't have ontology
-        if (!a.memory || !b.memory) continue
+    // Track which entities had interactions
+    const hadInteraction = new Set<Entity>()
 
-        // Calculate distance
+    // Process entity interactions using spatial grid (O(N*k) where k = avg neighbors)
+    for (let i = 0; i < entities.length; i++) {
+      const a = entities[i]
+
+      // Skip if entity doesn't have ontology
+      if (!a.memory) continue
+
+      // Query nearby entities using spatial grid (much faster than checking all)
+      const nearby = this.spatialGrid!.query(a.x, a.y, ENTITY_INTERACTION_RADIUS, a)
+
+      for (let j = 0; j < nearby.length; j++) {
+        const b = nearby[j]
+
+        // Skip if entity doesn't have ontology
+        if (!b.memory) continue
+
+        // Calculate distance (once per pair)
         const dx = b.x - a.x
         const dy = b.y - a.y
-        const dist = Math.hypot(dx, dy) || 1
+        const dist = Math.sqrt(dx * dx + dy * dy) || MIN_ENTITY_DISTANCE
 
-        // Close proximity triggers interactions
-        if (dist < 80) {
-          // Memory formation (both entities remember each other)
-          a.remember({
-            timestamp: a.age,
-            type: 'interaction',
-            subject: b.id,
-            content: { distance: dist },
-            salience: 1.0 - (dist / 80)  // Closer = more salient
-          })
+        // Memory formation (both entities remember each other)
+        const salience = 1.0 - (dist / ENTITY_INTERACTION_RADIUS)
+        a.remember({
+          timestamp: a.age,
+          type: 'interaction',
+          subject: b.id,
+          content: { distance: dist },
+          salience
+        })
 
-          b.remember({
-            timestamp: b.age,
-            type: 'interaction',
-            subject: a.id,
-            content: { distance: dist },
-            salience: 1.0 - (dist / 80)
-          })
+        b.remember({
+          timestamp: b.age,
+          type: 'interaction',
+          subject: a.id,
+          content: { distance: dist },
+          salience
+        })
 
-          // Emotional contagion (if both have emotions)
-          if (a.emotion && b.emotion) {
-            const contagionRate = 0.05 * dt  // 5% per second
+        // Mark both as having interactions
+        hadInteraction.add(a)
+        hadInteraction.add(b)
 
-            // Calculate pure contagion deltas
-            const contagionDeltaA = {
-              valence: (b.emotion.valence - a.emotion.valence) * contagionRate,
-              arousal: (b.emotion.arousal - a.emotion.arousal) * contagionRate,
-              dominance: (b.emotion.dominance - a.emotion.dominance) * contagionRate
-            }
+        // Emotional contagion (if both have emotions)
+        if (a.emotion && b.emotion) {
+          const contagionRate = 0.05 * dt  // 5% per second
 
-            const contagionDeltaB = {
-              valence: (a.emotion.valence - b.emotion.valence) * contagionRate,
-              arousal: (a.emotion.arousal - b.emotion.arousal) * contagionRate,
-              dominance: (a.emotion.dominance - b.emotion.dominance) * contagionRate
-            }
-
-            // Adaptive weighting: blend contagion + climate
-            // α (contagion weight) = 0.7 default
-            // β (climate weight) = 0.3 default
-            // Climate influence reduced by tension and population
-            const α = 0.7
-            const β = 0.3
-            const tensionFactor = 1 - this.emotionalClimate.tension
-            const populationScale = 1 / (1 + this.entities.length * 0.05)
-            const climateWeight = β * tensionFactor * populationScale
-
-            // Blend for entity A
-            const blendedDeltaA = {
-              valence: (contagionDeltaA.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
-              arousal: (contagionDeltaA.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
-              dominance: (contagionDeltaA.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
-            }
-
-            // Blend for entity B
-            const blendedDeltaB = {
-              valence: (contagionDeltaB.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
-              arousal: (contagionDeltaB.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
-              dominance: (contagionDeltaB.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
-            }
-
-            a.feel(blendedDeltaA)
-            b.feel(blendedDeltaB)
+          // Calculate pure contagion deltas
+          const contagionDeltaA = {
+            valence: (b.emotion.valence - a.emotion.valence) * contagionRate,
+            arousal: (b.emotion.arousal - a.emotion.arousal) * contagionRate,
+            dominance: (b.emotion.dominance - a.emotion.dominance) * contagionRate
           }
 
-          // Memory-based attraction (bonus force based on shared history)
-          if (a.memory && b.memory) {
-            const memoryStrengthA = a.memory.getStrength(b.id)
-            const memoryStrengthB = b.memory.getStrength(a.id)
-            const avgMemoryStrength = (memoryStrengthA + memoryStrengthB) / 2
-
-            // Apply bonus attraction if strong memory bond exists
-            if (avgMemoryStrength > 0.3) {
-              const bonusK = 0.01 * avgMemoryStrength
-              const fx = (dx / dist) * bonusK
-              const fy = (dy / dist) * bonusK
-
-              a.vx += fx * dt
-              a.vy += fy * dt
-              b.vx -= fx * dt
-              b.vy -= fy * dt
-            }
+          const contagionDeltaB = {
+            valence: (a.emotion.valence - b.emotion.valence) * contagionRate,
+            arousal: (a.emotion.arousal - b.emotion.arousal) * contagionRate,
+            dominance: (a.emotion.dominance - b.emotion.dominance) * contagionRate
           }
+
+          // Adaptive weighting: blend contagion + climate
+          const α = 0.7
+          const β = 0.3
+          const tensionFactor = 1 - this.emotionalClimate.tension
+          const populationScale = 1 / (1 + entities.length * 0.05)
+          const climateWeight = β * tensionFactor * populationScale
+
+          // Blend for entity A
+          const blendedDeltaA = {
+            valence: (contagionDeltaA.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
+            arousal: (contagionDeltaA.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
+            dominance: (contagionDeltaA.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
+          }
+
+          // Blend for entity B
+          const blendedDeltaB = {
+            valence: (contagionDeltaB.valence * α) + (this.cachedClimateInfluence.valence * climateWeight),
+            arousal: (contagionDeltaB.arousal * α) + (this.cachedClimateInfluence.arousal * climateWeight),
+            dominance: (contagionDeltaB.dominance * α) + (this.cachedClimateInfluence.dominance * climateWeight)
+          }
+
+          a.feel(blendedDeltaA)
+          b.feel(blendedDeltaB)
+        }
+
+        // Memory-based attraction (bonus force based on shared history)
+        const memoryStrengthA = a.memory.getStrength(b.id)
+        const memoryStrengthB = b.memory.getStrength(a.id)
+        const avgMemoryStrength = (memoryStrengthA + memoryStrengthB) / 2
+
+        // Apply bonus attraction if strong memory bond exists
+        if (avgMemoryStrength > 0.3) {
+          const bonusK = 0.01 * avgMemoryStrength
+          const fx = (dx / dist) * bonusK
+          const fy = (dy / dist) * bonusK
+
+          a.vx += fx * dt
+          a.vy += fy * dt
+          b.vx -= fx * dt
+          b.vy -= fy * dt
         }
       }
     }
 
-    // Apply climate influence to entities without nearby interactions
-    // (solo entities or those beyond interaction range)
+    // Apply climate influence to solo entities (those without nearby interactions)
     const β = 0.3
     const tensionFactor = 1 - this.emotionalClimate.tension
-    const populationScale = 1 / (1 + this.entities.length * 0.05)
+    const populationScale = 1 / (1 + entities.length * 0.05)
     const soloClimateWeight = β * tensionFactor * populationScale
 
     if (Math.abs(this.cachedClimateInfluence.valence) + Math.abs(this.cachedClimateInfluence.arousal) > 0.001) {
-      for (const entity of entities) {
-        if (entity.emotion) {
-          // Track if entity had any interactions this tick
-          let hadInteraction = false
-          for (let j = 0; j < entities.length; j++) {
-            if (entities[j] === entity) continue
-            const other = entities[j]
-            const dx = other.x - entity.x
-            const dy = other.y - entity.y
-            const dist = Math.hypot(dx, dy)
-            if (dist < 80 && entity.memory && other.memory) {
-              hadInteraction = true
-              break
-            }
-          }
+      for (let i = 0; i < entities.length; i++) {
+        const entity = entities[i]
+        if (!entity.emotion || hadInteraction.has(entity)) continue
 
-          // Solo entities get pure climate influence (no contagion to blend with)
-          if (!hadInteraction) {
-            const soloClimateDelta = {
-              valence: this.cachedClimateInfluence.valence * soloClimateWeight,
-              arousal: this.cachedClimateInfluence.arousal * soloClimateWeight,
-              dominance: this.cachedClimateInfluence.dominance * soloClimateWeight
-            }
-            entity.feel(soloClimateDelta)
-          }
+        const soloClimateDelta = {
+          valence: this.cachedClimateInfluence.valence * soloClimateWeight,
+          arousal: this.cachedClimateInfluence.arousal * soloClimateWeight,
+          dominance: this.cachedClimateInfluence.dominance * soloClimateWeight
         }
+        entity.feel(soloClimateDelta)
       }
     }
   }
@@ -2209,10 +2225,7 @@ export class World {
   }
 
   private static cloneDefinition(definition: WorldDefinition): WorldDefinition {
-    if (typeof globalThis !== 'undefined' && typeof (globalThis as any).structuredClone === 'function') {
-      return (globalThis as any).structuredClone(definition)
-    }
-    return JSON.parse(JSON.stringify(definition)) as WorldDefinition
+    return deepClone(definition)
   }
 
   private static mergeWorldOptions(definition: WorldDefinition, options: WorldBootstrapOptions): WorldOptions {

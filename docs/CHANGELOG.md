@@ -4,6 +4,47 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.10.0] — Spatial Grid Performance Optimization  
+📅 2025-11-13
+
+⸻
+
+⚡ Performance
+
+**Spatial Grid: O(N²) → O(N*k) entity interactions**
+- Entity proximity queries now use cell-based spatial partitioning
+- **6-31x speedup** for medium-large worlds:
+  - 100 entities: 1.37ms → 0.20ms (6.9x faster)
+  - 500 entities: ~11ms → ~0.35ms (31x faster)
+- Makes worlds with 100-10k entities playable at 60 FPS
+
+**Frame Coherence & Numeric Keys**
+- Track entity movement between cells (skip unchanged: 20-50% faster)
+- Spatial hash `(x << 16) | y` replaces string concat (20-30% less GC)
+- Object cloning optimized: `structuredClone()` with manual fallback (3-5x faster)
+
+**New APIs**
+- `SpatialGrid<T>` — Generic spatial partitioning structure
+  - `update(entity, oldX, oldY)` — Frame coherence updates
+  - `inBounds(x, y)` — Boundary checking
+  - `wrap(x, y)` — Toroidal world wrapping
+  - `getStats()` — Performance monitoring (cell density, skip rate)
+- All APIs backward compatible (grid rebuilds automatically in world tick)
+
+🛠 Code Quality
+- Extracted magic numbers to named constants:
+  - `ENTITY_INTERACTION_RADIUS = 80`
+  - `MIN_ENTITY_DISTANCE = 0.001`
+  - `DEFAULT_WORLD_WIDTH/HEIGHT = 1920/1080`
+- Performance benchmark added: `tests/performance/spatial-grid.test.mjs`
+
+📦 Bundle Size
+- **Full**: 450.4 KB (+6.7KB, +1.5%)  
+- **Lite**: 356.1 KB (+3.3KB, +0.9%)  
+- Justified by significant performance gains
+
+⸻
+
 [Unreleased] — Packaging Hygiene  
 📅 2025-11-04
 

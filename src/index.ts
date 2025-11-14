@@ -292,6 +292,8 @@ export type {
 export { clamp, distance, similarity, lerp, randRange, randInt } from '@mds/0-foundation/math'
 export { parseSeconds, applyRule } from '@mds/0-foundation/events'
 export { seededRandom, noise1D } from '@mds/0-foundation/random'
+export { SpatialGrid as FoundationSpatialGrid } from '@mds/0-foundation/spatial-grid'
+export type { GridEntity } from '@mds/0-foundation/spatial-grid'
 
 // Types
 export type {

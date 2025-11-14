@@ -95,3 +95,44 @@ export function hasPseudoStyle(element: HTMLElement, pseudo: string): boolean {
   const styles = getComputedStyle(element, pseudo)
   return styles.content !== 'none' && styles.content !== ''
 }
+
+/**
+ * Deep clone object using structuredClone (with polyfill for older environments)
+ * Much faster than JSON.parse(JSON.stringify()) and handles more types
+ */
+export function deepClone<T>(value: T): T {
+  // Use native structuredClone if available (fastest)
+  if (typeof structuredClone === 'function') {
+    return structuredClone(value)
+  }
+
+  // Fallback: Manual deep clone (faster than JSON.parse/stringify for small objects)
+  if (value === null || typeof value !== 'object') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => deepClone(item)) as any
+  }
+
+  if (value instanceof Date) {
+    return new Date(value.getTime()) as any
+  }
+
+  if (value instanceof Map) {
+    return new Map(Array.from(value.entries()).map(([k, v]) => [k, deepClone(v)])) as any
+  }
+
+  if (value instanceof Set) {
+    return new Set(Array.from(value).map(item => deepClone(item))) as any
+  }
+
+  // Plain object
+  const cloned: any = {}
+  for (const key in value) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      cloned[key] = deepClone((value as any)[key])
+    }
+  }
+  return cloned
+}
