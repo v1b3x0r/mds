@@ -865,9 +865,8 @@ export class Entity implements MessageParticipant {
       )
     }
 
-    // v5.8: Built-in fallback - cute default personality when .mdm has no dialogue
     if (!phrase) {
-      phrase = this.getBuiltInDialogue(category || 'intro', selectedLang, preference)
+      return undefined
     }
 
     // v5.7: Replace placeholders
