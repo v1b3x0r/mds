@@ -120,6 +120,12 @@ function isContextProviderConfig(value: ContextProviderRegistration): value is W
  */
 export interface WorldOptions {
   logger?: WorldLogger
+  /**
+   * Suppress direct startup diagnostics from optional subsystems.
+   * Defaults to true; set `silent: false` or `debug: true` to inspect startup.
+   */
+  silent?: boolean
+  debug?: boolean
   // v4 Engine options (passed through)
   seed?: number
   worldBounds?: WorldBounds
@@ -590,6 +596,12 @@ export class World {
   private contextProviderHandles = new Map<string, ReturnType<typeof setInterval>>()
   private contextProviderLocks = new Map<string, boolean>()
 
+  private info(message: string): void {
+    if (this.options.debug || this.options.silent === false) {
+      console.info(message)
+    }
+  }
+
   constructor(options: WorldOptions = {}) {
     this.id = this.generateUUID()
     this.createdAt = Date.now()
@@ -715,7 +727,7 @@ export class World {
           const envKey = typeof process !== 'undefined' && process.env ? process.env.OPENROUTER_KEY : undefined
           if (envKey) {
             options.llm.apiKey = envKey
-            console.info('LLM: Using OPENROUTER_KEY from environment')
+            this.info('LLM: Using OPENROUTER_KEY from environment')
           }
         } catch (e) {
           // process.env not available (browser environment)
@@ -790,7 +802,7 @@ export class World {
    * Initialize linguistics systems (Phase 10 / v6.0)
    */
   private initializeLinguistics(options: WorldOptions): void {
-    console.info('v6.0: Initializing emergent linguistics system')
+    this.info('v6.0: Initializing emergent linguistics system')
 
     // Create transcript buffer
     const maxTranscript = options.linguistics?.maxTranscript ?? 1000
@@ -820,8 +832,8 @@ export class World {
     // v6.1: Create proto-language generator
     this.protoGenerator = new ProtoLanguageGenerator()
 
-    console.info(`v6.0: Linguistics initialized (buffer=${maxTranscript}, analyze every ${crystallizerConfig.analyzeEvery} ticks)`)
-    console.info(`v6.1: Proto-language generator created`)
+    this.info(`v6.0: Linguistics initialized (buffer=${maxTranscript}, analyze every ${crystallizerConfig.analyzeEvery} ticks)`)
+    this.info(`v6.1: Proto-language generator created`)
   }
 
   /**
@@ -1004,7 +1016,7 @@ export class World {
     if (embeddingModel && apiKey) {
       // Use external embeddings (only openrouter/openai support embeddings)
       const semanticProvider = (llmProvider === 'openrouter' || llmProvider === 'openai') ? llmProvider : 'openrouter'
-      console.info(`LLM: Using ${semanticProvider} embeddings (${embeddingModel}) for semantic similarity`)
+      this.info(`LLM: Using ${semanticProvider} embeddings (${embeddingModel}) for semantic similarity`)
       this.semanticSimilarity = new SemanticSimilarity({
         provider: semanticProvider,
         apiKey,
@@ -1012,7 +1024,7 @@ export class World {
       })
     } else {
       // Fallback to local similarity
-      console.info('LLM: Using local similarity methods (Jaccard/Levenshtein) for semantic clustering')
+      this.info('LLM: Using local similarity methods (Jaccard/Levenshtein) for semantic clustering')
       this.semanticSimilarity = new SemanticSimilarity({
         provider: 'mock'
       })
