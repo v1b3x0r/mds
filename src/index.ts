@@ -216,7 +216,11 @@ export {
   MockSimilarityProvider,
   OpenAISimilarityProvider,
   CohereSimilarityProvider,
+  EntitySimilarityAdapter,
   createSimilarityProvider,
+  findSimilarEntities,
+  createSimilarityMatrix,
+  clusterBySimilarity,
 } from '@mds/4-communication/semantics'
 
 export type {
