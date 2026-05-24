@@ -38,6 +38,23 @@ test('speak does not invent dialogue for missing MDM categories', () => {
   expect(entity.speak('curious', 'th')).toBeUndefined()
 })
 
+test('formatUtterance does not invent short dialogue when text is empty', () => {
+  const entity = new Entity(
+    {
+      material: 'entity.empty_utterance',
+      manifestation: { emoji: '💬' },
+      nativeLanguage: 'th'
+    },
+    0,
+    0,
+    () => 0.5,
+    { skipDOM: true }
+  )
+
+  expect(entity.formatUtterance('', { mode: 'short', lang: 'th' })).toBeUndefined()
+  expect(entity.formatUtterance(undefined, { mode: 'short', lang: 'th' })).toBeUndefined()
+})
+
 test('getDialoguePhrase samples across variants using frequency weights', () => {
   const parsed = parser.parseDialogue({
     self_monologue: [

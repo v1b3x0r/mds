@@ -54,6 +54,7 @@ A human-readable history of what changed and why it matters.
 
 - Removed `docs` directory from the npm `files` manifest to keep published bundles lean.
 - `entity.speak(category)` now returns `undefined` for missing authored dialogue categories instead of inventing built-in fallback lines.
+- `formatUtterance(..., { mode: "short" })` now also returns `undefined` for empty text instead of routing through built-in fallback dialogue.
 - Dialogue selection now samples across eligible variants and respects `frequency` weights (`rare` < `medium` < `common`).
 
 ⸻
