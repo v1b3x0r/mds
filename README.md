@@ -1,4 +1,4 @@
-# MDS — JSON That Bows Before Meaning
+# MDS — Meaning-Driven Simulation
 
 ![npm version](https://img.shields.io/npm/v/%40v1b3x0r%2Fmds-core?label=npm)
 ![license](https://img.shields.io/badge/license-MIT-green)
@@ -6,22 +6,34 @@
 ![CI](https://github.com/v1b3x0r/mds/workflows/CI/badge.svg)
 ![API Stability](https://github.com/v1b3x0r/mds/workflows/API%20Stability/badge.svg)
 
-> **Emoji Garden** — orz the tiny seed, Athena the patient lexicon, and a world that speaks “earth, water, wind, and fire” without a single imperative line.
+MDS is a deterministic semantic substrate for small living worlds: entities, memory, emotion, physics, language, and context in one TypeScript runtime.
+
+It keeps the original dream alive — JSON that bows before meaning — but the working model is practical now: feed context in, let authored `.mdm` materials interpret it, and read a stable world log out.
 
 ---
 
-## Episode 0 — What just happened?
+## What it is
 
-You whispered “the sun feels warm today.”  
-A seed named **orz** bowed in gratitude.  
-Athena listened, translated an emoji into Thai, and added it to her dictionary.  
-You didn’t write a single `if`.
+- **A world runtime** for entities that carry memory, needs, emotion, relations, and language.
+- **A semantic bus** via `world.broadcastContext()` for feeding HomeLog-like facts, sensor readings, or game events into the world.
+- **A material system** where behavior is declared in `.mdm` instead of scattered through imperative glue.
+- **A sandbox for emergent language**: proto words, dialogue categories, lexicon learning, and multilingual responses can evolve under test.
+- **A practical engine**: headless Node, browser ESM bundles, deterministic snapshots, and readable logs.
 
-Welcome to MDS, where you cultivate meaning instead of orchestrating logic.
+## What it is not
+
+- Not a chatbot runtime.
+- Not a cloud-only AI service.
+- Not a hidden automation engine that guesses missing semantic truth.
+- Not a replacement for DreamFlow/HomeLog. MDS is the shared world state those systems can feed and observe.
 
 ---
 
-## Episode 1 — Quick peek (console edition)
+## Quick start
+
+```bash
+npm install @v1b3x0r/mds-core
+```
 
 ```js
 import { World } from '@v1b3x0r/mds-core'
@@ -37,7 +49,6 @@ const world = new World({
   }
 })
 
-// Semantic Bus: hint the garden
 world.broadcastContext({
   'env.temp.c': 33.5,
   'env.humidity': 0.72,
@@ -45,174 +56,102 @@ world.broadcastContext({
   'env.noise.db': 38
 })
 
-// Do nothing else. Listen.
-console.log(world.logger.tailText(10).join('\n'))
+console.log(world.logger.tailText(10).join('\\n'))
 ```
 
-What you’ll see (translations pop out once your `.mdm` files exist):
+`broadcastContext()` is the bridge: HomeLog can say "humidity rose", DreamFlow can say "this tends to feel heavy", and MDS can let entities react through authored material.
 
+---
+
+## Core loop
+
+```mermaid
+flowchart LR
+  A[Physical or simulated events] --> B[Context broadcast]
+  B --> C[MDM triggers and where clauses]
+  C --> D[World state: emotion, memory, needs, relations]
+  D --> E[Speech, logs, effects, UI]
 ```
-[17:14:12.045] 🌱 orz (emoji): 🌱
-[17:14:12.046] 🧬 Athena (short): ดิน
-[17:14:18.019] 🌱 orz (proto): oru…
-[17:14:18.021] 🧬 Athena (short): พระอาทิตย์
-[17:14:18.050] translation.learn → th: พระอาทิตย์ ← 🌤
+
+The engine stays deterministic. If an LLM helps, it should author or validate material before runtime; the tick loop itself should not depend on an LLM call.
+
+---
+
+## Entity example
+
+MDS still has room for the weird little soul of the project:
+
+- **orz** can be a seed that reacts to climate, speaks emoji/proto first, and slowly grows a lexicon.
+- **Athena** can be a patient dictionary entity that listens, learns translations, and writes memory.
+- A HomeLog room can be a space where a lamp, fridge, gate, and bedroom door all perceive the same context differently.
+
+That is the point: the same context frame can become different meanings depending on the entity that receives it.
+
+---
+
+## Feature map
+
+| Area | What it gives you |
+|------|-------------------|
+| Entities | identity, position, memory, needs, emotion, relations |
+| Semantic Bus | `broadcastContext()` for sensor/game/narrative facts |
+| Materials | `.mdm` declarations for triggers, speech, memory, and effects |
+| Dialogue | authored categories, weighted variants, no invented fallback truth |
+| Proto-language | generated utterances from the active vocabulary pool |
+| Physics | collision, energy transfer, fields, resonance hooks |
+| World Mind | grief, vitality, tension, harmony, climate influence |
+| Logger | readable stream for UI, debugging, dashboards, and tests |
+| Performance | spatial grid optimization for larger worlds |
+
+---
+
+## HomeLog / DreamFlow fit
+
+MDS is best treated as the semantic substrate:
+
+```text
+Physical world -> HomeLog facts -> DreamFlow causality -> MDS world state -> companions/UI
 ```
 
----
-
-## Episode 2 — Cast of Emoji Garden
-
-| Entity | Personality | What you declare | Emergent behavior |
-|--------|-------------|------------------|-------------------|
-| **orz (the seed)** | bows before every context, speaks emoji/proto first | `behavior.triggers`, `where`, `say`, tiny memory counters | emoji → proto → short Thai words driven by climate |
-| **Athena (the lexicon)** | patient, multilingual, keeps a diary | `translation.learn`, `memory.write`, `say` templates, relation updates | emoji → Thai translations, gently stabilises the climate |
-| **World** | curious observer, likes neat logs | nothing extra | tracks emotional climate, emits readable log entries |
-
-Starter vocabulary (emoji → Thai → English gloss):
-
-| Emoji | Thai | Meaning |
-|-------|------|---------|
-| 🌱 | ดิน (din) | earth / soil |
-| 💧 | น้ำ (nam) | water |
-| 🌬️ | ลม (lom) | wind |
-| 🔥 | ไฟ (fai) | fire |
-| 🌤 | พระอาทิตย์ (pra-a-thit) | sun |
-| 🌙 | พระจันทร์ (pra-chan) | moon |
-| ⛰️ | ภูเขา (phu-khao) | mountain |
-| ☁️ | ท้องฟ้า (thong-fah) | sky |
-
-Legend says: if harmony stays above 0.6 and the night is quiet (`env.noise.db` is low), orz bows and quietly whispers “orz.” Try nudging the breeze.
+HomeLog should capture reality. DreamFlow should express causal behavior. MDS should hold the shared semantic state that observers and companions can live inside.
 
 ---
 
-## Episode 3 — Semantic Bus (broadcastContext)
+## Startup diagnostics
 
-**TL;DR**
-- Push meaning in: `world.broadcastContext({ 'env.temp.c': 33.5, 'env.humidity': 0.7, … })`.
-- Triggers and `where` clauses interpret those values.
-- Declarative actions (`say`, `mod.emotion`, `relation.update`, `memory.write`) fire automatically.
+`World` is quiet by default. To inspect optional subsystem startup:
 
-**Example meanings**
+```js
+const world = new World({
+  silent: false,
+  features: { communication: true, linguistics: true, rendering: 'headless' }
+})
+```
 
-| Key | Think of it as | Used for |
-|-----|----------------|----------|
-| `env.temp.c` | warm sun, cozy campfire | raise arousal / invite fire vocabulary |
-| `env.humidity` | mist, rain, damp soil | shift valence / spawn water echoes |
-| `env.light.lux` | daylight vs dusk | choose emoji vs proto vs short modes |
-| `env.noise.db` | bustling vs silent | trigger hush rituals (hello, “orz”) |
-
-**Control without control**
-- Quiet night? orz sings proto lullabies.
-- Noisy afternoon? Athena answers with Thai tongue-twisters.
-- You nudge the world, it interprets. No wiring required.
+Use `world.logger` for structured runtime events; direct console startup messages are opt-in.
 
 ---
 
-## Episode 4 — Layer 7 · 8 (v5.9.2)
+## Performance
 
-1. **World Logger stream** — `subscribe()` or `tailText()` for clean human logs (mode, text, climate, translation notes). Perfect for dashboards, LED signs, or reading to your cat.
-2. **Athena hooks** — `translation.learn` + `memory.write` + `say` = emoji → Thai loops without imperative glue.
-3. **Auto speech mode + locale overlays** — emoji ↔ proto ↔ short is chosen automatically via utterance policy.
-4. **Pure ESM** — `<script type="module">` works out of the box. No Node globals required.
+v5.10.0 introduced spatial grid proximity queries:
 
-Bundle sizes (fresh build artefacts):
+| Scenario | Before | After |
+|----------|--------|-------|
+| 100 entities | 1.37ms | 0.20ms |
+| 500 entities | ~11ms | ~0.35ms |
 
-| File | Size | Gzipped |
-|------|------|---------|
-| `mds-core.esm.js` | 443.7 KB | 106.7 KB |
-| `mds-core-lite.esm.js` | 350.1 KB | 85.3 KB |
-| `mds-validator.esm.js` | 25.9 KB | 4.4 KB |
+This moves interaction checks from broad O(N²) scans toward cell-based O(N*k) behavior for larger worlds.
 
 ---
 
-## Episode 5 — Feature atlas (same heart, new playground)
+## Docs
 
-- **Needs & Resource Fields** — resource pressure (water/food/energy) with decay and competition.
-- **Memory** — salience, recall windows, consolidation hooks.
-- **Emotion** — PAD model, declarative transitions, climate influence.
-- **Communication** — message queues, mention triggers, `say` policies (emoji / proto / short).
-- **World Mind** — grief, vitality, tension, harmony, plus human-readable summaries.
-- **Learning & Skills** — reward loops, intent stacks, skill progression.
-- **Physics** — collision, energy transfer, field resonance (toggle as you like).
-- **Save/Load** — deterministic snapshots, world exports.
-- **Semantic Bus** — `broadcastContext()` is the meaning channel.
-- **Performance** — spatial grid optimization: 6-31x faster for 100-500 entities (O(N²) → O(N*k)).
+- [Reference](./docs/REFERENCE.md) — API and MDM details
+- [Cookbook](./docs/COOKBOOK.md) — practical examples
+- [Semantic-first MDM](./docs/MDM-SEMANTIC-FIRST.md) — material authoring doctrine
+- [Core layers](./docs/CORE-LAYERS.md) — architecture map
+- [Philosophy](./docs/PHILOSOPHY.md) — why this exists
+- [Changelog](./docs/CHANGELOG.md)
 
-Everything remains meaning-first; `.mdm` declarations orchestrate the responses.
-
----
-
-## Episode 6 — How to cultivate your own Emoji Garden
-
-1. **Describe orz & Athena in `.mdm`**
-   - orz: emoji cycles (`time.every`), occasional proto lines, optional `context.set` for journaling.
-   - Athena: listens via `mention(others)`, calls `translation.learn`, replies with short Thai, writes to memory.
-2. **Spawn them**
-   ```js
-   world.spawn(orZMaterial,    { x: 0,   y: 0 })
-   world.spawn(athenaMaterial, { x: 160, y: 0 })
-   ```
-3. **Hint the world**
-   ```js
-   world.broadcastContext({
-     'env.temp.c': 34,
-     'env.humidity': 0.65,
-     'env.noise.db': 42
-   })
-   ```
-4. **Observe the stream**
-   - `world.logger.tailText(20).join('\n')` for quick peeks.
-   - `world.logger.subscribe(entry => render(entry))` for dashboards.
-5. **Optional climate nudges**
-   Use `CollectiveIntelligence.updateEmotionalClimate` if you want manual control, but defaults already decay and influence nicely.
-
-> Cheat sheet: when harmony > 0.6 *and* noise < 40, orz is likely to whisper “orz”. Try it.
-
----
-
-## Episode 7 — FAQ (a little cheeky)
-
-**Q. Do I need actual sensors?**  
-A. Nope. Broadcast imaginary weather if you want. But real humidity sensors make the garden giggle.
-
-**Q. Does it run on Raspberry Pi?**  
-A. Yes. Node ≥ 18, pure ESM. Seeds love small boards.
-
-**Q. Can I reuse the desert survival demo?**  
-A. Absolutely. It’s still there (`demos/desert-survival.mjs`). You just discovered a new biome.
-
-**Q. Isn’t this just data + state machines?**  
-A. Only if you call your friends “finite automata.” We call them “meaning interpreters.”
-
----
-
-## Episode 8 — Creator’s corner
-
-- **Kids / classrooms**: Let them shout “hot!” and broadcast `env.temp.c`. orz responds with 🔥; Athena translates politely.
-- **Artists**: Pipe `world.logger` into lights. When orz says “พระจันทร์,” turn the room blue.
-- **Researchers**: Deterministic snapshots + semantic logs = clean experiments.
-- **Engineers**: Keep the logger stream; plug it into Kafka if you need to impress your PM.
-
----
-
-## Episode 9 — Philosophy (same soul)
-
-> **Cultivation, not control.** Essence-first design, meaning-first execution. orz bows, Athena replies, you sip your cocoa.
-
-- JSON can be tiny and still birth ecosystems.
-- The world still remembers grief; now it remembers gratitude too.
-- “Don’t fight the world. Whisper to it.” — Someone in orz corp, probably.
-
----
-
-## Episode 10 — Documentation & breadcrumbs
-
-- 📚 [Reference](./docs/REFERENCE.md) — API & MDM spec
-- 📝 [Changelog](./docs/CHANGELOG.md)
-- 🧠 [Philosophy](./docs/wtf-is-this-really.md)
-- 🍳 [Cookbook](./docs/guides/COOKBOOK.md)
-- 🌵 [Legacy Desert Demo](./demos/desert-survival.mjs)
-
-Made in Chiang Mai, Thailand 🇹🇭 · MIT License  
-If you hear “orz” in the breeze, the garden is thanking you.
+Made in Chiang Mai, Thailand. MIT License.

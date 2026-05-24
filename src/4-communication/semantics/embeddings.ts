@@ -399,3 +399,154 @@ export function createSimilarityProvider(
       throw new Error(`Unknown provider: ${provider}`)
   }
 }
+
+
+export interface EntitySimilarityTarget {
+  id?: string
+  essence?: string | Record<string, string>
+  material?: string
+  m?: {
+    essence?: string | Record<string, string>
+    material?: string
+  }
+}
+
+export interface EntitySimilarityResult<T extends EntitySimilarityTarget = EntitySimilarityTarget> {
+  entity: T
+  similarity: number
+}
+
+function essenceToText(essence: string | Record<string, string> | undefined): string | undefined {
+  if (typeof essence === 'string') return essence
+  if (essence && typeof essence === 'object') {
+    return Object.values(essence).filter(value => typeof value === 'string').join(' ')
+  }
+  return undefined
+}
+
+function entityToSimilarityText(entity: EntitySimilarityTarget): string {
+  return essenceToText(entity.essence)
+    ?? essenceToText(entity.m?.essence)
+    ?? entity.material
+    ?? entity.m?.material
+    ?? entity.id
+    ?? ''
+}
+
+export class EntitySimilarityAdapter {
+  constructor(private provider: SimilarityProvider) {}
+
+  getProviderName(): string {
+    return this.provider.name
+  }
+
+  similarity(a: EntitySimilarityTarget, b: EntitySimilarityTarget): Promise<number> {
+    return this.provider.similarity(entityToSimilarityText(a), entityToSimilarityText(b))
+  }
+
+  async findSimilar<T extends EntitySimilarityTarget>(
+    target: T,
+    candidates: T[],
+    threshold = 0.5
+  ): Promise<EntitySimilarityResult<T>[]> {
+    const results: EntitySimilarityResult<T>[] = []
+
+    for (const candidate of candidates) {
+      if (target.id && candidate.id === target.id) continue
+
+      const similarity = await this.similarity(target, candidate)
+      if (similarity >= threshold) {
+        results.push({ entity: candidate, similarity })
+      }
+    }
+
+    return results.sort((a, b) => b.similarity - a.similarity)
+  }
+
+  async findTopN<T extends EntitySimilarityTarget>(
+    target: T,
+    candidates: T[],
+    limit: number
+  ): Promise<EntitySimilarityResult<T>[]> {
+    const results: EntitySimilarityResult<T>[] = []
+
+    for (const candidate of candidates) {
+      if (target.id && candidate.id === target.id) continue
+      results.push({ entity: candidate, similarity: await this.similarity(target, candidate) })
+    }
+
+    return results
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, Math.max(0, limit))
+  }
+
+  similarityMatrix(entities: EntitySimilarityTarget[]): Promise<number[][]> {
+    return createSimilarityMatrix(this.provider, entities)
+  }
+
+  cluster<T extends EntitySimilarityTarget>(entities: T[], threshold = 0.5): Promise<T[][]> {
+    return clusterBySimilarity(this.provider, entities, threshold)
+  }
+}
+
+export function findSimilarEntities<T extends EntitySimilarityTarget>(
+  provider: SimilarityProvider,
+  target: T,
+  candidates: T[],
+  threshold = 0.5
+): Promise<EntitySimilarityResult<T>[]> {
+  return new EntitySimilarityAdapter(provider).findSimilar(target, candidates, threshold)
+}
+
+export async function createSimilarityMatrix(
+  provider: SimilarityProvider,
+  entities: EntitySimilarityTarget[]
+): Promise<number[][]> {
+  const texts = entities.map(entityToSimilarityText)
+  if (provider.similarityMatrix) {
+    return provider.similarityMatrix(texts)
+  }
+
+  const n = texts.length
+  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0))
+
+  for (let i = 0; i < n; i++) {
+    matrix[i][i] = 1
+    for (let j = i + 1; j < n; j++) {
+      const similarity = await provider.similarity(texts[i], texts[j])
+      matrix[i][j] = similarity
+      matrix[j][i] = similarity
+    }
+  }
+
+  return matrix
+}
+
+export async function clusterBySimilarity<T extends EntitySimilarityTarget>(
+  provider: SimilarityProvider,
+  entities: T[],
+  threshold = 0.5
+): Promise<T[][]> {
+  const clusters: T[][] = []
+  const assigned = new Set<number>()
+
+  for (let i = 0; i < entities.length; i++) {
+    if (assigned.has(i)) continue
+
+    const cluster = [entities[i]]
+    assigned.add(i)
+
+    for (let j = i + 1; j < entities.length; j++) {
+      if (assigned.has(j)) continue
+      const similarity = await provider.similarity(entityToSimilarityText(entities[i]), entityToSimilarityText(entities[j]))
+      if (similarity >= threshold) {
+        cluster.push(entities[j])
+        assigned.add(j)
+      }
+    }
+
+    clusters.push(cluster)
+  }
+
+  return clusters
+}

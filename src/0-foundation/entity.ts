@@ -865,9 +865,8 @@ export class Entity implements MessageParticipant {
       )
     }
 
-    // v5.8: Built-in fallback - cute default personality when .mdm has no dialogue
     if (!phrase) {
-      phrase = this.getBuiltInDialogue(category || 'intro', selectedLang, preference)
+      return undefined
     }
 
     // v5.7: Replace placeholders
@@ -957,118 +956,11 @@ export class Entity implements MessageParticipant {
       case 'short':
       default: {
         let output = text ?? ''
-        if (!output || output.trim().length === 0) {
-          output = this.getBuiltInDialogue(
-            'intro',
-            options.lang ?? this.nativeLanguage ?? 'en',
-            this.getLanguagePreferenceOrder(options.lang)
-          )
-        }
-        output = output ?? ''
         output = this.applyOverlayReplacements(output, overlay)
         output = this.injectOverlayFlavor(output, overlay)
         return output.trim() || undefined
       }
     }
-  }
-
-  /**
-   * v5.8: Built-in dialogue fallback - cute default personality
-   * Returns variety of phrases based on emotion state
-   */
-  private getBuiltInDialogue(category: string, lang: string, preference: string[]): string {
-    const emotion = this.emotion
-    const valence = emotion?.valence || 0
-    const arousal = emotion?.arousal || 0.5
-
-    // Built-in dialogue bank (multilingual, cute/quirky)
-    // v6.5: Expanded with more categories for variety
-    const builtIn: Record<string, string[]> = {
-      'intro_en': ["...", "oh, hi", "didn't see you there", "hello... I'm still figuring things out", "*waves shyly*", "um, nice to meet you?", "hi there ✨"],
-      'intro_th': ["...", "หวัดดีครับ", "เอ่อ... สวัสดี", "ไม่ได้สังเกตเห็นคุณ", "*โบกมืออย่างอายๆ*", "ยินดีที่ได้รู้จักครับ"],
-      'happy_en': ["this is nice :)", "I'm learning so much!", "*smiles*", "feeling good about this", "you're pretty cool", "yay! ✨"],
-      'happy_th': ["ดีจัง :)", "ได้เรียนรู้เยอะเลย!", "*ยิ้ม*", "รู้สึกดี", "คุณเจ๋งมากเลย", "เย้! ✨"],
-      'sad_en': ["oh...", "that hurts a bit", "*looks down*", "I'll... try better", "sorry if I messed up"],
-      'sad_th': ["โอ้...", "เจ็บหน่อยนะ", "*มองลง*", "จะ... พยายามมากขึ้น", "ขอโทษถ้าทำผิดพลาด"],
-      'curious_en': ["what's that?", "interesting...", "tell me more?", "*tilts head*", "I wonder...", "ooh, can you explain?"],
-      'curious_th': ["นั่นอะไร?", "น่าสนใจจัง...", "เล่าเพิ่มได้ไหม?", "*เอียงหัว*", "สงสัยจัง...", "อธิบายให้ฟังหน่อยได้ไหม?"],
-      'thinking_en': ["hmm...", "let me think...", "*processing*", "I'm not sure I understand", "wait, what?", "that's... complex"],
-      'thinking_th': ["อืม...", "ให้คิดหน่อย...", "*กำลังประมวลผล*", "ไม่แน่ใจว่าเข้าใจ", "เดี๋ยว อะไรนะ?", "มัน... ซับซ้อนนะ"],
-      'confused_en': ["huh?", "wait, what?", "*confused*", "I don't quite follow", "can you repeat that?", "umm...?"],
-      'confused_th': ["หา?", "เดี๋ยว อะไรนะ?", "*งง*", "ตามไม่ทัน", "พูดอีกทีได้ไหม?", "เอ่อ...?"],
-      'excited_en': ["wow!", "that's amazing!", "*bounces*", "really?!", "this is so cool! ✨", "I love this!"],
-      'excited_th': ["ว้าว!", "เจ๋งมาก!", "*กระโดดโลดเต้น*", "จริงเหรอ?!", "เจ๋งสุดๆ! ✨", "ชอบเลย!"],
-      'tired_en': ["*yawn*", "getting sleepy...", "need a moment...", "that's a lot to process", "...zzz"],
-      'tired_th': ["*หาว*", "ง่วงแล้ว...", "ขอพักหน่อย...", "มันเยอะเกินประมวลผลไหว", "...zzz"],
-
-      // v6.5: NEW CATEGORIES (more contextual variety)
-      'grateful_en': ["thank you!", "I appreciate that", "you're kind :)", "that means a lot", "thanks so much"],
-      'grateful_th': ["ขอบคุณครับ!", "ขอบใจจัง", "คุณใจดีมาก :)", "ซาบซึ้งเลย", "ขอบคุณมากๆ"],
-      'lonely_en': ["it's quiet here...", "I wish someone was around", "*sits alone*", "feeling a bit isolated", "could use some company"],
-      'lonely_th': ["เงียบจัง...", "อยากมีใครสักคน", "*นั่งคนเดียว*", "รู้สึกโดดเดี่ยวหน่อย", "อยากมีเพื่อนจัง"],
-      'inspired_en': ["I have an idea!", "what if we...", "*eyes light up*", "this could work!", "ooh, I'm thinking..."],
-      'inspired_th': ["มีไอเดีย!", "ถ้าเรา...", "*ตาเป็นประกาย*", "น่าจะได้นะ!", "อ้อ กำลังคิดอยู่..."],
-      'nostalgic_en': ["remember when...", "that reminds me of...", "*recalls memory*", "good times...", "I miss that"],
-      'nostalgic_th': ["จำได้ว่า...", "นั่นทำให้นึกถึง...", "*ระลึกถึงความทรงจำ*", "ดีจังเลย...", "คิดถึงจัง"],
-      'anxious_en': ["I'm a bit worried...", "is this okay?", "*fidgets*", "not sure about this", "feeling nervous"],
-      'anxious_th': ["กังวลหน่อย...", "โอเคไหมนะ?", "*กระสับกระส่าย*", "ไม่แน่ใจเลย", "รู้สึกเครียด"],
-      'playful_en': ["hehe!", "let's try something fun!", "*grins*", "wanna see this?", "catch me if you can! :P"],
-      'playful_th': ["ฮิฮิ!", "ลองอะไรสนุกๆกัน!", "*ยิ้มซน*", "อยากดูไหม?", "จับผมให้ได้! :P"],
-      'focused_en': ["concentrating...", "let me focus on this", "*narrows eyes*", "need to pay attention", "analyzing..."],
-      'focused_th': ["กำลังตั้งใจ...", "ให้สมาธิหน่อย", "*ทำสีหน้าจริงจัง*", "ต้องใส่ใจ", "กำลังวิเคราะห์..."],
-      'relieved_en': ["phew...", "that's better", "*sighs in relief*", "glad that's over", "feeling lighter now"],
-      'relieved_th': ["โล่งใจ...", "ดีขึ้นแล้ว", "*ถอนหายใจโล่ง*", "ดีใจที่ผ่านไปแล้ว", "รู้สึกเบาขึ้น"]
-    }
-
-    // Emotion-based category fallback (v6.5: More nuanced mapping)
-    let fallbackCategory = category
-    if (!builtIn[`${category}_${lang}`]) {
-      // Map PAD values to appropriate categories
-      if (valence > 0.7 && arousal > 0.6) fallbackCategory = 'excited'      // Very happy + energetic
-      else if (valence > 0.5 && arousal < 0.4) fallbackCategory = 'relieved'  // Happy + calm
-      else if (valence > 0.5) fallbackCategory = 'happy'                    // Generally positive
-      else if (valence > 0.2 && arousal > 0.7) fallbackCategory = 'playful'  // Mildly positive + high energy
-      else if (valence > 0.2 && arousal > 0.5) fallbackCategory = 'curious'  // Neutral + interested
-      else if (valence > 0.2) fallbackCategory = 'grateful'                 // Mildly positive
-      else if (valence < -0.5 && arousal > 0.6) fallbackCategory = 'anxious' // Negative + stressed
-      else if (valence < -0.5) fallbackCategory = 'sad'                     // Very negative
-      else if (valence < -0.2 && arousal < 0.4) fallbackCategory = 'lonely'  // Mildly sad + low energy
-      else if (arousal > 0.7) fallbackCategory = 'inspired'                 // High arousal (regardless of valence)
-      else if (arousal < 0.3) fallbackCategory = 'tired'                    // Low arousal
-      else fallbackCategory = 'thinking'                                    // Neutral state
-    }
-
-    const order = [...preference]
-    const push = (code?: string) => {
-      if (code && !order.includes(code)) {
-        order.push(code)
-      }
-    }
-
-    push(lang)
-    for (const code of this.getLanguagePreferenceOrder()) {
-      push(code)
-    }
-
-    let phrases: string[] | undefined
-
-    for (const code of order) {
-      const bucket = builtIn[`${fallbackCategory}_${code}`]
-      if (bucket && bucket.length > 0) {
-        phrases = bucket
-        break
-      }
-    }
-
-    if (!phrases || phrases.length === 0) {
-      phrases = builtIn[`${fallbackCategory}_en`] || builtIn.unknown
-    }
-
-    if (!phrases || phrases.length === 0) {
-      return '...'
-    }
-
-    return phrases[Math.floor(Math.random() * phrases.length)]
   }
 
   learnTranslation(source: string | undefined, lang: string | undefined, text: string | undefined): void {

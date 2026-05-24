@@ -64,7 +64,7 @@ export class ProtoLanguageGenerator {
       if (pool.length === 0) break
 
       // Pick word (biased towards emotion-appropriate words)
-      const idx = Math.floor(Math.random() * Math.min(pool.length, 10))
+      const idx = Math.floor(Math.random() * pool.length)
       let word = pool[idx]
 
       // Apply creativity mutations
@@ -119,13 +119,13 @@ export class ProtoLanguageGenerator {
     // High valence → prefer positive
     if (valence > 0.5) {
       const positive = pool.filter(w => positiveWords.some(p => w.includes(p)))
-      if (positive.length > 3) return [...positive, ...pool].slice(0, 20)
+      if (positive.length > 3) return [...positive, ...pool.filter(w => !positive.includes(w))]
     }
 
     // Low valence → prefer negative
     if (valence < -0.3) {
       const negative = pool.filter(w => negativeWords.some(n => w.includes(n)))
-      if (negative.length > 3) return [...negative, ...pool].slice(0, 20)
+      if (negative.length > 3) return [...negative, ...pool.filter(w => !negative.includes(w))]
     }
 
     // Neutral → mix everything
@@ -208,7 +208,7 @@ export class ProtoLanguageGenerator {
       if (thinkingWords.length > 0) {
         return this.generate({
           ...config,
-          vocabularyPool: [...thinkingWords, ...config.vocabularyPool.slice(0, 10)],
+          vocabularyPool: [...thinkingWords, ...config.vocabularyPool.filter(word => !thinkingWords.includes(word))],
           minWords: 1,
           maxWords: 3
         })

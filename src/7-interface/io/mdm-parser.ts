@@ -873,17 +873,15 @@ export function getDialoguePhrase(
 
   const pool = eligible.length > 0 ? eligible : variants
 
-  const selectLangPhrases = (langCode: string): string[] | undefined => {
-    for (const variant of pool) {
-      const phrases = variant.lang[langCode]
-      if (phrases && phrases.length > 0) {
-        return phrases
-      }
-    }
-    return undefined
-  }
+  const selectVariantForLang = (langCode: string): { variant: ParsedDialogueVariant; phrases: string[] } | undefined => {
+    const candidates = pool
+      .map(variant => ({ variant, phrases: variant.lang[langCode] }))
+      .filter((candidate): candidate is { variant: ParsedDialogueVariant; phrases: string[] } =>
+        !!candidate.phrases && candidate.phrases.length > 0
+      )
 
-  let phrases: string[] | undefined
+    return selectDialogueVariant(candidates)
+  }
 
   if (languageWeights) {
     const availableLangs = new Map<string, string[]>()
@@ -901,23 +899,62 @@ export function getDialoguePhrase(
   }
 
   for (const code of fallbackOrder) {
-    phrases = selectLangPhrases(code)
-    if (phrases) break
-  }
-
-  if (!phrases) {
-    for (const variant of pool) {
-      const entry = Object.values(variant.lang).find(texts => texts.length > 0)
-      if (entry) {
-        phrases = entry
-        break
-      }
+    const selected = selectVariantForLang(code)
+    if (selected) {
+      return selected.phrases[Math.floor(Math.random() * selected.phrases.length)]
     }
   }
 
-  if (!phrases || phrases.length === 0) return undefined
+  const fallbackCandidates: Array<{ variant: ParsedDialogueVariant; phrases: string[] }> = []
+  for (const variant of pool) {
+    const entry = Object.values(variant.lang).find(texts => texts.length > 0)
+    if (entry) {
+      fallbackCandidates.push({ variant, phrases: entry })
+    }
+  }
 
-  return phrases[Math.floor(Math.random() * phrases.length)]
+  const selected = selectDialogueVariant(fallbackCandidates)
+  if (!selected) return undefined
+
+  return selected.phrases[Math.floor(Math.random() * selected.phrases.length)]
+}
+
+function selectDialogueVariant(
+  candidates: Array<{ variant: ParsedDialogueVariant; phrases: string[] }>
+): { variant: ParsedDialogueVariant; phrases: string[] } | undefined {
+  if (candidates.length === 0) return undefined
+
+  const total = candidates.reduce((sum, candidate) => {
+    return sum + getDialogueFrequencyWeight(candidate.variant.raw?.frequency)
+  }, 0)
+
+  if (total <= 0) {
+    return candidates[0]
+  }
+
+  let threshold = Math.random() * total
+  for (const candidate of candidates) {
+    threshold -= getDialogueFrequencyWeight(candidate.variant.raw?.frequency)
+    if (threshold <= 0) {
+      return candidate
+    }
+  }
+
+  return candidates[candidates.length - 1]
+}
+
+function getDialogueFrequencyWeight(frequency?: MdsDialoguePhrase['frequency']): number {
+  switch (frequency) {
+    case 'rare':
+      return 1
+    case 'common':
+      return 6
+    case 'medium':
+    case undefined:
+      return 3
+    default:
+      return 3
+  }
 }
 
 /**

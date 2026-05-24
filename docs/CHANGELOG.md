@@ -52,7 +52,14 @@ A human-readable history of what changed and why it matters.
 
 🛠 Fixes
 
+- `World` constructor startup diagnostics are silent by default; set `silent: false` or `debug: true` to opt into direct console info logs.
+- `ProtoLanguageGenerator` now samples from the full active vocabulary pool instead of biasing selection to the first ten entries.
+- Emotion-biased proto-language ordering now preserves tail vocabulary instead of truncating the pool.
+- README and npm README now frame MDS as a practical semantic substrate while keeping the orz/Athena soul as examples.
 - Removed `docs` directory from the npm `files` manifest to keep published bundles lean.
+- `entity.speak(category)` now returns `undefined` for missing authored dialogue categories instead of inventing built-in fallback lines.
+- `formatUtterance(..., { mode: "short" })` now also returns `undefined` for empty text instead of routing through built-in fallback dialogue.
+- Dialogue selection now samples across eligible variants and respects `frequency` weights (`rare` < `medium` < `common`).
 
 ⸻
 
