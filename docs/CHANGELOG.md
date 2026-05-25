@@ -4,6 +4,27 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.11.0] — Semantic Truth and Runtime Hygiene  
+📅 2026-05-25
+
+⸻
+
+🛠 Fixes
+
+- `World` constructor startup diagnostics are silent by default; set `silent: false` or `debug: true` to opt into direct console info logs.
+- `ProtoLanguageGenerator` now samples from the full active vocabulary pool instead of biasing selection to the first ten entries.
+- Emotion-biased proto-language ordering now preserves tail vocabulary instead of truncating the pool.
+- README and npm README now frame MDS as a practical semantic substrate while keeping the orz/Athena soul as examples.
+- Restored `test:api` with a checked-in API stability test and `check-api-stability.sh` wrapper.
+- Restored the promised `EntitySimilarityAdapter` public API and similarity helper exports.
+- Relaxed brittle linguistics assertions so valid additional crystallized phrases do not fail the suite.
+- Removed `docs` directory from the npm `files` manifest to keep published bundles lean.
+- `entity.speak(category)` now returns `undefined` for missing authored dialogue categories instead of inventing built-in fallback lines.
+- `formatUtterance(..., { mode: "short" })` now also returns `undefined` for empty text instead of routing through built-in fallback dialogue.
+- Dialogue selection now samples across eligible variants and respects `frequency` weights (`rare` < `medium` < `common`).
+
+⸻
+
 [5.10.0] — Spatial Grid Performance Optimization  
 📅 2025-11-13
 
@@ -42,24 +63,6 @@ A human-readable history of what changed and why it matters.
 - **Full**: 450.4 KB (+6.7KB, +1.5%)  
 - **Lite**: 356.1 KB (+3.3KB, +0.9%)  
 - Justified by significant performance gains
-
-⸻
-
-[Unreleased] — Packaging Hygiene  
-📅 2025-11-04
-
-⸻
-
-🛠 Fixes
-
-- `World` constructor startup diagnostics are silent by default; set `silent: false` or `debug: true` to opt into direct console info logs.
-- `ProtoLanguageGenerator` now samples from the full active vocabulary pool instead of biasing selection to the first ten entries.
-- Emotion-biased proto-language ordering now preserves tail vocabulary instead of truncating the pool.
-- README and npm README now frame MDS as a practical semantic substrate while keeping the orz/Athena soul as examples.
-- Removed `docs` directory from the npm `files` manifest to keep published bundles lean.
-- `entity.speak(category)` now returns `undefined` for missing authored dialogue categories instead of inventing built-in fallback lines.
-- `formatUtterance(..., { mode: "short" })` now also returns `undefined` for empty text instead of routing through built-in fallback dialogue.
-- Dialogue selection now samples across eligible variants and respects `frequency` weights (`rare` < `medium` < `common`).
 
 ⸻
 
