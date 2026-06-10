@@ -227,6 +227,32 @@ describe('mixed declarations of the SAME skill (codex round-2 regression)', () =
     expect(entity.skills!.getSkill('load_tolerance')!.proficiency).toBeCloseTo(0.04, 5)
   })
 
+  test('duration-suffix condition (user.silence>60s) practices like generic triggers do (codex round-5)', () => {
+    // The generic trigger grammar documents time units (60s, 1000ms) —
+    // the skill-condition path must parse them identically (s = seconds, ms → /1000).
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn({
+      material: 'entity.silence-sense-test',
+      essence: 'Creature that grows comfortable in long silences',
+      skills: {
+        learnable: [
+          { name: 'stillness', trigger: 'user.silence>60s', growth: 0.05 },
+          { name: 'reflexes', trigger: 'reaction.window<500ms', growth: 0.02 }
+        ]
+      }
+    }, { x: 0, y: 0 })
+
+    world.broadcastContext({ 'user.silence': 30 })
+    expect(entity.skills!.getSkill('stillness')!.proficiency).toBe(0)
+
+    world.broadcastContext({ 'user.silence': 90 })
+    expect(entity.skills!.getSkill('stillness')!.proficiency).toBeCloseTo(0.05, 5)
+
+    // ms suffix: 500ms = 0.5s
+    world.broadcastContext({ 'reaction.window': 0.3 })
+    expect(entity.skills!.getSkill('reflexes')!.proficiency).toBeCloseTo(0.02, 5)
+  })
+
   test('two different skills sharing one condition both practice on the edge', () => {
     const world = new World({ features: { ontology: true, history: true } })
     const entity = world.spawn({

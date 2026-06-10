@@ -1139,6 +1139,14 @@ function resolveTokenValue(token: string, context: Record<string, any>): any {
     return Number(trimmed)
   }
 
+  // Duration suffixes, mirroring the generic-trigger grammar (mdm-parser
+  // GENERIC DOT-NOTATION TRIGGERS): '60s' → 60 (seconds), '500ms' → 0.5.
+  const duration = trimmed.match(/^(-?\d+(?:\.\d+)?)(s|ms)$/)
+  if (duration) {
+    const value = Number(duration[1])
+    return duration[2] === 'ms' ? value / 1000 : value
+  }
+
   if (trimmed === 'true') return true
   if (trimmed === 'false') return false
   if (trimmed === 'null') return null
