@@ -156,6 +156,52 @@ describe('mixed declarations of the SAME skill (codex round-2 regression)', () =
     expect(entity.skills!.getSkill('adapt')!.proficiency).toBeCloseTo(0.1, 5)
   })
 
+  test('bare context-flag trigger practices on context edge (codex round-3)', () => {
+    // trigger with no comparison operator, driven by broadcastContext truthiness
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn({
+      material: 'entity.charger-sense-test',
+      essence: 'Creature that senses charging',
+      skills: {
+        learnable: [
+          { name: 'charging_sense', trigger: 'battery.charging', growth: 0.05 }
+        ]
+      }
+    }, { x: 0, y: 0 })
+
+    world.broadcastContext({ 'battery.charging': 1 })
+    expect(entity.skills!.getSkill('charging_sense')!.proficiency).toBeCloseTo(0.05, 5)
+
+    // stays truthy → no re-practice (edge, not level)
+    world.broadcastContext({ 'battery.charging': 1 })
+    expect(entity.skills!.getSkill('charging_sense')!.proficiency).toBeCloseTo(0.05, 5)
+
+    // off → on re-arms: 0.05 + 0.95*0.05 = 0.0975
+    world.broadcastContext({ 'battery.charging': 0 })
+    world.broadcastContext({ 'battery.charging': 1 })
+    expect(entity.skills!.getSkill('charging_sense')!.proficiency).toBeCloseTo(0.0975, 5)
+  })
+
+  test('bare trigger still works as a plain event name, exactly once, no context leak', () => {
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn({
+      material: 'entity.chat-sense-test',
+      essence: 'Creature that practices on chat events',
+      skills: {
+        learnable: [
+          { name: 'mimic_voice', trigger: 'player.chat', growth: 0.05 }
+        ]
+      }
+    }, { x: 0, y: 0 })
+
+    world.broadcastEvent('player.chat')
+    expect(entity.skills!.getSkill('mimic_voice')!.proficiency).toBeCloseTo(0.05, 5)
+
+    // the transient event flag must NOT leak into the context edge path
+    world.broadcastContext({ unrelated: true })
+    expect(entity.skills!.getSkill('mimic_voice')!.proficiency).toBeCloseTo(0.05, 5)
+  })
+
   test('two different skills sharing one condition both practice on the edge', () => {
     const world = new World({ features: { ontology: true, history: true } })
     const entity = world.spawn({

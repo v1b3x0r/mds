@@ -376,10 +376,11 @@ export class Entity implements MessageParticipant {
         }
         parsed.learnableSkills.forEach((learnable, row) => {
           this.skills!.addSkill(learnable.name)
-          if (isConditionTrigger(learnable.trigger)) {
-            this.learnableConditionState ??= new Map()
-            this.learnableConditionState.set(row, false)
-          }
+          // Every row gets edge state: operator rows ("light_level<2") are
+          // evaluated as expressions; bare rows ("battery.charging") are
+          // dual-mode — exact event match PLUS context-flag truthiness edge.
+          this.learnableConditionState ??= new Map()
+          this.learnableConditionState.set(row, false)
         })
       }
 
@@ -1495,7 +1496,7 @@ export class Entity implements MessageParticipant {
           this.skills.practiceDeclared(learnable.name, learnable.growth)
         }
       }
-      this.checkLearnableSkillConditions()
+      this.checkLearnableSkillConditions(false)
     }
 
     if (this.stateMachine) {
@@ -1597,19 +1598,34 @@ export class Entity implements MessageParticipant {
   }
 
   /**
-   * Evaluate condition-style learnable skill triggers (e.g. "light_level<2")
-   * against the current trigger context. Edge-triggered: a skill practices
-   * once when its condition flips false→true, then re-arms when it goes
-   * false again — a condition that merely STAYS true never re-practices.
+   * Evaluate condition-style learnable skill triggers against the current
+   * trigger context. Edge-triggered: a skill practices once when its
+   * condition flips false→true, then re-arms when it goes false again — a
+   * condition that merely STAYS true never re-practices.
+   *
+   * Two trigger shapes:
+   * - operator expressions ("light_level<2") → evaluateConditionExpression
+   * - bare context flags ("battery.charging") → direct truthiness lookup.
+   *   NOT routed through evaluateConditionExpression, whose missing-path
+   *   fallback resolves a bare token to its own string literal (always
+   *   truthy). Bare rows are skipped when `includeBareTokens` is false —
+   *   handleDeclarativeEvent passes false because it already practices
+   *   bare rows via exact event-name match (prevents double practice
+   *   while the transient event flag is set).
    */
-  checkLearnableSkillConditions(): void {
+  checkLearnableSkillConditions(includeBareTokens: boolean = true): void {
     if (!this.learnableConditionState?.size || !this.learnableSkills?.length || !this.skills) return
 
     for (let row = 0; row < this.learnableSkills.length; row++) {
-      if (!this.learnableConditionState.has(row)) continue  // event-name rows never enter the condition path
+      if (!this.learnableConditionState.has(row)) continue
 
       const learnable = this.learnableSkills[row]
-      const satisfied = evaluateConditionExpression(learnable.trigger, this.triggerContext)
+      const operatorStyle = isConditionTrigger(learnable.trigger)
+      if (!operatorStyle && !includeBareTokens) continue
+
+      const satisfied = operatorStyle
+        ? evaluateConditionExpression(learnable.trigger, this.triggerContext)
+        : Boolean(this.triggerContext[learnable.trigger])
       const wasSatisfied = this.learnableConditionState.get(row) ?? false
 
       if (satisfied && !wasSatisfied) {
