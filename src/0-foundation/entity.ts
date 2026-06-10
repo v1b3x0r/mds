@@ -10,7 +10,7 @@
  * - Relationships (bond graph)
  */
 
-import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsMaterial, MdsLearnableSkill } from '@mds/schema/mdspec'
 import type { ProximityCallback } from '@mds/0-foundation/types'  // v5.2: Break circular dependency
 import { clamp } from '@mds/0-foundation/math'
 import { applyRule } from '@mds/0-foundation/events'
@@ -192,6 +192,7 @@ export class Entity implements MessageParticipant {
   learning?: LearningSystemImpl                     // Experience-based learning
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystemImpl                          // Skill acquisition
+  learnableSkills?: MdsLearnableSkill[]             // Declarative skill triggers from MDM (event → practice)
 
   // v5.5: P2P Cognition (optional)
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
@@ -364,6 +365,16 @@ export class Entity implements MessageParticipant {
 
       if (parsed.behaviorTriggers.length > 0) {
         this.behaviorTriggers = parsed.behaviorTriggers
+      }
+
+      if (parsed.learnableSkills.length > 0) {
+        this.learnableSkills = parsed.learnableSkills
+        if (!this.skills) {
+          this.enable('skills')
+        }
+        for (const learnable of parsed.learnableSkills) {
+          this.skills!.addSkill(learnable.name)
+        }
       }
 
       if (parsed.utterancePolicy) {
@@ -1470,6 +1481,14 @@ export class Entity implements MessageParticipant {
 
     if (this.emotionTriggers?.length) {
       this.checkEmotionTriggers()
+    }
+
+    if (this.learnableSkills?.length && this.skills) {
+      for (const learnable of this.learnableSkills) {
+        if (learnable.trigger === eventType) {
+          this.skills.practiceDeclared(learnable.name, learnable.growth)
+        }
+      }
     }
 
     if (this.stateMachine) {

@@ -11,6 +11,7 @@ import type {
   MdsDialogueConfig,
   MdsDialoguePhrase,
   MdsSkillsConfig,
+  MdsLearnableSkill,
   MdsRelationshipsConfig,
   MdsMemoryConfig,
   MdsStateConfig,
@@ -148,6 +149,7 @@ export interface ParsedMaterialConfig {
   dialogue?: ParsedDialogue
   emotionTriggers: EmotionTrigger[]
   skillNames: string[]
+  learnableSkills: MdsLearnableSkill[]   // full declarations (name/trigger/growth) for runtime dispatch
   relationshipTargets: string[]
   memoryBindings: ParsedMemoryBinding[]
   memoryFlags: ParsedMemoryFlag[]
@@ -808,6 +810,7 @@ export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
     emotionTriggers: material.emotion ? parser.parseEmotionTransitions(material.emotion) : [],
     emotionStates: material.emotion ? parser.parseEmotionStates(material.emotion) : undefined,
     skillNames: material.skills ? parser.parseSkills(material.skills) : [],
+    learnableSkills: material.skills?.learnable ?? [],
     relationshipTargets: material.relationships ? parser.parseRelationships(material.relationships) : [],
     memoryBindings: material.memory ? parser.parseMemoryBindings(material.memory) : [],
     memoryFlags: material.memory ? parser.parseMemoryFlags(material.memory) : [],
