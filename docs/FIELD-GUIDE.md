@@ -191,12 +191,14 @@ and decay without use — but decay slows as mastery rises. The comment in the
 code says it plainly: *"it's like riding a bike."* A novice skill evaporates in
 days; a mastered one survives years of neglect.
 
-Skills can now be **declared, not programmed**. A material file can say *"this
-being's `resilience` grows by 0.15 every time it survives rain"* — and the
-engine wires the event to the practice to the proficiency curve with no
-imperative code. (This loop is the engine's newest organ; for most of its life,
-declared skills were parsed and silently dropped. The wire was connected only
-in 5.12.)
+Skills are becoming **declared, not programmed**. A material file can say
+*"this being's `resilience` grows by 0.15 every time it survives rain"* — and
+the engine wires the event to the practice to the proficiency curve with no
+imperative code. (This is the engine's newest organ and it is still being
+attached: the dispatch lands in **5.12 — PR #16**. For the engine's whole life
+before that, declared skills were parsed and then silently dropped — they
+could only decay. If you are reading this on a tree without #16 merged, the
+wire is not connected yet.)
 
 Then the layer does something unexpected: it scales the mind up to the
 population. The **world-mind** watches all entities at once and detects
@@ -215,7 +217,7 @@ once dropped its valence by half now barely registers. It got better at rain.
 > - **Inspired by:** reinforcement learning (Q-learning), learning-curve and motor-memory research, collective behavior studies
 > - **If removed:** beings respond but never improve; deaths leave no scar on the world
 > - **Feeds:** consumes experience from the inner life; feeds behavior selection, dialogue confidence, and a climate that touches every entity
-> - **Code anchors:** `src/3-cognition/learning/q-learning.ts`, `skills/system.ts` (practice, decay, `practiceDeclared`), `world-mind/collective.ts` (patterns, emotional climate)
+> - **Code anchors:** `src/3-cognition/learning/q-learning.ts`, `skills/system.ts` (practice, decay; `practiceDeclared` arrives with 5.12 / PR #16), `world-mind/collective.ts` (patterns, emotional climate)
 
 ---
 
@@ -358,9 +360,13 @@ arousal becomes brightness. The entity never knows it is being watched. DOM,
 canvas, and headless renderers are interchangeable, because the world is not a
 picture — the picture is just one honest reading of the world.
 
-(Safety is quietly structural: authored behaviors compile to sandboxed
-expression trees, never `eval`. A material file from a stranger cannot escape
-its own declarativeness.)
+(Safety here is structural but not absolute. Authored behavior expressions
+compile through a restricted `Expression` builder whose surface is the
+expression grammar plus a registered function table — material files are never
+handed the host environment. But under the hood that builder uses a scoped
+`new Function`, which is `eval`-family: hosts with a strict CSP that omits
+`unsafe-eval` will refuse to compile material expressions. Declarative, yes;
+magically sandboxed, no.)
 
 **In the rain:** how did this whole storm get authored? Someone wrote a
 forest-creature material with `trigger: "weather.rain" → anxious` — one
