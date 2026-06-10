@@ -52,7 +52,8 @@ import {
   parseMaterial,
   getDialoguePhrase,
   replacePlaceholders,
-  evaluateConditionExpression
+  evaluateConditionExpression,
+  isConditionTrigger
 } from '@mds/7-interface/io/mdm-parser'
 import type {
   TriggerContext,
@@ -193,6 +194,7 @@ export class Entity implements MessageParticipant {
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystemImpl                          // Skill acquisition
   learnableSkills?: MdsLearnableSkill[]             // Declarative skill triggers from MDM (event → practice)
+  learnableConditionState?: Map<string, boolean>    // Last evaluation of condition-style triggers (edge detection)
 
   // v5.5: P2P Cognition (optional)
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
@@ -374,6 +376,10 @@ export class Entity implements MessageParticipant {
         }
         for (const learnable of parsed.learnableSkills) {
           this.skills!.addSkill(learnable.name)
+          if (isConditionTrigger(learnable.trigger)) {
+            this.learnableConditionState ??= new Map()
+            this.learnableConditionState.set(learnable.name, false)
+          }
         }
       }
 
@@ -1485,10 +1491,11 @@ export class Entity implements MessageParticipant {
 
     if (this.learnableSkills?.length && this.skills) {
       for (const learnable of this.learnableSkills) {
-        if (learnable.trigger === eventType) {
+        if (!isConditionTrigger(learnable.trigger) && learnable.trigger === eventType) {
           this.skills.practiceDeclared(learnable.name, learnable.growth)
         }
       }
+      this.checkLearnableSkillConditions()
     }
 
     if (this.stateMachine) {
@@ -1586,6 +1593,28 @@ export class Entity implements MessageParticipant {
 
     if (action.broadcast?.context && this.worldBridge?.broadcastContext) {
       this.worldBridge.broadcastContext({ ...action.broadcast.context })
+    }
+  }
+
+  /**
+   * Evaluate condition-style learnable skill triggers (e.g. "light_level<2")
+   * against the current trigger context. Edge-triggered: a skill practices
+   * once when its condition flips false→true, then re-arms when it goes
+   * false again — a condition that merely STAYS true never re-practices.
+   */
+  checkLearnableSkillConditions(): void {
+    if (!this.learnableConditionState?.size || !this.learnableSkills?.length || !this.skills) return
+
+    for (const learnable of this.learnableSkills) {
+      if (!this.learnableConditionState.has(learnable.name)) continue
+
+      const satisfied = evaluateConditionExpression(learnable.trigger, this.triggerContext)
+      const wasSatisfied = this.learnableConditionState.get(learnable.name) ?? false
+
+      if (satisfied && !wasSatisfied) {
+        this.skills.practiceDeclared(learnable.name, learnable.growth)
+      }
+      this.learnableConditionState.set(learnable.name, satisfied)
     }
   }
 

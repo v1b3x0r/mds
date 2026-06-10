@@ -1037,6 +1037,14 @@ function flattenContext(
   return target
 }
 
+/**
+ * Distinguish a condition-expression trigger ("light_level<2", "a && b")
+ * from a plain event-name trigger ("player.chat", "new_word_learned").
+ */
+export function isConditionTrigger(trigger: string): boolean {
+  return /[<>=!&|]/.test(trigger)
+}
+
 export function evaluateConditionExpression(
   condition: string,
   context: Record<string, any>

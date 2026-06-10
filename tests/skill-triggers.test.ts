@@ -72,3 +72,54 @@ describe('broadcast events practice declared skills', () => {
     expect(entity.skills!.getSkill('empathy')!.experience).toBe(before + 1)
   })
 })
+
+describe('condition-style triggers practice on rising edge (heroblind.mdm form)', () => {
+  const ghostMaterial = {
+    material: 'entity.ghost-test',
+    essence: 'Blind ghost who phases in darkness',
+    skills: {
+      learnable: [
+        { name: 'phase_shift', trigger: 'light_level<2', growth: 0.03 }
+      ]
+    }
+  }
+
+  function spawnGhost() {
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn(ghostMaterial, { x: 100, y: 100 })
+    return { world, entity }
+  }
+
+  test('condition false → no practice', () => {
+    const { world, entity } = spawnGhost()
+    world.broadcastContext({ light_level: 5 })
+    expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBe(0)
+  })
+
+  test('condition turning true practices ONCE (edge, not level)', () => {
+    const { world, entity } = spawnGhost()
+    world.broadcastContext({ light_level: 5 })
+    world.broadcastContext({ light_level: 1 })
+    expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBeCloseTo(0.03, 5)
+
+    // condition STAYS true — repeated context broadcasts must not re-practice
+    world.broadcastContext({ light_level: 1 })
+    world.broadcastContext({ light_level: 0 })
+    expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBeCloseTo(0.03, 5)
+  })
+
+  test('condition re-arming (true → false → true) practices again', () => {
+    const { world, entity } = spawnGhost()
+    world.broadcastContext({ light_level: 1 })   // edge 1
+    world.broadcastContext({ light_level: 5 })   // re-arm
+    world.broadcastContext({ light_level: 1 })   // edge 2
+    // 0.03 + (1 - 0.03) * 0.03 = 0.0591
+    expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBeCloseTo(0.0591, 5)
+  })
+
+  test('unrelated context keys never practice condition skills', () => {
+    const { world, entity } = spawnGhost()
+    world.broadcastContext({ temperature: 300 })
+    expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBe(0)
+  })
+})
