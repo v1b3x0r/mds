@@ -4,6 +4,45 @@ A human-readable history of what changed and why it matters.
 
 ⸻
 
+[5.12.0] — Skills Finally Tick (Declarative Skill Growth)  
+📅 2026-06-10
+
+⸻
+
+🚀 Added
+
+**Declarative skill triggers are now wired** (PR #16). `skills.learnable` in MDM has declared `{ name, trigger, growth }` since v5.1 — but the engine parsed the names and dropped them, so declared skills could only decay. Now:
+
+- Spawning a material with `skills.learnable` auto-enables the skill system and registers every declared skill.
+- `SkillSystem.practiceDeclared(name, growth)` — per-trigger gain = `(1 − proficiency) × growth`, honoring the spec's "progress per trigger" while keeping the diminishing-returns curve.
+- Every trigger form the schema promises now works, each covered by tests:
+  - **event names** — `player.chat`, `new_word_learned` (practiced on broadcastEvent)
+  - **condition expressions** — `light_level<2` (edge-triggered: practices once on false→true, re-arms on false; evaluated on broadcastContext and events)
+  - **bare context flags** — `battery.charging` (dual-mode: exact event match + context-truthiness edge)
+  - **dotted flat keys** — `cpu.usage>0.8` (matches broadcastContext's flat dot-notation contract)
+  - **duration suffixes** — `user.silence>60s`, `500ms` (same units as the generic-trigger grammar)
+
+🛠 Fixes (shared condition evaluator — benefits emotion triggers / dialogue `when` / behavior `where` too)
+
+- `getPathValue` now resolves flat dot-notation keys first, then falls back to nested path traversal.
+- `resolveTokenValue` parses duration suffixes (`60s` → 60, `500ms` → 0.5).
+- Condition edge-state is keyed by declaration row, not skill name — the same skill may declare an event row AND a condition row without double-practicing or poisoning its own edge state.
+
+📚 Docs
+
+- **`docs/FIELD-GUIDE.md` — Anatomy of a Living World** (PR #17): an ontology report of all 8 layers — what each believes, which sciences it borrows from, one rainstorm traced from weather to language. Includes "What the Code Believes", the CSS-library→living-ontology history, and an llm.txt drift appendix.
+- `docs/social-card.svg` repo hero card, embedded in README.
+
+⸻
+
+💡 Why It Matters
+
+Companions stop being static personalities: a being declared with
+`{ "name": "empathy", "trigger": "user.emotion_detected", "growth": 0.05 }`
+now actually grows. Field-verified in hi-introvert: 20 conversational turns moved empathy 0.40→0.64 while an undeclared control skill stayed put. The review loop (5 codex rounds) doubled as the first real audit of the shared condition evaluator.
+
+⸻
+
 [5.11.0] — Semantic Truth and Runtime Hygiene  
 📅 2026-05-25
 

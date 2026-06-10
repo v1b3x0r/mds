@@ -8,6 +8,8 @@ MDS is a deterministic semantic substrate for small living worlds: entities, mem
 
 Use it when you want to feed meaning into a simulated world and let authored `.mdm` materials decide how entities respond.
 
+**New here?** Read the [Field Guide — Anatomy of a Living World](https://github.com/v1b3x0r/mds/blob/main/docs/FIELD-GUIDE.md): what each of the 8 layers believes, which sciences they borrow from, and how one rainstorm becomes language.
+
 ---
 
 ## Install
