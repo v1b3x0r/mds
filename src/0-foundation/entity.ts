@@ -194,7 +194,7 @@ export class Entity implements MessageParticipant {
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystemImpl                          // Skill acquisition
   learnableSkills?: MdsLearnableSkill[]             // Declarative skill triggers from MDM (event → practice)
-  learnableConditionState?: Map<string, boolean>    // Last evaluation of condition-style triggers (edge detection)
+  learnableConditionState?: Map<number, boolean>    // Row index → last evaluation of condition-style triggers (edge detection). Keyed by row, NOT skill name: the same skill may declare both an event row and a condition row, and bare event names evaluate truthy as expressions.
 
   // v5.5: P2P Cognition (optional)
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
@@ -374,13 +374,13 @@ export class Entity implements MessageParticipant {
         if (!this.skills) {
           this.enable('skills')
         }
-        for (const learnable of parsed.learnableSkills) {
+        parsed.learnableSkills.forEach((learnable, row) => {
           this.skills!.addSkill(learnable.name)
           if (isConditionTrigger(learnable.trigger)) {
             this.learnableConditionState ??= new Map()
-            this.learnableConditionState.set(learnable.name, false)
+            this.learnableConditionState.set(row, false)
           }
-        }
+        })
       }
 
       if (parsed.utterancePolicy) {
@@ -1605,16 +1605,17 @@ export class Entity implements MessageParticipant {
   checkLearnableSkillConditions(): void {
     if (!this.learnableConditionState?.size || !this.learnableSkills?.length || !this.skills) return
 
-    for (const learnable of this.learnableSkills) {
-      if (!this.learnableConditionState.has(learnable.name)) continue
+    for (let row = 0; row < this.learnableSkills.length; row++) {
+      if (!this.learnableConditionState.has(row)) continue  // event-name rows never enter the condition path
 
+      const learnable = this.learnableSkills[row]
       const satisfied = evaluateConditionExpression(learnable.trigger, this.triggerContext)
-      const wasSatisfied = this.learnableConditionState.get(learnable.name) ?? false
+      const wasSatisfied = this.learnableConditionState.get(row) ?? false
 
       if (satisfied && !wasSatisfied) {
         this.skills.practiceDeclared(learnable.name, learnable.growth)
       }
-      this.learnableConditionState.set(learnable.name, satisfied)
+      this.learnableConditionState.set(row, satisfied)
     }
   }
 

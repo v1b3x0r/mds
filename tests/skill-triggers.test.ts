@@ -123,3 +123,54 @@ describe('condition-style triggers practice on rising edge (heroblind.mdm form)'
     expect(entity.skills!.getSkill('phase_shift')!.proficiency).toBe(0)
   })
 })
+
+describe('mixed declarations of the SAME skill (codex round-2 regression)', () => {
+  // One skill, two rows: an event trigger AND a condition trigger.
+  const adaptiveMaterial = {
+    material: 'entity.adaptive-test',
+    essence: 'Creature that adapts through chat and darkness',
+    skills: {
+      learnable: [
+        { name: 'adapt', trigger: 'player.chat', growth: 0.2 },
+        { name: 'adapt', trigger: 'darkness>0.5', growth: 0.1 }
+      ]
+    }
+  }
+
+  function spawnAdaptive() {
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn(adaptiveMaterial, { x: 100, y: 100 })
+    return { world, entity }
+  }
+
+  test('one event practices the event row exactly ONCE (no condition-path double dip)', () => {
+    const { world, entity } = spawnAdaptive()
+    world.broadcastEvent('player.chat')
+    // exact-match row only: 0 + (1-0)*0.2 = 0.2 — NOT 0.36
+    expect(entity.skills!.getSkill('adapt')!.proficiency).toBeCloseTo(0.2, 5)
+  })
+
+  test('the condition row still works independently', () => {
+    const { world, entity } = spawnAdaptive()
+    world.broadcastContext({ darkness: 0.7 })
+    expect(entity.skills!.getSkill('adapt')!.proficiency).toBeCloseTo(0.1, 5)
+  })
+
+  test('two different skills sharing one condition both practice on the edge', () => {
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn({
+      material: 'entity.shared-condition-test',
+      essence: 'Twin-skill creature',
+      skills: {
+        learnable: [
+          { name: 'night_vision', trigger: 'darkness>0.5', growth: 0.04 },
+          { name: 'stealth', trigger: 'darkness>0.5', growth: 0.06 }
+        ]
+      }
+    }, { x: 0, y: 0 })
+
+    world.broadcastContext({ darkness: 0.9 })
+    expect(entity.skills!.getSkill('night_vision')!.proficiency).toBeCloseTo(0.04, 5)
+    expect(entity.skills!.getSkill('stealth')!.proficiency).toBeCloseTo(0.06, 5)
+  })
+})
