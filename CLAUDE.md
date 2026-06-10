@@ -87,12 +87,14 @@ Result: **NPC remembers. Forever.** No manual state management.
 
 ---
 
-## 3. CURRENT STATE — v5.9.2 (Production Ready)
+## 3. CURRENT STATE — v5.12.0 (Production Ready)
+
+> **Start here for worldview:** [docs/FIELD-GUIDE.md](docs/FIELD-GUIDE.md) — anatomy of all 8 layers, what each believes, llm.txt drift notes.
 
 ### Bundle Size
 
-- **Full bundle:** 443.72 KB (106.53 KB gzipped) — includes Layer 7/8 upgrades + Material Pressure System
-- **Lite bundle:** 350.08 KB (85.25 KB gzipped)
+- **Full bundle:** 450.48 KB (107.50 KB gzipped)
+- **Lite bundle:** 352.99 KB (85.37 KB gzipped)
 - **Validator:** 25.86 KB (4.38 KB gzipped)
 
 ### Core Systems
@@ -123,8 +125,8 @@ Result: **NPC remembers. Forever.** No manual state management.
 
 ### Test Coverage
 
-- **192 tests** (100% pass)
-- Coverage: Memory, Emotion, Learning, Physics, Communication, World Mind, Layer 7–8 behavior triggers + logger
+- Node suites (`npm test`) + bun suites (`bun test`) — all green except `emergence-loop.test.mjs` (4 known pre-existing fails)
+- Coverage: Memory, Emotion, Learning, Physics, Communication, World Mind, behavior triggers, **declarative skill triggers (17 tests, every trigger form)**
 
 ---
 
@@ -324,13 +326,13 @@ const climate = world.getEmotionalClimate()  // Get climate
 
 ```bash
 npm run build           # Check bundle size
-npm test               # All 192 tests must pass
+npm test               # Node suites must pass (also: bun test)
 npm run type-check     # TypeScript validation
 ```
 
-**Expected output (v5.9):**
-- Build: 359.66 KB (full), 266.80 KB (lite), 17.25 KB (validator)
-- Tests: 192 pass, 0 fail
+**Expected output:**
+- Build: ~450 KB (full), ~353 KB (lite), ~26 KB (validator)
+- Tests: node suites exit 0; bun skill-triggers 17/17 (emergence-loop has 4 known pre-existing fails)
 - Types: No errors
 
 ### Documentation Philosophy
@@ -346,22 +348,20 @@ npm run type-check     # TypeScript validation
 
 ## 7. VERSION SUMMARY — Current Only
 
-**Current Version:** v5.9.2 (2025-11-04)
+**Current Version:** v5.12.0 (2026-06-10) — "Skills Finally Tick"
 
-**Key Changes (Phase 1: Material Pressure System):**
-- **Resource Needs** — Entities have needs (water, food, energy) that deplete over time
-- **Resource Fields** — Spatial resource distribution (point/area/gradient sources)
-- **Emotional Climate** — World remembers death, tracks collective grief/vitality/tension/harmony
-- **Emergent Language** — Entities speak about needs, utterances crystallize into lexicon
-- **Desert Demo** — 3 entities competing for limited water (all die, climate shifts)
-- **27 new tests** for Phase 1 features (192 total, 100% pass)
+**Key Changes:**
+- **Declarative skill growth** — `skills.learnable` in MDM now actually practices: event names, condition expressions (edge-triggered), bare context flags, flat dotted keys, duration suffixes (`60s`/`500ms`) all dispatch `practiceDeclared(name, growth)`
+- **Shared condition evaluator fixes** — flat dot-notation keys resolve first; duration tokens parse — benefits emotion triggers / dialogue `when` / behavior `where` too
+- **Field Guide** — `docs/FIELD-GUIDE.md` ontology report + `docs/social-card.svg` hero card
+- Recent prior arcs still current: Semantic Truth (5.11 — no invented dialogue fallbacks), Spatial Grid perf (5.10), Material Pressure / Emotional Climate (5.9)
 
-**Philosophy:** "Emotional Climate ที่ Evolve เอง" — World remembers suffering and death, collective emotion emerges from individual experiences.
+**Philosophy:** companions stop being static personalities — declared growth is real growth.
 
 **Full history:** See [CHANGELOG.md](docs/CHANGELOG.md)
 
-**Migration from v5.8:** Automatic. Zero breaking changes. All new APIs are additive.
+**Migration from 5.11:** Automatic. Zero breaking changes. All new APIs are additive (skills that were silently inert may now grow — that is the feature).
 
 ---
 
-**Last Updated:** 2025-10-30 | **Project Status:** Production Ready | **Bundle:** ~360 KB
+**Last Updated:** 2026-06-10 | **Project Status:** Production Ready | **Bundle:** ~450 KB full / 353 KB lite (gzip ~107/85 KB)
