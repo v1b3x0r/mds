@@ -202,6 +202,31 @@ describe('mixed declarations of the SAME skill (codex round-2 regression)', () =
     expect(entity.skills!.getSkill('mimic_voice')!.proficiency).toBeCloseTo(0.05, 5)
   })
 
+  test('dotted-key operator condition matches FLAT broadcastContext keys (codex round-4)', () => {
+    // broadcastContext's documented contract is flat dot-notation keys:
+    // world.broadcastContext({ 'cpu.usage': 0.85 }) — the evaluator must see them.
+    const world = new World({ features: { ontology: true, history: true } })
+    const entity = world.spawn({
+      material: 'entity.load-sense-test',
+      essence: 'Creature that grows under system load',
+      skills: {
+        learnable: [
+          { name: 'load_tolerance', trigger: 'cpu.usage>0.8', growth: 0.04 }
+        ]
+      }
+    }, { x: 0, y: 0 })
+
+    world.broadcastContext({ 'cpu.usage': 0.5 })
+    expect(entity.skills!.getSkill('load_tolerance')!.proficiency).toBe(0)
+
+    world.broadcastContext({ 'cpu.usage': 0.85 })
+    expect(entity.skills!.getSkill('load_tolerance')!.proficiency).toBeCloseTo(0.04, 5)
+
+    // level-hold: no re-practice while it stays high
+    world.broadcastContext({ 'cpu.usage': 0.9 })
+    expect(entity.skills!.getSkill('load_tolerance')!.proficiency).toBeCloseTo(0.04, 5)
+  })
+
   test('two different skills sharing one condition both practice on the edge', () => {
     const world = new World({ features: { ontology: true, history: true } })
     const entity = world.spawn({

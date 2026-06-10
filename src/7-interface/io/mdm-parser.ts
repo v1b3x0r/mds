@@ -1153,6 +1153,13 @@ function resolveTokenValue(token: string, context: Record<string, any>): any {
 }
 
 function getPathValue(source: Record<string, any>, path: string): any {
+  // Flat dot-notation keys first — broadcastContext's documented contract
+  // stores keys like 'cpu.usage' literally, so they must win over (and not
+  // require) a nested { cpu: { usage } } shape.
+  if (source != null && Object.prototype.hasOwnProperty.call(source, path)) {
+    return source[path]
+  }
+
   const parts = path.split('.')
   let current: any = source
   for (const part of parts) {
