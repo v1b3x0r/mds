@@ -114,6 +114,23 @@ export class SkillSystem {
   }
 
   /**
+   * Practice from a declarative MDM trigger.
+   * `growth` is the per-trigger progress declared in skills.learnable —
+   * applied as (1 - proficiency) * growth so the learning curve still
+   * flattens toward mastery.
+   */
+  practiceDeclared(name: string, growth: number): boolean {
+    const skill = this.skills.get(name)
+    if (!skill) return false
+
+    skill.proficiency = Math.min(1, skill.proficiency + (1 - skill.proficiency) * growth)
+    skill.experience += 1
+    skill.lastPracticed = Date.now()
+
+    return true
+  }
+
+  /**
    * Apply skill decay (forgetting)
    */
   applyDecay(dt: number): void {

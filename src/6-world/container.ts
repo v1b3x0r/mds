@@ -1339,6 +1339,7 @@ export class World {
       entity.updateTriggerContext(context)
       entity.applyExternalEmotionDelta(context, this.worldTime)
       entity.checkEmotionTriggers()
+      entity.checkLearnableSkillConditions()
     }
 
     if (!changed) {

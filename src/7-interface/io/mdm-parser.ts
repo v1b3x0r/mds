@@ -11,6 +11,7 @@ import type {
   MdsDialogueConfig,
   MdsDialoguePhrase,
   MdsSkillsConfig,
+  MdsLearnableSkill,
   MdsRelationshipsConfig,
   MdsMemoryConfig,
   MdsStateConfig,
@@ -148,6 +149,7 @@ export interface ParsedMaterialConfig {
   dialogue?: ParsedDialogue
   emotionTriggers: EmotionTrigger[]
   skillNames: string[]
+  learnableSkills: MdsLearnableSkill[]   // full declarations (name/trigger/growth) for runtime dispatch
   relationshipTargets: string[]
   memoryBindings: ParsedMemoryBinding[]
   memoryFlags: ParsedMemoryFlag[]
@@ -808,6 +810,7 @@ export function parseMaterial(material: MdsMaterial): ParsedMaterialConfig {
     emotionTriggers: material.emotion ? parser.parseEmotionTransitions(material.emotion) : [],
     emotionStates: material.emotion ? parser.parseEmotionStates(material.emotion) : undefined,
     skillNames: material.skills ? parser.parseSkills(material.skills) : [],
+    learnableSkills: material.skills?.learnable ?? [],
     relationshipTargets: material.relationships ? parser.parseRelationships(material.relationships) : [],
     memoryBindings: material.memory ? parser.parseMemoryBindings(material.memory) : [],
     memoryFlags: material.memory ? parser.parseMemoryFlags(material.memory) : [],
@@ -1034,6 +1037,14 @@ function flattenContext(
   return target
 }
 
+/**
+ * Distinguish a condition-expression trigger ("light_level<2", "a && b")
+ * from a plain event-name trigger ("player.chat", "new_word_learned").
+ */
+export function isConditionTrigger(trigger: string): boolean {
+  return /[<>=!&|]/.test(trigger)
+}
+
 export function evaluateConditionExpression(
   condition: string,
   context: Record<string, any>
@@ -1128,6 +1139,14 @@ function resolveTokenValue(token: string, context: Record<string, any>): any {
     return Number(trimmed)
   }
 
+  // Duration suffixes, mirroring the generic-trigger grammar (mdm-parser
+  // GENERIC DOT-NOTATION TRIGGERS): '60s' → 60 (seconds), '500ms' → 0.5.
+  const duration = trimmed.match(/^(-?\d+(?:\.\d+)?)(s|ms)$/)
+  if (duration) {
+    const value = Number(duration[1])
+    return duration[2] === 'ms' ? value / 1000 : value
+  }
+
   if (trimmed === 'true') return true
   if (trimmed === 'false') return false
   if (trimmed === 'null') return null
@@ -1142,6 +1161,13 @@ function resolveTokenValue(token: string, context: Record<string, any>): any {
 }
 
 function getPathValue(source: Record<string, any>, path: string): any {
+  // Flat dot-notation keys first — broadcastContext's documented contract
+  // stores keys like 'cpu.usage' literally, so they must win over (and not
+  // require) a nested { cpu: { usage } } shape.
+  if (source != null && Object.prototype.hasOwnProperty.call(source, path)) {
+    return source[path]
+  }
+
   const parts = path.split('.')
   let current: any = source
   for (const part of parts) {

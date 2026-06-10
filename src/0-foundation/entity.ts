@@ -10,7 +10,7 @@
  * - Relationships (bond graph)
  */
 
-import type { MdsMaterial } from '@mds/schema/mdspec'
+import type { MdsMaterial, MdsLearnableSkill } from '@mds/schema/mdspec'
 import type { ProximityCallback } from '@mds/0-foundation/types'  // v5.2: Break circular dependency
 import { clamp } from '@mds/0-foundation/math'
 import { applyRule } from '@mds/0-foundation/events'
@@ -52,7 +52,8 @@ import {
   parseMaterial,
   getDialoguePhrase,
   replacePlaceholders,
-  evaluateConditionExpression
+  evaluateConditionExpression,
+  isConditionTrigger
 } from '@mds/7-interface/io/mdm-parser'
 import type {
   TriggerContext,
@@ -192,6 +193,8 @@ export class Entity implements MessageParticipant {
   learning?: LearningSystemImpl                     // Experience-based learning
   consolidation?: MemoryConsolidation           // Memory consolidation
   skills?: SkillSystemImpl                          // Skill acquisition
+  learnableSkills?: MdsLearnableSkill[]             // Declarative skill triggers from MDM (event → practice)
+  learnableConditionState?: Map<number, boolean>    // Row index → last evaluation of condition-style triggers (edge detection). Keyed by row, NOT skill name: the same skill may declare both an event row and a condition row, and bare event names evaluate truthy as expressions.
 
   // v5.5: P2P Cognition (optional)
   cognitiveLinks?: Map<string, CognitiveLink>   // Direct entity-to-entity connections
@@ -364,6 +367,21 @@ export class Entity implements MessageParticipant {
 
       if (parsed.behaviorTriggers.length > 0) {
         this.behaviorTriggers = parsed.behaviorTriggers
+      }
+
+      if (parsed.learnableSkills.length > 0) {
+        this.learnableSkills = parsed.learnableSkills
+        if (!this.skills) {
+          this.enable('skills')
+        }
+        parsed.learnableSkills.forEach((learnable, row) => {
+          this.skills!.addSkill(learnable.name)
+          // Every row gets edge state: operator rows ("light_level<2") are
+          // evaluated as expressions; bare rows ("battery.charging") are
+          // dual-mode — exact event match PLUS context-flag truthiness edge.
+          this.learnableConditionState ??= new Map()
+          this.learnableConditionState.set(row, false)
+        })
       }
 
       if (parsed.utterancePolicy) {
@@ -1472,6 +1490,15 @@ export class Entity implements MessageParticipant {
       this.checkEmotionTriggers()
     }
 
+    if (this.learnableSkills?.length && this.skills) {
+      for (const learnable of this.learnableSkills) {
+        if (!isConditionTrigger(learnable.trigger) && learnable.trigger === eventType) {
+          this.skills.practiceDeclared(learnable.name, learnable.growth)
+        }
+      }
+      this.checkLearnableSkillConditions(false)
+    }
+
     if (this.stateMachine) {
       this.applyStateTransitions(eventType, payload)
     }
@@ -1567,6 +1594,44 @@ export class Entity implements MessageParticipant {
 
     if (action.broadcast?.context && this.worldBridge?.broadcastContext) {
       this.worldBridge.broadcastContext({ ...action.broadcast.context })
+    }
+  }
+
+  /**
+   * Evaluate condition-style learnable skill triggers against the current
+   * trigger context. Edge-triggered: a skill practices once when its
+   * condition flips false→true, then re-arms when it goes false again — a
+   * condition that merely STAYS true never re-practices.
+   *
+   * Two trigger shapes:
+   * - operator expressions ("light_level<2") → evaluateConditionExpression
+   * - bare context flags ("battery.charging") → direct truthiness lookup.
+   *   NOT routed through evaluateConditionExpression, whose missing-path
+   *   fallback resolves a bare token to its own string literal (always
+   *   truthy). Bare rows are skipped when `includeBareTokens` is false —
+   *   handleDeclarativeEvent passes false because it already practices
+   *   bare rows via exact event-name match (prevents double practice
+   *   while the transient event flag is set).
+   */
+  checkLearnableSkillConditions(includeBareTokens: boolean = true): void {
+    if (!this.learnableConditionState?.size || !this.learnableSkills?.length || !this.skills) return
+
+    for (let row = 0; row < this.learnableSkills.length; row++) {
+      if (!this.learnableConditionState.has(row)) continue
+
+      const learnable = this.learnableSkills[row]
+      const operatorStyle = isConditionTrigger(learnable.trigger)
+      if (!operatorStyle && !includeBareTokens) continue
+
+      const satisfied = operatorStyle
+        ? evaluateConditionExpression(learnable.trigger, this.triggerContext)
+        : Boolean(this.triggerContext[learnable.trigger])
+      const wasSatisfied = this.learnableConditionState.get(row) ?? false
+
+      if (satisfied && !wasSatisfied) {
+        this.skills.practiceDeclared(learnable.name, learnable.growth)
+      }
+      this.learnableConditionState.set(row, satisfied)
     }
   }
 
