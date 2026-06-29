@@ -1,6 +1,18 @@
-#Changelog
+# Changelog
 
 A human-readable history of what changed and why it matters.
+
+⸻
+
+[Unreleased]
+
+⸻
+
+🧹 Housekeeping
+
+- Switched project metadata and repository-facing license text from MIT to Apache-2.0.
+- Refreshed CONTRIBUTING so new visitors see the current repository layout, test commands, and research-issue workflow.
+- Removed a tracked macOS `.DS_Store` file from the source tree.
 
 ⸻
 
