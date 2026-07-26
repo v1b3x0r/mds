@@ -50,3 +50,6 @@ apps/hi-introvert/sessions/
 **/*.world.mdm
 **/*.ndjson
 apps/hi-introvert/sessions/world_log.json
+
+# Codex local environment config
+.codex/
