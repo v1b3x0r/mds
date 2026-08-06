@@ -1,288 +1,88 @@
 # Contributing to MDS
 
-**This project is held together by duct tape and curiosity.**
+MDS is a deterministic semantic substrate for small living worlds. Contributions are welcome when they keep the system observable, declarative, and small enough to understand.
 
-If you're here, you probably want to either:
-1. Fix something broken
-2. Add something weird
-3. Document something confusing
-4. Just hang out
+## Project posture
 
-All valid. Welcome. 🤝
+MDS is currently best treated as a living-world runtime plus a research notebook. Some GitHub Issues are bugs or chores; others are unresolved world questions that should stay open until the model, docs, tests, and API shape agree.
 
-⸻
+If you are revisiting an issue, prefer this path:
 
-## 🧭 Ground Rules
-
-1. **Don't break physics** (unless it's on purpose)
-2. **Document your chaos** (future you will thank you)
-3. **Keep bundle size ≤ 20 KB** (we're tiny by choice)
-4. **Maintain the Chiang Mai vibe** (friendly, honest, low-ego)
-5. **Test in browser** (at least open the demos once)
-
-⸻
-
-## 🛠️ Dev Setup
-
-### 1. Clone the repo
-```bash
-git clone https://github.com/v1b3x0r/material-js-concept.git
-cd material-js-concept
+```text
+observation → open question → hypothesis → model → docs/tests → API/runtime
 ```
 
-### 2. Install deps
+Do not rush major semantic questions into code. It is acceptable to improve documentation, add tests, or leave a clearly named TODO when the ontology is not stable yet.
+
+## Ground rules
+
+1. Preserve declarative semantics. Authored MDM declarations should remain the source of behavior whenever possible.
+2. Fail closed instead of inventing hidden defaults. Missing dialogue, formulas, or categories should not silently become built-in behavior.
+3. Keep the runtime observable. Logger output and reproducible tests are part of the design surface.
+4. Keep public APIs small and documented. Additions should appear in docs and API stability checks when they are intentional.
+5. Keep the Chiang Mai vibe: friendly, honest, low-ego, and curious.
+
+## Dev setup
+
 ```bash
+git clone https://github.com/v1b3x0r/mds.git
+cd mds
 npm install
 ```
 
-### 3. Run dev server
-```bash
-npm run dev
-```
+MDS is pure ESM and targets Node.js 18 or newer.
 
-Visit `http://localhost:3000` and open `/examples/emoji-field.html`.
+## Useful commands
 
-### 4. Make changes
-
-Edit files in `/src`:
-```
-src/
-├── core/
-│   ├── engine.ts    ← main loop
-│   ├── entity.ts    ← living materials
-│   └── field.ts     ← relationship fields
-├── schema/
-│   └── mdspec.d.ts  ← type definitions
-├── utils/
-│   ├── math.ts      ← physics helpers
-│   └── events.ts    ← behavior rules
-└── index.ts         ← public API
-```
-
-Vite will hot-reload. Changes appear instantly.
-
-### 5. Type-check
 ```bash
 npm run type-check
-```
-
-Fix any TypeScript errors.
-
-### 6. Build
-```bash
+npm run test
+npm run test:api
+npm run test:validator
+npm run test:all
 npm run build
+npm run check:stability
+npm run check:bundle
 ```
 
-Check output:
-```
-dist/
-├── mds-core.esm.js    ← your bundle
-└── index.d.ts         ← types
-```
+Before opening a PR, run the smallest check that covers your change. For public API changes, include `npm run test:api` or `npm run check:stability`. For docs-only changes, a quick typo/link review is usually enough.
 
-**Size check:**
-```bash
-ls -lh dist/mds-core.esm.js
-```
+## Repository map
 
-Must be **≤ 20 KB**. If larger, refactor or rethink.
-
-⸻
-
-## 🎯 What to Work On
-
-### 🐛 Bug Fixes
-- Entity stops moving → check friction/velocity
-- Clustering doesn't work → verify similarity calculation
-- Save/Load broken → check serialization maps
-
-### ✨ New Features
-- Spatial partitioning (quadtree for O(n log n) forces)
-- Mobile/touch support
-- Sound effects via Web Audio API
-- 3D mode with Three.js
-- WebSocket multiplayer sync
-
-### 📚 Documentation
-- More cookbook recipes
-- Video tutorials
-- Interactive playground
-- Translation (Thai, Japanese, etc.)
-
-### 🧪 Experiments
-- Replace entropy with embeddings (LLM bridge)
-- Gravity toward cursor
-- Entity reproduction (spawn children)
-- Dialogue trees
-- Memory system (entities remember past interactions)
-
-⸻
-
-## 📝 Code Style
-
-**We don't have a linter. Use common sense.**
-
-Guidelines:
-- **Naming:** `camelCase` for variables, `PascalCase` for classes
-- **Indentation:** 2 spaces
-- **Line length:** ≤ 100 characters (ish)
-- **Comments:** Explain *why*, not *what*
-- **Types:** Use TypeScript strictly (no `any` unless necessary)
-
-**Example:**
-```typescript
-// ❌ Bad
-const x = 1 - Math.abs(a.e - b.e)  // similarity
-
-// ✅ Good
-// Similarity based on entropy difference
-// Higher similarity = stronger attraction
-const similarity = 1 - Math.abs(a.entropy - b.entropy)
+```text
+src/0-foundation/     Engine primitives, validation, expression/math helpers
+src/1-ontology/       Semantic ontology exports
+src/2-physics/        Collision, energy, weather, resource-field behavior
+src/3-cognition/      Memory, emotion, needs, reasoning, skill growth
+src/4-communication/  Dialogue, proto-language, translation and triggers
+src/5-network/        Relationships and collective structures
+src/6-world/          World container, event sink, logger
+src/7-interface/      Rendering/interface helpers
+src/schema/           Public TypeScript declaration surfaces
+tests/                Runtime, API, validator, and regression coverage
+docs/                 Reference, field guide, cookbook, philosophy, changelog
+examples/             Browser/demo entry points
+scripts/              Stability, bundle, and simulation checks
 ```
 
-⸻
+## Working with research issues
 
-## 🧪 Testing
+For issues like ritual thresholds, decay, value selection, memory persistence, or relationship meaning:
 
-**We don't have automated tests yet.**
+- Start with docs or tests if the semantics are still forming.
+- Keep hypotheses explicit.
+- Prefer formulas and declared thresholds over imperative special cases.
+- Link the issue in the PR body so the open question remains traceable.
+- Leave the issue open if the PR only clarifies the surface and does not complete the model.
 
-Instead:
-1. Open `/examples` demos
-2. Click around
-3. Check console for errors
-4. Verify physics behaves as expected
+## Code style
 
-**Before submitting PR:**
-- [ ] `npm run build` succeeds
-- [ ] `npm run type-check` passes
-- [ ] All 4 demos load without errors
-- [ ] Bundle size ≤ 20 KB
+- TypeScript, strict mode, pure ESM.
+- 2-space indentation.
+- Prefer descriptive names over comments that repeat the code.
+- Do not wrap imports in `try/catch`.
+- Avoid adding dependencies unless the tradeoff is documented.
 
-⸻
+## Licensing
 
-## 🚀 Submitting a PR
-
-### 1. Fork the repo
-Click "Fork" on GitHub.
-
-### 2. Create a branch
-```bash
-git checkout -b feat/your-feature
-```
-
-or
-
-```bash
-git checkout -b fix/your-bugfix
-```
-
-### 3. Make changes
-Write code, test locally.
-
-### 4. Commit
-```bash
-git add .
-git commit -m "feat: add quadtree spatial partitioning"
-```
-
-**Commit message format:**
-- `feat:` → new feature
-- `fix:` → bug fix
-- `docs:` → documentation only
-- `refactor:` → code cleanup (no behavior change)
-- `chore:` → build/tooling changes
-
-### 5. Push
-```bash
-git push origin feat/your-feature
-```
-
-### 6. Open PR
-Go to GitHub, click "New Pull Request".
-
-**PR template:**
-```
-## What changed
-- Added quadtree for O(n log n) force calculation
-- Scales to 200+ entities now
-
-## Why
-Current O(n²) bottleneck at 50 entities.
-
-## Testing
-- Tested with 200 entities in cluster.html
-- FPS: 60 (was 20 before)
-
-## Bundle size
-Before: 18.42 KB
-After: 19.8 KB
-```
-
-### 7. Wait for review
-We'll review within a week. Be patient. We're slow but friendly.
-
-⸻
-
-## ⚠️ What Gets Rejected
-
-- **Breaking API changes** (without discussion first)
-- **Bundle > 20 KB** (unless absolutely justified)
-- **No documentation** (if adding new feature)
-- **Copy-paste from ChatGPT** (without understanding it)
-- **"Fixes" that break demos**
-
-⸻
-
-## 🔥 If You Break Physics
-
-**Document it.**
-
-Example:
-```typescript
-// WARNING: This introduces non-determinism
-// Entities will behave differently on each run
-// Kept for now because it makes things interesting
-const chaos = Math.random() * 0.1
-entity.vx += chaos
-```
-
-We'd rather have a documented mess than a silent bug.
-
-⸻
-
-## 💬 Communication
-
-- **Issues:** For bugs, feature requests, questions
-- **Discussions:** For open-ended ideas, philosophy, experiments
-- **Discord:** (Coming soon, maybe?)
-
-**Be nice. Be curious. Be weird.**
-
-⸻
-
-## 🎁 Recognition
-
-Contributors get:
-- Name in `README.md` (if you want)
-- Eternal gratitude from future users
-- Bragging rights ("I helped make JSON alive")
-
-⸻
-
-## 📜 License
-
-By contributing, you agree your code is licensed under **MIT**.
-
-Use it for good, weird, or experimental stuff. Don't sell fake love.
-
-⸻
-
-**That's it!**
-
-If this feels too formal, it's not. We're just two people in Chiang Mai who made a thing.
-
-Come hang. Build weird stuff. Break things responsibly.
-
-⸻
-
-_Written with coffee and optimism._ ☕✨
+MDS is licensed under the Apache License 2.0. Contributions intentionally submitted to this repository are accepted under the same license unless explicitly stated otherwise.
